@@ -1,0 +1,128 @@
+.game-screen {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.turn-info { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.turn-name { font-weight: 800; color: var(--gold); font-size: 1rem; }
+.cards-left { color: #888; font-size: 0.8rem; }
+.double-rent-badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 20px;
+  animation: pulse 1s infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+.turn-banner {
+  background: var(--accent2);
+  color: #fff;
+  text-align: center;
+  padding: 12px;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.turn-banner.discard { background: #8e2020; }
+.turn-banner .turn-name { color: var(--gold); }
+
+.draw-prompt {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px;
+}
+.deck-visual { font-size: 5rem; animation: float 2s ease-in-out infinite; }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.draw-prompt p { color: #aaa; font-size: 0.95rem; }
+
+.other-players {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  flex-shrink: 0;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.hand-area {
+  flex-shrink: 0;
+  padding: 0 8px;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+}
+
+.action-bar {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  background: var(--bg3);
+  border-top: 1px solid var(--border);
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hint-text { color: #555; font-size: 0.8rem; text-align: center; padding: 10px; }
+
+.play-options { display: flex; flex-direction: column; gap: 6px; }
+.selected-card-name { color: var(--gold); font-size: 0.85rem; font-weight: 700; text-align: center; }
+.play-btn-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn-play {
+  flex: 1;
+  min-width: 120px;
+  background: var(--bg2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+}
+.btn-play:active { background: var(--accent2); }
+.btn-bank { border-color: #27ae60; color: #27ae60; }
+
+.rent-selector { display: flex; flex-direction: column; gap: 8px; }
+.rent-label { color: #aaa; font-size: 0.8rem; }
+.color-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.color-chip {
+  padding: 6px 10px;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 2px solid transparent;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.color-chip.selected { border-color: #fff; }
+.player-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.player-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: var(--bg2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.player-chip.selected { border-color: var(--accent); color: var(--accent); }
+.rent-actions { display: flex; gap: 6px; }
+.rent-actions .btn-primary { flex: 2; }
+.rent-actions .btn-cancel { flex: 1; }
