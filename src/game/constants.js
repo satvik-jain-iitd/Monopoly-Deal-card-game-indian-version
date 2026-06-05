@@ -12,18 +12,19 @@ export const COLORS = {
   WILD: 'wild',
 }
 
+// Official Monopoly Deal colour palette — retained exactly
 export const COLOR_DISPLAY = {
-  brown: { name: 'Brown', hex: '#8B4513', light: '#D2691E' },
-  lightBlue: { name: 'Light Blue', hex: '#87CEEB', light: '#ADD8E6' },
-  pink: { name: 'Pink', hex: '#FF69B4', light: '#FFB6C1' },
-  orange: { name: 'Orange', hex: '#FF8C00', light: '#FFA500' },
-  red: { name: 'Red', hex: '#DC143C', light: '#FF6B6B' },
-  yellow: { name: 'Yellow', hex: '#FFD700', light: '#FFEC8B' },
-  green: { name: 'Green', hex: '#228B22', light: '#90EE90' },
-  darkBlue: { name: 'Dark Blue', hex: '#00008B', light: '#4169E1' },
-  railroad: { name: 'Railroad', hex: '#2C2C2C', light: '#555555' },
-  utility: { name: 'Utility', hex: '#708090', light: '#B0C4DE' },
-  wild: { name: 'Wild', hex: '#9B59B6', light: '#C39BD3' },
+  brown:     { name: 'Brown',      hex: '#955436', light: '#C4845A' },
+  lightBlue: { name: 'Light Blue', hex: '#55C3F0', light: '#9ADDF7' },
+  pink:      { name: 'Pink',       hex: '#D93A96', light: '#F07DC3' },
+  orange:    { name: 'Orange',     hex: '#F7941D', light: '#FAB96A' },
+  red:       { name: 'Red',        hex: '#ED1C24', light: '#F56D72' },
+  yellow:    { name: 'Yellow',     hex: '#FEF200', light: '#FEF880' },
+  green:     { name: 'Green',      hex: '#1FB25A', light: '#6FCE96' },
+  darkBlue:  { name: 'Dark Blue',  hex: '#003F9E', light: '#4A7ECC' },
+  railroad:  { name: 'Station',    hex: '#2C2C2C', light: '#555555' },
+  utility:   { name: 'Utility',    hex: '#5B8B5B', light: '#8EBC8E' },
+  wild:      { name: 'Wild',       hex: '#9B59B6', light: '#C39BD3' },
 }
 
 // Cards needed per set + rent values
@@ -64,14 +65,14 @@ export const ACTION_TYPES = {
 let _cardId = 1
 const id = () => `c${_cardId++}`
 
-function makeProp(color, name, value) {
-  return { id: id(), type: CARD_TYPES.PROPERTY, color, name, value }
+function makeProp(color, name, value, landmark) {
+  return { id: id(), type: CARD_TYPES.PROPERTY, color, name, value, landmark }
 }
 function makeWild(colors, value) {
   return { id: id(), type: CARD_TYPES.WILD_PROPERTY, colors, color: colors[0], value, name: `Wild: ${colors.map(c => COLOR_DISPLAY[c]?.name).join('/')}` }
 }
 function makeMoney(amount) {
-  return { id: id(), type: CARD_TYPES.MONEY, value: amount, name: `$${amount}M` }
+  return { id: id(), type: CARD_TYPES.MONEY, value: amount, name: `₹${amount} Cr` }
 }
 function makeAction(actionType, value, name) {
   return { id: id(), type: CARD_TYPES.ACTION, actionType, value, name }
@@ -83,47 +84,58 @@ function makeRent(colors, value, wild = false) {
 
 export function createDeck() {
   const cards = [
-    // --- PROPERTIES ---
-    makeProp(COLORS.BROWN, 'Mediterranean Ave', 1),
-    makeProp(COLORS.BROWN, 'Baltic Ave', 1),
+    // --- PROPERTIES (Indian Cities — cheap → premium) ---
 
-    makeProp(COLORS.LIGHT_BLUE, 'Oriental Ave', 1),
-    makeProp(COLORS.LIGHT_BLUE, 'Vermont Ave', 1),
-    makeProp(COLORS.LIGHT_BLUE, 'Connecticut Ave', 1),
+    // 🟤 BROWN — Tier-3 on-the-rise (₹1Cr)
+    makeProp(COLORS.BROWN,      'Indore',          1, 'indore'),
+    makeProp(COLORS.BROWN,      'Lucknow',         1, 'lucknow'),
 
-    makeProp(COLORS.PINK, 'St. Charles Place', 2),
-    makeProp(COLORS.PINK, 'States Ave', 2),
-    makeProp(COLORS.PINK, 'Virginia Ave', 2),
+    // 🔵 LIGHT BLUE — Tier-2 livable (₹1Cr)
+    makeProp(COLORS.LIGHT_BLUE, 'Chandigarh',      1, 'chandigarh'),
+    makeProp(COLORS.LIGHT_BLUE, 'Bhopal',          1, 'bhopal'),
+    makeProp(COLORS.LIGHT_BLUE, 'Kochi',           1, 'kochi'),
 
-    makeProp(COLORS.ORANGE, 'St. James Place', 2),
-    makeProp(COLORS.ORANGE, 'Tennessee Ave', 2),
-    makeProp(COLORS.ORANGE, 'New York Ave', 2),
+    // 🟣 PINK — Cultural metros (₹2Cr)
+    makeProp(COLORS.PINK,       'Jaipur',          2, 'jaipur'),
+    makeProp(COLORS.PINK,       'Ahmedabad',       2, 'ahmedabad'),
+    makeProp(COLORS.PINK,       'Kolkata',         2, 'kolkata'),
 
-    makeProp(COLORS.RED, 'Kentucky Ave', 3),
-    makeProp(COLORS.RED, 'Indiana Ave', 3),
-    makeProp(COLORS.RED, 'Illinois Ave', 3),
+    // 🟠 ORANGE — Established metros (₹2Cr)
+    makeProp(COLORS.ORANGE,     'Chennai',         2, 'chennai'),
+    makeProp(COLORS.ORANGE,     'Hyderabad',       2, 'hyderabad'),
+    makeProp(COLORS.ORANGE,     'Noida',           2, 'noida'),
 
-    makeProp(COLORS.YELLOW, 'Atlantic Ave', 3),
-    makeProp(COLORS.YELLOW, 'Ventnor Ave', 3),
-    makeProp(COLORS.YELLOW, 'Marvin Gardens', 3),
+    // 🔴 RED — Major IT hubs (₹3Cr)
+    makeProp(COLORS.RED,        'Pune',            3, 'pune'),
+    makeProp(COLORS.RED,        'Bengaluru',       3, 'bengaluru'),
+    makeProp(COLORS.RED,        'Gurugram',        3, 'gurugram'),
 
-    makeProp(COLORS.GREEN, 'Pacific Ave', 4),
-    makeProp(COLORS.GREEN, 'North Carolina Ave', 4),
-    makeProp(COLORS.GREEN, 'Pennsylvania Ave', 4),
+    // 🟡 YELLOW — Aspirational lifestyle (₹3Cr)
+    makeProp(COLORS.YELLOW,     'Goa',             3, 'goa'),
+    makeProp(COLORS.YELLOW,     'Coimbatore',      3, 'coimbatore'),
+    makeProp(COLORS.YELLOW,     'Vizag',           3, 'vizag'),
 
-    makeProp(COLORS.DARK_BLUE, 'Park Place', 4),
-    makeProp(COLORS.DARK_BLUE, 'Boardwalk', 4),
+    // 🟢 GREEN — Top-tier metros (₹4Cr)
+    makeProp(COLORS.GREEN,      'New Delhi',       4, 'newdelhi'),
+    makeProp(COLORS.GREEN,      'Navi Mumbai',     4, 'navimumbai'),
+    makeProp(COLORS.GREEN,      'Thane',           4, 'thane'),
 
-    makeProp(COLORS.RAILROAD, 'Reading Railroad', 2),
-    makeProp(COLORS.RAILROAD, 'Pennsylvania Railroad', 2),
-    makeProp(COLORS.RAILROAD, 'B&O Railroad', 2),
-    makeProp(COLORS.RAILROAD, 'Short Line Railroad', 2),
+    // 🔵 DARK BLUE — Ultra-premium (₹4Cr)
+    makeProp(COLORS.DARK_BLUE,  'South Mumbai',    4, 'southmumbai'),
+    makeProp(COLORS.DARK_BLUE,  'Lutyens Delhi',   4, 'lutyensdelhi'),
 
-    makeProp(COLORS.UTILITY, 'Electric Company', 2),
-    makeProp(COLORS.UTILITY, 'Water Works', 2),
+    // 🚂 RAILROAD / STATIONS (₹2Cr)
+    makeProp(COLORS.RAILROAD,   'Mumbai Local',    2, 'mumbailocal'),
+    makeProp(COLORS.RAILROAD,   'Delhi Metro',     2, 'delhimetro'),
+    makeProp(COLORS.RAILROAD,   'Namma Metro',     2, 'nammametro'),
+    makeProp(COLORS.RAILROAD,   'Howrah Express',  2, 'howrahexpress'),
+
+    // 💡 UTILITIES (₹2Cr)
+    makeProp(COLORS.UTILITY,    'Power Grid',      2, 'powergrid'),
+    makeProp(COLORS.UTILITY,    'Water Works',     2, 'waterworks'),
 
     // --- WILD PROPERTIES ---
-    makeWild([COLORS.WILD], 0),   // 2x multi-color wild (any color)
+    makeWild([COLORS.WILD], 0),
     makeWild([COLORS.WILD], 0),
     makeWild([COLORS.RAILROAD, COLORS.UTILITY], 2),
     makeWild([COLORS.RAILROAD, COLORS.GREEN], 4),
@@ -169,20 +181,20 @@ export function createDeck() {
     makeAction(ACTION_TYPES.PASS_GO, 1, 'Pass Go'),
     makeAction(ACTION_TYPES.PASS_GO, 1, 'Pass Go'),
 
-    makeAction(ACTION_TYPES.BIRTHDAY, 2, "It's My Birthday"),
-    makeAction(ACTION_TYPES.BIRTHDAY, 2, "It's My Birthday"),
-    makeAction(ACTION_TYPES.BIRTHDAY, 2, "It's My Birthday"),
+    makeAction(ACTION_TYPES.BIRTHDAY, 2, "Mera Birthday!"),
+    makeAction(ACTION_TYPES.BIRTHDAY, 2, "Mera Birthday!"),
+    makeAction(ACTION_TYPES.BIRTHDAY, 2, "Mera Birthday!"),
 
-    makeAction(ACTION_TYPES.JUST_SAY_NO, 4, 'Just Say No'),
-    makeAction(ACTION_TYPES.JUST_SAY_NO, 4, 'Just Say No'),
-    makeAction(ACTION_TYPES.JUST_SAY_NO, 4, 'Just Say No'),
+    makeAction(ACTION_TYPES.JUST_SAY_NO, 4, 'Nahi!'),
+    makeAction(ACTION_TYPES.JUST_SAY_NO, 4, 'Nahi!'),
+    makeAction(ACTION_TYPES.JUST_SAY_NO, 4, 'Nahi!'),
 
-    makeAction(ACTION_TYPES.DOUBLE_RENT, 1, 'Double The Rent'),
-    makeAction(ACTION_TYPES.DOUBLE_RENT, 1, 'Double The Rent'),
+    makeAction(ACTION_TYPES.DOUBLE_RENT, 1, 'Double Rent!'),
+    makeAction(ACTION_TYPES.DOUBLE_RENT, 1, 'Double Rent!'),
 
-    makeAction(ACTION_TYPES.HOUSE, 3, 'House'),
-    makeAction(ACTION_TYPES.HOUSE, 3, 'House'),
-    makeAction(ACTION_TYPES.HOUSE, 3, 'House'),
+    makeAction(ACTION_TYPES.HOUSE, 3, 'Ghar'),
+    makeAction(ACTION_TYPES.HOUSE, 3, 'Ghar'),
+    makeAction(ACTION_TYPES.HOUSE, 3, 'Ghar'),
 
     makeAction(ACTION_TYPES.HOTEL, 4, 'Hotel'),
     makeAction(ACTION_TYPES.HOTEL, 4, 'Hotel'),

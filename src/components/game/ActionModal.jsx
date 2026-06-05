@@ -1,9 +1,44 @@
 import { useState } from 'react'
+import {
+  Box, Button, Chip, List, ListItemButton, ListItemText,
+  Paper, SwipeableDrawer, Typography,
+} from '@mui/material'
+import BlockIcon from '@mui/icons-material/Block'
 import { PHASE } from '../../game/gameLogic'
 import { ACTION_TYPES, COLOR_DISPLAY, CARD_TYPES, PROPERTY_SETS, COLORS } from '../../game/constants'
-import { isSetComplete, collectPayment, getPlayerBankTotal } from '../../game/gameLogic'
+import { isSetComplete, getPlayerBankTotal } from '../../game/gameLogic'
 import Card from './Card'
-import '../../styles/ActionModal.css'
+
+const SheetHandle = () => (
+  <Box sx={{ width: 40, height: 4, backgroundColor: 'divider', borderRadius: 2, mx: 'auto', mt: 1, mb: 0.5 }} />
+)
+
+function BottomSheet({ children, title }) {
+  return (
+    <SwipeableDrawer
+      anchor="bottom"
+      open
+      onClose={() => {}}
+      onOpen={() => {}}
+      disableSwipeToOpen
+      PaperProps={{
+        sx: {
+          borderTopLeftRadius: 20, borderTopRightRadius: 20,
+          maxHeight: '85dvh',
+          pb: 'max(16px, env(safe-area-inset-bottom))',
+        },
+      }}
+    >
+      <SheetHandle />
+      {title && (
+        <Typography variant="subtitle1" sx={{ fontWeight: 800, px: 2.5, pb: 1 }}>
+          {title}
+        </Typography>
+      )}
+      {children}
+    </SwipeableDrawer>
+  )
+}
 
 export default function ActionModal({ state, dispatch, onDone }) {
   const { phase, pendingAction, players, currentPlayerIndex } = state
@@ -13,26 +48,27 @@ export default function ActionModal({ state, dispatch, onDone }) {
   if (phase === PHASE.WILD_COLOR_SELECT) {
     const card = actor.hand.find(c => c.id === pendingAction.cardId)
     const isFullWild = card?.colors?.[0] === COLORS.WILD
-    const colorOptions = isFullWild
-      ? Object.keys(PROPERTY_SETS)
-      : (card?.colors || [])
+    const colorOptions = isFullWild ? Object.keys(PROPERTY_SETS) : (card?.colors || [])
 
     return (
-      <div className="modal-overlay">
-        <div className="modal-box">
-          <h3>Kaunse color mein lagaoge?</h3>
-          <div className="color-grid">
-            {colorOptions.map(color => (
-              <button key={color}
-                className="color-tile"
-                style={{ background: COLOR_DISPLAY[color]?.hex, color: '#fff' }}
-                onClick={() => dispatch({ type: 'SELECT_WILD_COLOR', targetColor: color })}>
-                {COLOR_DISPLAY[color]?.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <BottomSheet title="Kaunse color mein lagaoge?">
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, px: 2.5, pb: 1 }}>
+          {colorOptions.map(color => (
+            <Chip
+              key={color}
+              label={COLOR_DISPLAY[color]?.name}
+              onClick={() => dispatch({ type: 'SELECT_WILD_COLOR', targetColor: color })}
+              sx={{
+                backgroundColor: COLOR_DISPLAY[color]?.hex,
+                color: '#fff',
+                fontWeight: 700, fontSize: '0.8rem',
+                height: 40,
+                '&:hover': { opacity: 0.9 },
+              }}
+            />
+          ))}
+        </Box>
+      </BottomSheet>
     )
   }
 
@@ -43,14 +79,10 @@ export default function ActionModal({ state, dispatch, onDone }) {
     const payerId = payerIds[currentPayerIdx]
     const payer = players[payerId]
     return (
-      <PaymentScreen
-        payer={payer}
-        creditor={actor}
-        amount={amount}
-        dispatch={dispatch}
-        label={`${actor.name} ne rent maanga — $${amount}M do!`}
-        actionType="PAY_DEBT"
-        extraData={{ payerId }}
+      <PaymentSheet
+        payer={payer} creditor={actor} amount={amount} dispatch={dispatch}
+        label={`${actor.name} ne rent maanga — ₹${amount}Cr do!`}
+        actionType="PAY_DEBT" extraData={{ payerId }}
       />
     )
   }
@@ -62,50 +94,42 @@ export default function ActionModal({ state, dispatch, onDone }) {
     const payerId = targetIds[currentTargetIdx]
     const payer = players[payerId]
     return (
-      <PaymentScreen
-        payer={payer}
-        creditor={actor}
-        amount={amountPerPlayer}
-        dispatch={dispatch}
-        label={`${actor.name} ka birthday! Tumhe $${amountPerPlayer}M dena hai!`}
-        actionType="PAY_DEBT"
-        extraData={{ payerId }}
+      <PaymentSheet
+        payer={payer} creditor={actor} amount={amountPerPlayer} dispatch={dispatch}
+        label={`${actor.name} ka birthday! Tumhe ₹${amountPerPlayer}Cr dena hai!`}
+        actionType="PAY_DEBT" extraData={{ payerId }}
       />
     )
   }
 
-  // ── DEBT COLLECTOR — pick target ───────────────────────────────────
+  // ── DEBT COLLECTOR ─────────────────────────────────────────────────
   if (phase === PHASE.ACTION_RESPONSE && pendingAction?.type === ACTION_TYPES.DEBT_COLLECTOR) {
     if (!pendingAction.targetIds) {
       const others = players.filter((_, i) => i !== currentPlayerIndex)
       return (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            <h3>Debt Collector — Kisse $5M loge?</h3>
-            <div className="player-select-list">
-              {others.map(p => (
-                <button key={p.id} className="player-select-btn"
-                  onClick={() => dispatch({ type: 'SELECT_TARGET_PLAYER', targetPlayerId: p.id })}>
-                  {p.name} (Bank: ${getPlayerBankTotal(p)}M)
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <BottomSheet title="Debt Collector — Kisse ₹5Cr loge?">
+          <List dense sx={{ px: 1 }}>
+            {others.map(p => (
+              <ListItemButton key={p.id} sx={{ borderRadius: 2, mb: 0.5 }}
+                onClick={() => dispatch({ type: 'SELECT_TARGET_PLAYER', targetPlayerId: p.id })}>
+                <ListItemText
+                  primary={p.name}
+                  secondary={`Bank: ₹${getPlayerBankTotal(p)}Cr`}
+                  primaryTypographyProps={{ fontWeight: 700 }}
+                />
+              </ListItemButton>
+            ))}
+          </List>
+        </BottomSheet>
       )
     }
-    // Now collect from selected target
     const payerId = pendingAction.targetIds[0]
     const payer = players[payerId]
     return (
-      <PaymentScreen
-        payer={payer}
-        creditor={actor}
-        amount={pendingAction.amount}
-        dispatch={dispatch}
-        label={`${actor.name} collector ban gaya — $${pendingAction.amount}M do!`}
-        actionType="PAY_DEBT"
-        extraData={{ payerId }}
+      <PaymentSheet
+        payer={payer} creditor={actor} amount={pendingAction.amount} dispatch={dispatch}
+        label={`${actor.name} collector ban gaya — ₹${pendingAction.amount}Cr do!`}
+        actionType="PAY_DEBT" extraData={{ payerId }}
       />
     )
   }
@@ -115,30 +139,31 @@ export default function ActionModal({ state, dispatch, onDone }) {
     const eligibleColors = Object.keys(actor.properties).filter(color => {
       if (color === COLORS.RAILROAD || color === COLORS.UTILITY) return false
       const cards = actor.properties[color] || []
-      const complete = isSetComplete(color, cards)
-      const hasHouse = actor.buildings?.[color]?.houses > 0
-      return complete && !hasHouse
+      return isSetComplete(color, cards) && !(actor.buildings?.[color]?.houses > 0)
     })
     return (
-      <div className="modal-overlay">
-        <div className="modal-box">
-          <h3>Kaunse set pe ghar banayenge?</h3>
-          {eligibleColors.length === 0 ? (
-            <p>Koi eligible complete set nahi! (House ke liye complete set chahiye, railroad/utility nahi)</p>
-          ) : (
-            <div className="color-grid">
-              {eligibleColors.map(color => (
-                <button key={color} className="color-tile"
-                  style={{ background: COLOR_DISPLAY[color]?.hex, color: '#fff' }}
-                  onClick={() => dispatch({ type: 'PLACE_HOUSE', color })}>
-                  {COLOR_DISPLAY[color]?.name}
-                </button>
-              ))}
-            </div>
-          )}
-          <button className="btn-cancel mt" onClick={() => dispatch({ type: '_CANCEL_PENDING' })}>Cancel</button>
-        </div>
-      </div>
+      <BottomSheet title="Kaunse set pe ghar banayenge?">
+        {eligibleColors.length === 0 ? (
+          <Typography variant="body2" sx={{ px: 2.5, color: 'text.secondary', pb: 1 }}>
+            Koi eligible complete set nahi! (House ke liye complete set chahiye)
+          </Typography>
+        ) : (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, px: 2.5, pb: 1 }}>
+            {eligibleColors.map(color => (
+              <Chip key={color}
+                label={COLOR_DISPLAY[color]?.name}
+                onClick={() => dispatch({ type: 'PLACE_HOUSE', color })}
+                sx={{ backgroundColor: COLOR_DISPLAY[color]?.hex, color: '#fff', fontWeight: 700, height: 40 }}
+              />
+            ))}
+          </Box>
+        )}
+        <Box sx={{ px: 2.5, pb: 1 }}>
+          <Button variant="outlined" fullWidth onClick={() => dispatch({ type: '_CANCEL_PENDING' })} sx={{ borderRadius: 3 }}>
+            Cancel
+          </Button>
+        </Box>
+      </BottomSheet>
     )
   }
 
@@ -147,32 +172,32 @@ export default function ActionModal({ state, dispatch, onDone }) {
     const eligibleColors = Object.keys(actor.properties).filter(color => {
       if (color === COLORS.RAILROAD || color === COLORS.UTILITY) return false
       const cards = actor.properties[color] || []
-      const complete = isSetComplete(color, cards)
       const hasHouse = actor.buildings?.[color]?.houses > 0
-      const hasHotel = actor.buildings?.[color]?.hotels > 0
-      return complete && hasHouse && !hasHotel
+      return isSetComplete(color, cards) && hasHouse && !(actor.buildings?.[color]?.hotels > 0)
     })
     return (
-      <div className="modal-overlay">
-        <div className="modal-box">
-          <h3>Kaunse set pe hotel banayenge?</h3>
-          <p className="hint">(Pehle ghar chahiye)</p>
-          {eligibleColors.length === 0 ? (
-            <p>Koi eligible set nahi! (Pehle ghar banao)</p>
-          ) : (
-            <div className="color-grid">
-              {eligibleColors.map(color => (
-                <button key={color} className="color-tile"
-                  style={{ background: COLOR_DISPLAY[color]?.hex, color: '#fff' }}
-                  onClick={() => dispatch({ type: 'PLACE_HOTEL', color })}>
-                  {COLOR_DISPLAY[color]?.name}
-                </button>
-              ))}
-            </div>
-          )}
-          <button className="btn-cancel mt" onClick={() => dispatch({ type: '_CANCEL_PENDING' })}>Cancel</button>
-        </div>
-      </div>
+      <BottomSheet title="Kaunse set pe hotel banayenge?">
+        {eligibleColors.length === 0 ? (
+          <Typography variant="body2" sx={{ px: 2.5, color: 'text.secondary', pb: 1 }}>
+            Koi eligible set nahi! (Pehle ghar banao)
+          </Typography>
+        ) : (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, px: 2.5, pb: 1 }}>
+            {eligibleColors.map(color => (
+              <Chip key={color}
+                label={COLOR_DISPLAY[color]?.name}
+                onClick={() => dispatch({ type: 'PLACE_HOTEL', color })}
+                sx={{ backgroundColor: COLOR_DISPLAY[color]?.hex, color: '#fff', fontWeight: 700, height: 40 }}
+              />
+            ))}
+          </Box>
+        )}
+        <Box sx={{ px: 2.5, pb: 1 }}>
+          <Button variant="outlined" fullWidth onClick={() => dispatch({ type: '_CANCEL_PENDING' })} sx={{ borderRadius: 3 }}>
+            Cancel
+          </Button>
+        </Box>
+      </BottomSheet>
     )
   }
 
@@ -180,13 +205,14 @@ export default function ActionModal({ state, dispatch, onDone }) {
   if (phase === PHASE.SLY_DEAL_SELECT) {
     const others = players.filter((_, i) => i !== currentPlayerIndex)
     return (
-      <StolenPropertySelector
+      <StolenPropertySheet
         title="Sly Deal — Kaunsi property churaoge?"
         subtitle="(Incomplete sets se hi chura sakte ho)"
         others={others}
         canSteal={(player, color) => !isSetComplete(color, player.properties[color] || [])}
         onSelect={({ fromPlayerId, cardId, color }) =>
           dispatch({ type: 'SLY_DEAL_STEAL', fromPlayerId, cardId, color })}
+        onCancel={() => dispatch({ type: '_CANCEL_PENDING' })}
       />
     )
   }
@@ -194,10 +220,11 @@ export default function ActionModal({ state, dispatch, onDone }) {
   // ── FORCED DEAL SELECT ─────────────────────────────────────────────
   if (phase === PHASE.FORCED_DEAL_SELECT) {
     return (
-      <ForcedDealSelector
+      <ForcedDealSheet
         currentPlayer={actor}
         others={players.filter((_, i) => i !== currentPlayerIndex)}
         onSwap={(data) => dispatch({ type: 'FORCED_DEAL_SWAP', ...data })}
+        onCancel={() => dispatch({ type: '_CANCEL_PENDING' })}
       />
     )
   }
@@ -208,43 +235,46 @@ export default function ActionModal({ state, dispatch, onDone }) {
     const targets = []
     for (const p of others) {
       for (const [color, cards] of Object.entries(p.properties)) {
-        if (isSetComplete(color, cards)) {
-          targets.push({ player: p, color })
-        }
+        if (isSetComplete(color, cards)) targets.push({ player: p, color })
       }
     }
     return (
-      <div className="modal-overlay">
-        <div className="modal-box">
-          <h3>Deal Breaker — Kaunsa complete set churaoge?</h3>
-          {targets.length === 0 ? (
-            <p>Kisi ke paas koi complete set nahi!</p>
-          ) : (
-            <div className="deal-breaker-list">
-              {targets.map(({ player, color }) => (
-                <button key={`${player.id}-${color}`} className="deal-breaker-btn"
-                  style={{ borderColor: COLOR_DISPLAY[color]?.hex }}
-                  onClick={() => dispatch({ type: 'DEAL_BREAKER_STEAL', fromPlayerId: player.id, color })}>
-                  <span style={{ color: COLOR_DISPLAY[color]?.hex }}>■</span> {player.name} ka {COLOR_DISPLAY[color]?.name} set
-                </button>
-              ))}
-            </div>
-          )}
-          <button className="btn-cancel mt" onClick={() => dispatch({ type: '_CANCEL_PENDING' })}>Cancel</button>
-        </div>
-      </div>
+      <BottomSheet title="Deal Breaker — Kaunsa complete set churaoge?">
+        {targets.length === 0 ? (
+          <Typography variant="body2" sx={{ px: 2.5, color: 'text.secondary', pb: 1 }}>
+            Kisi ke paas koi complete set nahi!
+          </Typography>
+        ) : (
+          <List dense sx={{ px: 1, overflow: 'auto', maxHeight: '50dvh' }}>
+            {targets.map(({ player, color }) => (
+              <ListItemButton key={`${player.id}-${color}`} sx={{ borderRadius: 2, mb: 0.5, border: `2px solid ${COLOR_DISPLAY[color]?.hex}` }}
+                onClick={() => dispatch({ type: 'DEAL_BREAKER_STEAL', fromPlayerId: player.id, color })}>
+                <Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: COLOR_DISPLAY[color]?.hex, mr: 1, flexShrink: 0 }} />
+                <ListItemText
+                  primary={`${player.name} ka ${COLOR_DISPLAY[color]?.name} set`}
+                  primaryTypographyProps={{ fontWeight: 700, fontSize: '0.85rem' }}
+                />
+              </ListItemButton>
+            ))}
+          </List>
+        )}
+        <Box sx={{ px: 2.5, pb: 1 }}>
+          <Button variant="outlined" fullWidth onClick={() => dispatch({ type: '_CANCEL_PENDING' })} sx={{ borderRadius: 3 }}>
+            Cancel
+          </Button>
+        </Box>
+      </BottomSheet>
     )
   }
 
   return null
 }
 
-// ── PAYMENT SCREEN ─────────────────────────────────────────────────
-function PaymentScreen({ payer, creditor, amount, dispatch, label, actionType, extraData }) {
+// ── PAYMENT SHEET ──────────────────────────────────────────────────
+function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, extraData }) {
   const [selectedAssets, setSelectedAssets] = useState([])
   const [passConfirmed, setPassConfirmed] = useState(false)
 
-  const bankTotal = payer.bank.reduce((s, c) => s + c.value, 0)
   const allAssets = [
     ...payer.bank.map(c => ({ ...c, _from: 'bank', _color: null })),
     ...Object.entries(payer.properties).flatMap(([color, cards]) =>
@@ -262,52 +292,75 @@ function PaymentScreen({ payer, creditor, amount, dispatch, label, actionType, e
 
   if (!passConfirmed) {
     return (
-      <div className="modal-overlay">
-        <div className="modal-box">
-          <p className="pass-prompt">📱 Device do <strong>{payer.name}</strong> ko</p>
-          <button className="btn-primary" onClick={() => setPassConfirmed(true)}>
+      <BottomSheet>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, px: 2.5, pb: 1, textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            📱 Device do <Box component="span" sx={{ color: 'primary.main' }}>{payer.name}</Box> ko
+          </Typography>
+          <Button variant="contained" size="large" fullWidth
+            sx={{ borderRadius: 3, fontWeight: 800 }}
+            onClick={() => setPassConfirmed(true)}>
             Main {payer.name} hoon — Ready!
-          </button>
-        </div>
-      </div>
+          </Button>
+        </Box>
+      </BottomSheet>
     )
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-box payment-box">
-        <h3>{label}</h3>
-        <p className="payment-info">
-          Selected: ${totalSelected}M / ${amount}M needed
-          {totalSelected >= amount && <span className="payment-ok"> ✓</span>}
-        </p>
+    <BottomSheet title={label}>
+      <Box sx={{ px: 2.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+          <Chip
+            label={`₹${totalSelected}Cr / ₹${amount}Cr`}
+            color={totalSelected >= amount ? 'success' : 'default'}
+            sx={{ fontWeight: 700 }}
+          />
+          {jsnCard && (
+            <Button
+              variant="contained" color="error" size="small"
+              startIcon={<BlockIcon />}
+              sx={{ borderRadius: 3, fontWeight: 800, ml: 'auto' }}
+              onClick={() => dispatch({ type: 'JUST_SAY_NO', playerId: payer.id, jsnCardId: jsnCard.id })}>
+              Nahi!
+            </Button>
+          )}
+        </Box>
 
-        {jsnCard && (
-          <button className="btn-jsn"
-            onClick={() => dispatch({ type: 'JUST_SAY_NO', playerId: payer.id, jsnCardId: jsnCard.id })}>
-            🚫 Just Say No!
-          </button>
-        )}
-
-        <div className="asset-label">Apni assets select karo:</div>
-        <div className="asset-grid">
+        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+          Apni assets select karo:
+        </Typography>
+        <Box sx={{
+          display: 'flex', flexWrap: 'wrap', gap: 0.75, maxHeight: '30dvh',
+          overflowY: 'auto', pb: 1,
+        }}>
           {allAssets.map(asset => {
             const sel = !!selectedAssets.find(a => a.id === asset.id)
             return (
-              <div key={asset.id}
-                className={`asset-item ${sel ? 'selected' : ''}`}
-                onClick={() => toggleAsset(asset)}>
+              <Box key={asset.id} onClick={() => toggleAsset(asset)}
+                sx={{
+                  cursor: 'pointer',
+                  outline: sel ? '2px solid #E65100' : '2px solid transparent',
+                  outlineOffset: '2px',
+                  borderRadius: '10px',
+                  transform: sel ? 'translateY(-4px)' : 'none',
+                  transition: 'all 150ms ease',
+                }}>
                 <Card card={asset} mini />
-                <div className="asset-val">${asset.value}M</div>
-              </div>
+              </Box>
             )
           })}
-          {allAssets.length === 0 && <p className="no-assets">Koi asset nahi — seedha pass!</p>}
-        </div>
+          {allAssets.length === 0 && (
+            <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+              Koi asset nahi — seedha pass!
+            </Typography>
+          )}
+        </Box>
 
-        <button
-          className="btn-primary"
+        <Button
+          variant="contained" fullWidth size="large"
           disabled={totalSelected < amount && allAssets.length > 0}
+          sx={{ borderRadius: 3, fontWeight: 800, mt: 0.5 }}
           onClick={() => {
             dispatch({
               type: actionType,
@@ -317,15 +370,15 @@ function PaymentScreen({ payer, creditor, amount, dispatch, label, actionType, e
               ...extraData,
             })
           }}>
-          {allAssets.length === 0 ? 'Pass (kuch nahi hai)' : `Pay $${Math.min(totalSelected, amount)}M`}
-        </button>
-      </div>
-    </div>
+          {allAssets.length === 0 ? 'Pass (kuch nahi hai)' : `Pay ₹${Math.min(totalSelected, amount)}Cr`}
+        </Button>
+      </Box>
+    </BottomSheet>
   )
 }
 
-// ── STOLEN PROPERTY SELECTOR ───────────────────────────────────────
-function StolenPropertySelector({ title, subtitle, others, canSteal, onSelect }) {
+// ── STOLEN PROPERTY SHEET ──────────────────────────────────────────
+function StolenPropertySheet({ title, subtitle, others, canSteal, onSelect, onCancel }) {
   const [selectedPlayer, setSelectedPlayer] = useState(null)
 
   const stealableProps = selectedPlayer
@@ -335,37 +388,44 @@ function StolenPropertySelector({ title, subtitle, others, canSteal, onSelect })
     : []
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-box">
-        <h3>{title}</h3>
-        {subtitle && <p className="hint">{subtitle}</p>}
-        <div className="player-select-list">
+    <BottomSheet title={title}>
+      {subtitle && <Typography variant="caption" sx={{ color: 'text.secondary', px: 2.5, display: 'block', mb: 1 }}>{subtitle}</Typography>}
+      <Box sx={{ px: 2.5 }}>
+        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
           {others.map(p => (
-            <button key={p.id}
-              className={`player-select-btn ${selectedPlayer?.id === p.id ? 'active' : ''}`}
-              onClick={() => setSelectedPlayer(p)}>
-              {p.name}
-            </button>
+            <Chip key={p.id} label={p.name}
+              onClick={() => setSelectedPlayer(p)}
+              color={selectedPlayer?.id === p.id ? 'primary' : 'default'}
+              variant={selectedPlayer?.id === p.id ? 'filled' : 'outlined'}
+              sx={{ fontWeight: 700 }}
+            />
           ))}
-        </div>
+        </Box>
         {selectedPlayer && (
-          <div className="stealable-grid">
-            {stealableProps.length === 0 && <p>Koi stealable property nahi</p>}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+            {stealableProps.length === 0 && (
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                Koi stealable property nahi
+              </Typography>
+            )}
             {stealableProps.map(({ card, color }) => (
-              <div key={card.id} className="stealable-item"
+              <Box key={card.id} sx={{ cursor: 'pointer', borderRadius: '10px', '&:hover': { opacity: 0.8 } }}
                 onClick={() => onSelect({ fromPlayerId: selectedPlayer.id, cardId: card.id, color })}>
                 <Card card={card} />
-              </div>
+              </Box>
             ))}
-          </div>
+          </Box>
         )}
-      </div>
-    </div>
+        <Button variant="outlined" fullWidth onClick={onCancel} sx={{ borderRadius: 3 }}>
+          Cancel
+        </Button>
+      </Box>
+    </BottomSheet>
   )
 }
 
-// ── FORCED DEAL SELECTOR ───────────────────────────────────────────
-function ForcedDealSelector({ currentPlayer, others, onSwap }) {
+// ── FORCED DEAL SHEET ──────────────────────────────────────────────
+function ForcedDealSheet({ currentPlayer, others, onSwap, onCancel }) {
   const [myColor, setMyColor] = useState(null)
   const [myCardId, setMyCardId] = useState(null)
   const [theirPlayer, setTheirPlayer] = useState(null)
@@ -381,62 +441,76 @@ function ForcedDealSelector({ currentPlayer, others, onSwap }) {
         .flatMap(([color, cards]) => cards.map(c => ({ card: c, color })))
     : []
 
-  const ready = myCardId && theirCardId
-
   return (
-    <div className="modal-overlay">
-      <div className="modal-box">
-        <h3>Forced Deal — Property Swap Karo</h3>
+    <BottomSheet title="Forced Deal — Property Swap Karo">
+      <Box sx={{ px: 2.5, overflow: 'auto', maxHeight: '70dvh' }}>
+        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+          Tumhari property (dogi):
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+          {myProps.map(({ card, color }) => (
+            <Box key={card.id}
+              onClick={() => { setMyCardId(card.id); setMyColor(color) }}
+              sx={{
+                cursor: 'pointer', borderRadius: '10px',
+                outline: myCardId === card.id ? '2px solid #E65100' : '2px solid transparent',
+                outlineOffset: '2px',
+                transform: myCardId === card.id ? 'translateY(-4px)' : 'none',
+                transition: 'all 150ms ease',
+              }}>
+              <Card card={card} />
+            </Box>
+          ))}
+        </Box>
 
-        <div className="fd-section">
-          <p className="fd-label">Tumhari property (dogi):</p>
-          <div className="stealable-grid">
-            {myProps.map(({ card, color }) => (
-              <div key={card.id}
-                className={`stealable-item ${myCardId === card.id ? 'selected' : ''}`}
-                onClick={() => { setMyCardId(card.id); setMyColor(color) }}>
+        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+          Kissa property loge?
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1 }}>
+          {others.map(p => (
+            <Chip key={p.id} label={p.name}
+              onClick={() => setTheirPlayer(p)}
+              color={theirPlayer?.id === p.id ? 'primary' : 'default'}
+              variant={theirPlayer?.id === p.id ? 'filled' : 'outlined'}
+              sx={{ fontWeight: 700 }}
+            />
+          ))}
+        </Box>
+        {theirPlayer && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+            {theirProps.length === 0 && (
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                Koi stealable property nahi
+              </Typography>
+            )}
+            {theirProps.map(({ card, color }) => (
+              <Box key={card.id}
+                onClick={() => { setTheirCardId(card.id); setTheirColor(color) }}
+                sx={{
+                  cursor: 'pointer', borderRadius: '10px',
+                  outline: theirCardId === card.id ? '2px solid #E65100' : '2px solid transparent',
+                  outlineOffset: '2px',
+                  transform: theirCardId === card.id ? 'translateY(-4px)' : 'none',
+                  transition: 'all 150ms ease',
+                }}>
                 <Card card={card} />
-              </div>
+              </Box>
             ))}
-          </div>
-        </div>
+          </Box>
+        )}
 
-        <div className="fd-section">
-          <p className="fd-label">Kissa property loge?</p>
-          <div className="player-select-list">
-            {others.map(p => (
-              <button key={p.id}
-                className={`player-select-btn ${theirPlayer?.id === p.id ? 'active' : ''}`}
-                onClick={() => setTheirPlayer(p)}>
-                {p.name}
-              </button>
-            ))}
-          </div>
-          {theirPlayer && (
-            <div className="stealable-grid">
-              {theirProps.length === 0 && <p>Koi stealable property nahi</p>}
-              {theirProps.map(({ card, color }) => (
-                <div key={card.id}
-                  className={`stealable-item ${theirCardId === card.id ? 'selected' : ''}`}
-                  onClick={() => { setTheirCardId(card.id); setTheirColor(color) }}>
-                  <Card card={card} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <button
-          className="btn-primary"
-          disabled={!ready}
-          onClick={() => onSwap({
-            fromPlayerId: theirPlayer.id,
-            theirCardId, theirColor,
-            myCardId, myColor,
-          })}>
-          Swap Karo!
-        </button>
-      </div>
-    </div>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="contained" flex={1} size="large"
+            disabled={!myCardId || !theirCardId}
+            sx={{ borderRadius: 3, fontWeight: 800, flex: 1 }}
+            onClick={() => onSwap({ fromPlayerId: theirPlayer.id, theirCardId, theirColor, myCardId, myColor })}>
+            Swap Karo!
+          </Button>
+          <Button variant="outlined" onClick={onCancel} sx={{ borderRadius: 3 }}>
+            Cancel
+          </Button>
+        </Box>
+      </Box>
+    </BottomSheet>
   )
 }

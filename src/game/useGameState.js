@@ -83,7 +83,7 @@ function gameReducer(state, action) {
           player.hand.splice(cardIdx, 1)
           s.discard.push(card)
           s.cardsPlayedThisTurn++
-          s.log.push(`${player.name} ka birthday hai! Sabko $2M dena hoga.`)
+          s.log.push(`${player.name} ka birthday hai! Sabko ₹2Cr dena hoga.`)
           s.phase = PHASE.ACTION_RESPONSE
           s.pendingAction = {
             type: ACTION_TYPES.BIRTHDAY,
@@ -185,7 +185,7 @@ function gameReducer(state, action) {
         ? (targetPlayerId !== undefined ? [targetPlayerId] : [])
         : s.players.map((_, i) => i).filter(i => i !== s.currentPlayerIndex)
 
-      s.log.push(`${player.name} ne ${targetColor} ka rent maanga — $${rentAmount}M!`)
+      s.log.push(`${player.name} ne ${targetColor} ka rent maanga — ₹${rentAmount}Cr!`)
       s.phase = PHASE.RENT_COLLECT
       s.pendingAction = {
         type: 'rent',
@@ -218,7 +218,7 @@ function gameReducer(state, action) {
       const creditorId = pa.actingPlayerId
       s = applyPayment(s, payerId, creditorId, payerCards)
 
-      const log = `${s.players[payerId].name} ne $${payerCards.reduce((a,c) => a+c.value,0)}M diya.`
+      const log = `${s.players[payerId].name} ne ₹${payerCards.reduce((a,c) => a+c.value,0)}Cr diya.`
       s.log.push(log)
 
       // Move to next payer
