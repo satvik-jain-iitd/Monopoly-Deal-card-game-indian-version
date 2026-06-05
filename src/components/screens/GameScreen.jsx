@@ -1,31 +1,33 @@
 import { useState } from 'react'
+import {
+  AppBar, Box, Button, Chip, IconButton, Paper, Toolbar, Typography,
+} from '@mui/material'
+import HomeIcon from '@mui/icons-material/Home'
+import ListAltIcon from '@mui/icons-material/ListAlt'
 import { PHASE } from '../../game/gameLogic'
-import { CARD_TYPES, ACTION_TYPES, COLOR_DISPLAY, PROPERTY_SETS, COLORS } from '../../game/constants'
-import { isSetComplete, countCompleteSets, getRentForColor } from '../../game/gameLogic'
+import { CARD_TYPES, ACTION_TYPES, COLOR_DISPLAY } from '../../game/constants'
+import { getRentForColor } from '../../game/gameLogic'
 import PlayerBoard from '../game/PlayerBoard'
 import CardHand from '../game/CardHand'
 import ActionModal from '../game/ActionModal'
 import GameLog from '../game/GameLog'
 import WinScreen from '../game/WinScreen'
 import PassDeviceModal from '../game/PassDeviceModal'
-import '../../styles/GameScreen.css'
 
 export default function GameScreen({ state, dispatch, onHome }) {
   const [showLog, setShowLog] = useState(false)
-  const [showPassModal, setShowPassModal] = useState(false)
   const [passConfirmed, setPassConfirmed] = useState(false)
   const [selectedCard, setSelectedCard] = useState(null)
-  const [selectedAction, setSelectedAction] = useState(null) // { type, data }
+  const [selectedAction, setSelectedAction] = useState(null)
 
   const currentPlayer = state.players[state.currentPlayerIndex]
-  const isMyTurn = !showPassModal && passConfirmed
 
   // ── GAME OVER ──────────────────────────────────────────────────────
   if (state.phase === PHASE.GAME_OVER) {
     return <WinScreen winner={state.winner} players={state.players} onHome={onHome} />
   }
 
-  // ── PASS DEVICE SCREEN ─────────────────────────────────────────────
+  // ── PASS DEVICE ────────────────────────────────────────────────────
   if (!passConfirmed) {
     return (
       <PassDeviceModal
@@ -38,18 +40,22 @@ export default function GameScreen({ state, dispatch, onHome }) {
   // ── DRAW PHASE ─────────────────────────────────────────────────────
   if (state.phase === PHASE.DRAW) {
     return (
-      <div className="game-screen">
-        <div className="turn-banner">
-          <span className="turn-name">{currentPlayer.name}</span> ki baari!
-        </div>
-        <div className="draw-prompt">
-          <div className="deck-visual">🃏</div>
-          <p>{currentPlayer.hand.length === 0 ? '5 cards draw karo!' : '2 cards draw karo!'}</p>
-          <button className="btn-primary btn-large" onClick={() => dispatch({ type: 'START_TURN' })}>
-            Cards Draw Karo
-          </button>
-        </div>
-      </div>
+      <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default', gap: 2, px: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 800, textAlign: 'center' }}>
+          <Box component="span" sx={{ color: 'primary.main' }}>{currentPlayer.name}</Box> ki baari!
+        </Typography>
+        <Typography sx={{ fontSize: '3.5rem', lineHeight: 1 }}>🃏</Typography>
+        <Typography variant="body1" sx={{ color: 'text.secondary', textAlign: 'center' }}>
+          {currentPlayer.hand.length === 0 ? '5 cards draw karo!' : '2 cards draw karo!'}
+        </Typography>
+        <Button
+          variant="contained" size="large"
+          onClick={() => dispatch({ type: 'START_TURN' })}
+          sx={{ borderRadius: 3, px: 4, py: 1.5, fontWeight: 800, fontSize: '1rem', mt: 1 }}
+        >
+          Cards Draw Karo
+        </Button>
+      </Box>
     )
   }
 
@@ -57,28 +63,32 @@ export default function GameScreen({ state, dispatch, onHome }) {
   if (state.phase === PHASE.DISCARD) {
     const excess = currentPlayer.hand.length - 7
     return (
-      <div className="game-screen">
-        <div className="turn-banner discard">
-          {excess > 0 ? `${excess} card(s) discard karo (max 7)` : 'Discard complete!'}
-        </div>
-        <CardHand
-          cards={currentPlayer.hand}
-          selectable
-          onCardClick={(card) => {
-            if (excess > 0) dispatch({ type: 'DISCARD_CARD', cardId: card.id })
-          }}
-          label="Kaunsa card haटaoge?"
-        />
+      <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', backgroundColor: 'background.default' }}>
+        <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+          <Chip
+            label={excess > 0 ? `${excess} card(s) discard karo (max 7)` : 'Discard complete!'}
+            color={excess > 0 ? 'error' : 'success'}
+            sx={{ fontWeight: 700 }}
+          />
+        </Box>
+        <Box sx={{ flex: 1, overflow: 'auto' }}>
+          <CardHand
+            cards={currentPlayer.hand}
+            selectable
+            onCardClick={(card) => excess > 0 && dispatch({ type: 'DISCARD_CARD', cardId: card.id })}
+            label="Kaunsa card hatoge?"
+          />
+        </Box>
         {excess <= 0 && (
-          <button className="btn-primary" onClick={() => {
-            dispatch({ type: 'END_TURN' })
-            setPassConfirmed(false)
-            setSelectedCard(null)
-          }}>
-            Turn Khatam
-          </button>
+          <Box sx={{ px: 2, py: 1.5, pb: 'max(16px, env(safe-area-inset-bottom))' }}>
+            <Button variant="contained" fullWidth size="large"
+              sx={{ borderRadius: 3, fontWeight: 800 }}
+              onClick={() => { dispatch({ type: 'END_TURN' }); setPassConfirmed(false); setSelectedCard(null) }}>
+              Turn Khatam
+            </Button>
+          </Box>
         )}
-      </div>
+      </Box>
     )
   }
 
@@ -90,10 +100,7 @@ export default function GameScreen({ state, dispatch, onHome }) {
       <ActionModal
         state={state}
         dispatch={dispatch}
-        onDone={() => {
-          setSelectedCard(null)
-          setSelectedAction(null)
-        }}
+        onDone={() => { setSelectedCard(null); setSelectedAction(null) }}
       />
     )
   }
@@ -107,51 +114,50 @@ export default function GameScreen({ state, dispatch, onHome }) {
     setSelectedAction(null)
   }
 
-  function handlePlayCard() {
-    if (!selectedCard) return
-    const card = selectedCard
-    setSelectedCard(null)
-
-    if (card.type === CARD_TYPES.MONEY || card.type === CARD_TYPES.ACTION &&
-      [ACTION_TYPES.JUST_SAY_NO, ACTION_TYPES.DOUBLE_RENT].includes(card.actionType)) {
-      // Money & some actions can go to bank
-      setSelectedAction({ type: 'choose', card })
-    } else if (card.type === CARD_TYPES.PROPERTY || card.type === CARD_TYPES.WILD_PROPERTY) {
-      dispatch({ type: 'PLAY_PROPERTY', cardId: card.id })
-    } else if (card.type === CARD_TYPES.ACTION) {
-      dispatch({ type: 'PLAY_ACTION', cardId: card.id })
-    } else if (card.type === CARD_TYPES.RENT) {
-      setSelectedAction({ type: 'rent', card })
-    }
-  }
-
   return (
-    <div className="game-screen">
-      {/* Header */}
-      <div className="game-header">
-        <button className="btn-icon" onClick={() => setShowLog(!showLog)}>📋</button>
-        <div className="turn-info">
-          <span className="turn-name">{currentPlayer.name}</span>
-          <span className="cards-left"> · {cardsLeft} plays left</span>
-          {state.doubleRentActive && <span className="double-rent-badge">2x RENT!</span>}
-        </div>
-        <button className="btn-icon" onClick={onHome}>🏠</button>
-      </div>
+    <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', backgroundColor: 'background.default', overflow: 'hidden' }}>
+      {/* AppBar */}
+      <AppBar position="static" elevation={1} sx={{ backgroundColor: 'background.paper' }}>
+        <Toolbar sx={{ minHeight: '48px !important', gap: 1 }}>
+          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
+            <Chip
+              label={currentPlayer.name}
+              color="primary"
+              size="small"
+              sx={{ fontWeight: 700, maxWidth: 100, overflow: 'hidden' }}
+            />
+            <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+              {cardsLeft} plays left
+            </Typography>
+            {state.doubleRentActive && (
+              <Chip label="2× RENT!" color="warning" size="small" sx={{ fontWeight: 800, animation: 'pulse 1s infinite', '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.6 } } }} />
+            )}
+          </Box>
+          <IconButton size="small" onClick={() => setShowLog(!showLog)} sx={{ color: 'text.secondary' }}>
+            <ListAltIcon fontSize="small" />
+          </IconButton>
+          <IconButton size="small" onClick={onHome} sx={{ color: 'text.secondary' }}>
+            <HomeIcon fontSize="small" />
+          </IconButton>
+        </Toolbar>
+      </AppBar>
 
       {showLog && <GameLog logs={state.log} onClose={() => setShowLog(false)} />}
 
-      {/* Other players' boards (collapsed) */}
-      <div className="other-players">
+      {/* Opponent boards */}
+      <Box sx={{ px: 1, pt: 0.5, flexShrink: 0 }}>
         {otherPlayers.map(p => (
           <PlayerBoard key={p.id} player={p} compact />
         ))}
-      </div>
+      </Box>
 
-      {/* Current player's full board */}
-      <PlayerBoard player={currentPlayer} full />
+      {/* Current player board */}
+      <Box sx={{ flexShrink: 0 }}>
+        <PlayerBoard player={currentPlayer} />
+      </Box>
 
       {/* Hand */}
-      <div className="hand-area">
+      <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', pb: 0.5 }}>
         <CardHand
           cards={currentPlayer.hand}
           selectable
@@ -159,16 +165,21 @@ export default function GameScreen({ state, dispatch, onHome }) {
           onCardClick={handleCardSelect}
           label={`Haath mein ${currentPlayer.hand.length} cards`}
         />
-      </div>
+      </Box>
 
       {/* Action bar */}
-      <div className="action-bar">
+      <Paper elevation={4} sx={{
+        borderTopLeftRadius: 16, borderTopRightRadius: 16,
+        px: 1.5, pt: 1.5,
+        pb: 'max(12px, env(safe-area-inset-bottom))',
+        flexShrink: 0, minHeight: 72,
+      }}>
         {selectedCard && !selectedAction && (
           <PlayOptions
             card={selectedCard}
-            onPlayAsProperty={() => dispatch({ type: 'PLAY_PROPERTY', cardId: selectedCard.id }) || setSelectedCard(null)}
-            onPlayAsMoney={() => dispatch({ type: 'PLAY_AS_MONEY', cardId: selectedCard.id }) || setSelectedCard(null)}
-            onPlayAction={() => dispatch({ type: 'PLAY_ACTION', cardId: selectedCard.id }) || setSelectedCard(null)}
+            onPlayAsProperty={() => { dispatch({ type: 'PLAY_PROPERTY', cardId: selectedCard.id }); setSelectedCard(null) }}
+            onPlayAsMoney={() => { dispatch({ type: 'PLAY_AS_MONEY', cardId: selectedCard.id }); setSelectedCard(null) }}
+            onPlayAction={() => { dispatch({ type: 'PLAY_ACTION', cardId: selectedCard.id }); setSelectedCard(null) }}
             onPlayRent={() => setSelectedAction({ type: 'rent', card: selectedCard })}
             onCancel={() => setSelectedCard(null)}
           />
@@ -182,34 +193,37 @@ export default function GameScreen({ state, dispatch, onHome }) {
             doubleRentActive={state.doubleRentActive}
             onPlay={(targetColor, targetPlayerId) => {
               dispatch({ type: 'PLAY_RENT', cardId: selectedAction.card.id, targetColor, targetPlayerId })
-              setSelectedAction(null)
+              setSelectedAction(null); setSelectedCard(null)
             }}
             onCancel={() => setSelectedAction(null)}
           />
         )}
-        {!selectedCard && !selectedAction && cardsLeft > 0 && (
-          <p className="hint-text">Ek card select karo play karne ke liye</p>
+        {!selectedCard && !selectedAction && (
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {cardsLeft > 0 ? (
+              <>
+                <Typography variant="caption" sx={{ color: 'text.disabled', flex: 1 }}>
+                  Ek card select karo play karne ke liye
+                </Typography>
+                {currentPlayer.hand.length > 0 && (
+                  <Button size="small" variant="outlined" color="inherit"
+                    sx={{ borderRadius: 3, fontSize: '0.72rem', whiteSpace: 'nowrap' }}
+                    onClick={() => { dispatch({ type: 'END_TURN' }); setPassConfirmed(false); setSelectedCard(null) }}>
+                    Turn End Karo
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Button variant="contained" fullWidth size="large"
+                sx={{ borderRadius: 3, fontWeight: 800 }}
+                onClick={() => { dispatch({ type: 'END_TURN' }); setPassConfirmed(false); setSelectedCard(null) }}>
+                Turn Khatam → Pass Karo
+              </Button>
+            )}
+          </Box>
         )}
-        {!selectedCard && !selectedAction && cardsLeft <= 0 && (
-          <button className="btn-primary" onClick={() => {
-            dispatch({ type: 'END_TURN' })
-            setPassConfirmed(false)
-            setSelectedCard(null)
-          }}>
-            Turn Khatam → Pass Karo
-          </button>
-        )}
-        {!selectedCard && !selectedAction && cardsLeft > 0 && currentPlayer.hand.length > 0 && (
-          <button className="btn-secondary" onClick={() => {
-            dispatch({ type: 'END_TURN' })
-            setPassConfirmed(false)
-            setSelectedCard(null)
-          }}>
-            Turn End Karo
-          </button>
-        )}
-      </div>
-    </div>
+      </Paper>
+    </Box>
   )
 }
 
@@ -220,37 +234,41 @@ function PlayOptions({ card, onPlayAsProperty, onPlayAsMoney, onPlayAction, onPl
   const isRent = card.type === CARD_TYPES.RENT
 
   return (
-    <div className="play-options">
-      <p className="selected-card-name">{card.name} — kya karna hai?</p>
-      <div className="play-btn-row">
+    <Box>
+      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1, fontWeight: 600 }}>
+        {card.name} — kya karna hai?
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
         {isProperty && (
-          <button className="btn-play" onClick={onPlayAsProperty}>
+          <Button size="small" variant="contained" onClick={onPlayAsProperty} sx={{ borderRadius: 3, fontWeight: 700, fontSize: '0.72rem' }}>
             🏠 Property Lagao
-          </button>
+          </Button>
         )}
         {isRent && (
-          <button className="btn-play" onClick={onPlayRent}>
+          <Button size="small" variant="contained" onClick={onPlayRent} sx={{ borderRadius: 3, fontWeight: 700, fontSize: '0.72rem' }}>
             💰 Rent Maango
-          </button>
+          </Button>
         )}
         {isAction && (
-          <button className="btn-play" onClick={onPlayAction}>
+          <Button size="small" variant="contained" onClick={onPlayAction} sx={{ borderRadius: 3, fontWeight: 700, fontSize: '0.72rem' }}>
             ⚡ Action Khelo
-          </button>
+          </Button>
         )}
         {!isMoney && (
-          <button className="btn-play btn-bank" onClick={onPlayAsMoney}>
-            🏦 Bank Mein Daalo (${card.value}M)
-          </button>
+          <Button size="small" variant="outlined" color="success" onClick={onPlayAsMoney} sx={{ borderRadius: 3, fontWeight: 700, fontSize: '0.72rem' }}>
+            🏦 Bank (₹{card.value}Cr)
+          </Button>
         )}
         {isMoney && (
-          <button className="btn-play" onClick={onPlayAsMoney}>
+          <Button size="small" variant="contained" color="success" onClick={onPlayAsMoney} sx={{ borderRadius: 3, fontWeight: 700, fontSize: '0.72rem' }}>
             🏦 Bank Mein Daalo
-          </button>
+          </Button>
         )}
-        <button className="btn-cancel" onClick={onCancel}>Cancel</button>
-      </div>
-    </div>
+        <Button size="small" variant="text" color="inherit" onClick={onCancel} sx={{ borderRadius: 3, fontSize: '0.72rem' }}>
+          Cancel
+        </Button>
+      </Box>
+    </Box>
   )
 }
 
@@ -273,48 +291,60 @@ function RentSelector({ card, currentPlayer, allPlayers, currentIdx, doubleRentA
   }
 
   return (
-    <div className="rent-selector">
-      <p className="rent-label">Kaunse color ka rent maangoge?</p>
-      <div className="color-chips">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+        Kaunse color ka rent maangoge?
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
         {eligibleColors.map(color => (
-          <button
+          <Chip
             key={color}
-            className={`color-chip ${selectedColor === color ? 'selected' : ''}`}
-            style={{ background: COLOR_DISPLAY[color]?.hex || '#888' }}
+            label={`${COLOR_DISPLAY[color]?.name} ₹${getRent(color)}Cr`}
             onClick={() => setSelectedColor(color)}
-          >
-            {COLOR_DISPLAY[color]?.name} (${getRent(color)}M)
-          </button>
+            sx={{
+              backgroundColor: selectedColor === color ? COLOR_DISPLAY[color]?.hex : 'transparent',
+              color: selectedColor === color ? '#fff' : COLOR_DISPLAY[color]?.hex,
+              border: `2px solid ${COLOR_DISPLAY[color]?.hex}`,
+              fontWeight: 700, fontSize: '0.65rem',
+              '&:hover': { backgroundColor: COLOR_DISPLAY[color]?.hex, color: '#fff' },
+            }}
+          />
         ))}
-      </div>
+      </Box>
 
       {card.wild && selectedColor && (
         <>
-          <p className="rent-label">Kisse rent maangoge?</p>
-          <div className="player-chips">
+          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+            Kisse rent maangoge?
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
             {otherPlayers.map(p => (
-              <button
+              <Chip
                 key={p.id}
-                className={`player-chip ${selectedTarget === p.id ? 'selected' : ''}`}
+                label={p.name}
                 onClick={() => setSelectedTarget(p.id)}
-              >
-                {p.name}
-              </button>
+                color={selectedTarget === p.id ? 'primary' : 'default'}
+                variant={selectedTarget === p.id ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 700 }}
+              />
             ))}
-          </div>
+          </Box>
         </>
       )}
 
-      <div className="rent-actions">
-        <button
-          className="btn-primary"
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <Button
+          variant="contained" size="small"
           disabled={!selectedColor || (card.wild && selectedTarget === null)}
           onClick={() => onPlay(selectedColor, selectedTarget)}
+          sx={{ borderRadius: 3, fontWeight: 800, flex: 1 }}
         >
           Rent Maango! 💰
-        </button>
-        <button className="btn-cancel" onClick={onCancel}>Cancel</button>
-      </div>
-    </div>
+        </Button>
+        <Button variant="text" color="inherit" size="small" onClick={onCancel} sx={{ borderRadius: 3 }}>
+          Cancel
+        </Button>
+      </Box>
+    </Box>
   )
 }
