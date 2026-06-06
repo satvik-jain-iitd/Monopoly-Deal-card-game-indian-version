@@ -60,15 +60,15 @@ Everything is localised for an Indian audience:
 | **Win condition** | First to **3 complete sets** wins (checked after every state change) |
 | **Bank** | Money + action/rent cards played for value. **Properties can never be banked.** |
 | **Rent** | Charged on a colour you own; amount scales with set size + houses/hotels |
-| **Double The Rent** | Doubles the next rent you charge this turn (consumes a play) |
-| **Just Say No** | Cancels an action targeted at you (playable from the payment prompt) |
+| **Double The Rent** | Doubles the next rent you charge this turn (consumes a play); if JSN is played against the doubled rent and accepted, base rent still applies |
+| **Just Say No** | Cancels an action targeted at you; original actor can counter with their own JSN (JSN chain) |
 | **Deal Breaker** | Steal an opponent's **complete** set (with its buildings) |
 | **Sly Deal** | Steal a single property from an **incomplete** set |
 | **Forced Deal** | Swap one of your properties for an opponent's (from an incomplete set) |
 | **Debt Collector** | Demand ₹5Cr from one chosen player |
 | **Birthday** | Every other player pays you ₹2Cr |
 | **Pass Go** | Draw 2 extra cards |
-| **House / Hotel** | Add to a **complete** set to boost its rent (hotel needs a house first) |
+| **House / Hotel** | Add to a **complete** set to boost its rent (hotel needs a house first); can be used as payment (house=₹3, hotel=₹4); becomes inactive if the set is broken, reactivates when set completes again |
 | **Wild properties** | Assigned a colour when played; full wilds can be any colour |
 | **Paying debts** | Pay from bank and/or properties; property given in payment **leaves play** (it is never converted to your cash) |
 | **End-game ranking** | Every player is ranked at the instant the game ends; rank → points → multi-game series (see below) |
@@ -314,12 +314,43 @@ npm run preview   # serve the production build locally
 
 ---
 
-## Roadmap
+## Rules FAQ
 
-- [ ] Online multiplayer (Firebase Realtime Database)
-- [ ] Animated card-to-board transitions
-- [ ] Sound effects
-- [ ] Tournament mode / leaderboard
+Common questions about edge cases, with the official ruling and how Dhandha implements it.
+
+---
+
+### Q: What happens to a house or hotel when a property card from that set is used as payment?
+
+**Official rule:** The building card becomes *inactive* — it stays face-up on your side of the table but does NOT add any bonus rent until the set is complete again. The building is NOT destroyed or returned to the deck.
+
+**Dhandha:** Buildings move to an *inactive* state (shown with 💤 in your board). They reactivate automatically the moment the set becomes complete again (you draw the missing card, receive it via a swap, etc.). Inactive buildings are still usable as payment — see the next question.
+
+---
+
+### Q: Can house and hotel cards be used to pay a debt?
+
+**Official rule:** Yes. Any player who owes a debt may hand over a house (₹3M face value) or hotel (₹4M face value) as part of their payment, whether or not the building is currently active.
+
+**Dhandha:** The payment sheet shows a **Buildings** section alongside Cash and Property. You can select any house or hotel (active or inactive) as part of the amount you pay. When a building is paid off, it goes to the creditor's bank as its face-value cash equivalent. *(In the physical game the creditor receives the building card itself and can replay it; here it is simplified to cash value because buildings are tracked as counters rather than card objects.)*
+
+---
+
+### Q: Can a Just Say No be countered by another Just Say No?
+
+**Official rule:** Yes — Just Say No can be played against any targeted action card, including another Just Say No. The chain can go back and forth as long as each player has a JSN in hand.
+
+**Dhandha:** When the target of an action plays Just Say No, the original actor sees a **counter-JSN prompt** (device is passed to them). If they hold a JSN they can play it to cancel the block and continue their action. If they don't, or they choose to accept, the action is cancelled. The chain is currently limited to one counter (actor can reply to target's JSN once); a second counter by the target is not shown.
+
+---
+
+### Q: If Just Say No is played against a Rent that was doubled with Double The Rent, is the entire rent cancelled?
+
+**Official rule (common community ruling):** Just Say No applied to a doubled rent cancels only the *doubling* — the base rent still applies. The Double The Rent card is wasted. *(Note: The official Hasbro FAQ states the entire rent is cancelled; this app follows the widespread community ruling as it is more strategic and less punishing.)*
+
+**Dhandha:** When JSN is played against a doubled rent and the original actor accepts the block (does not counter-JSN), the rent amount is halved back to its base value and collection continues at the base rate. A counter-JSN by the actor restores the full doubled rent.
+
+---
 
 ---
 

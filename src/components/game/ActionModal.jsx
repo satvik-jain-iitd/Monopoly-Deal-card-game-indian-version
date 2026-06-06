@@ -278,6 +278,20 @@ export default function ActionModal({ state, dispatch, onDone }) {
     )
   }
 
+  // ── JUST SAY NO — COUNTER RESPONSE ────────────────────────────────
+  if (phase === PHASE.JSN_RESPONSE && pendingAction) {
+    const { actingPlayerId, jsnBlockerId } = pendingAction
+    const originalActor = players[actingPlayerId]
+    const blocker = players[jsnBlockerId]
+    return (
+      <JsnResponseSheet
+        originalActor={originalActor}
+        blocker={blocker}
+        dispatch={dispatch}
+      />
+    )
+  }
+
   // ── TRADE ROUTE SELECT (custom card) ───────────────────────────────
   if (phase === PHASE.TRADE_ROUTE_SELECT) {
     return (
@@ -373,6 +387,59 @@ function ImpactBadge({ impact, mode, color }) {
   )
 }
 
+// ── JSN RESPONSE SHEET ────────────────────────────────────────────
+function JsnResponseSheet({ originalActor, blocker, dispatch }) {
+  const [passConfirmed, setPassConfirmed] = useState(false)
+  const jsnCard = originalActor.hand?.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO)
+
+  if (!passConfirmed) {
+    return (
+      <BottomSheet>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, px: 2.5, pb: 1, textAlign: 'center' }}>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            📱 Device do <Box component="span" sx={{ color: 'primary.main' }}>{originalActor.name}</Box> ko
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            {blocker.name} ne Just Say No bola! Kya tum counter karoge?
+          </Typography>
+          <Button variant="contained" size="large" fullWidth
+            sx={{ borderRadius: 3, fontWeight: 800 }}
+            onClick={() => setPassConfirmed(true)}>
+            Main {originalActor.name} hoon — Ready!
+          </Button>
+        </Box>
+      </BottomSheet>
+    )
+  }
+
+  return (
+    <BottomSheet title="Just Say No! ⚡">
+      <Box sx={{ px: 2.5, pb: 1 }}>
+        <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+          {blocker.name} ne tumhara action cancel kiya!
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {jsnCard && (
+            <Button variant="contained" color="error" size="large" fullWidth
+              startIcon={<BlockIcon />}
+              sx={{ borderRadius: 3, fontWeight: 800 }}
+              onClick={() => dispatch({ type: 'COUNTER_JSN', playerId: originalActor.id, jsnCardId: jsnCard.id })}>
+              Counter JSN! (Nahi re, mera action rahega!)
+            </Button>
+          )}
+          <Button
+            variant={jsnCard ? 'outlined' : 'contained'}
+            size="large" fullWidth
+            sx={{ borderRadius: 3, fontWeight: 700 }}
+            onClick={() => dispatch({ type: 'ACCEPT_JSN' })}>
+            {jsnCard ? 'Theek hai, cancel ho jaye' : 'OK (JSN nahi hai mere paas)'}
+          </Button>
+        </Box>
+      </Box>
+    </BottomSheet>
+  )
+}
+
 // ── PAYMENT SHEET ──────────────────────────────────────────────────
 function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, extraData }) {
   const [selectedAssets, setSelectedAssets] = useState([])
@@ -381,7 +448,20 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
   const cashAssets = [...payer.bank].sort((a, b) => b.value - a.value).map(c => ({ ...c, _from: 'bank', _color: null }))
   const propAssets = orderPropertyColors(payer.properties).flatMap(color =>
     payer.properties[color].map(c => ({ ...c, _from: 'property', _color: color })))
-  const allAssets = [...cashAssets, ...propAssets]
+  const buildingAssets = []
+  for (const [color, b] of Object.entries(payer.buildings || {})) {
+    for (let i = 0; i < (b.houses || 0); i++)
+      buildingAssets.push({ id: `bldg-active-house-${color}-${i}`, _from: 'building', buildingType: 'house', _color: color, color, value: 3, name: `🏠 House (${COLOR_DISPLAY[color]?.name || color})` })
+    for (let i = 0; i < (b.hotels || 0); i++)
+      buildingAssets.push({ id: `bldg-active-hotel-${color}-${i}`, _from: 'building', buildingType: 'hotel', _color: color, color, value: 4, name: `🏨 Hotel (${COLOR_DISPLAY[color]?.name || color})` })
+  }
+  for (const [color, b] of Object.entries(payer.inactiveBuildings || {})) {
+    for (let i = 0; i < (b.houses || 0); i++)
+      buildingAssets.push({ id: `bldg-inactive-house-${color}-${i}`, _from: 'building', buildingType: 'house', _color: color, color, value: 3, name: `🏠 House (${COLOR_DISPLAY[color]?.name || color}, inactive)`, isInactive: true })
+    for (let i = 0; i < (b.hotels || 0); i++)
+      buildingAssets.push({ id: `bldg-inactive-hotel-${color}-${i}`, _from: 'building', buildingType: 'hotel', _color: color, color, value: 4, name: `🏨 Hotel (${COLOR_DISPLAY[color]?.name || color}, inactive)`, isInactive: true })
+  }
+  const allAssets = [...cashAssets, ...propAssets, ...buildingAssets]
   const totalSelected = selectedAssets.reduce((s, c) => s + c.value, 0)
   const selectedColors = selectedAssets.filter(a => a._from === 'property').map(a => a._color)
 
@@ -429,6 +509,34 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
     )
   }
 
+  const renderBuildingAsset = (asset) => {
+    const sel = !!selectedAssets.find(a => a.id === asset.id)
+    const hex = COLOR_DISPLAY[asset.color]?.hex || '#888'
+    return (
+      <Box key={asset.id} onClick={() => toggleAsset(asset)}
+        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+        <Box sx={{
+          outline: sel ? '2px solid #E65100' : '2px solid transparent',
+          outlineOffset: '2px', borderRadius: '8px',
+          transform: sel ? 'translateY(-4px)' : 'none',
+          transition: 'all 150ms ease',
+          backgroundColor: asset.isInactive ? 'rgba(0,0,0,0.08)' : hex,
+          px: 0.75, py: 0.5, minWidth: 52, textAlign: 'center', opacity: asset.isInactive ? 0.65 : 1,
+        }}>
+          <Typography sx={{ fontSize: '1.1rem', lineHeight: 1.1 }}>
+            {asset.buildingType === 'house' ? '🏠' : '🏨'}
+          </Typography>
+          <Typography sx={{ fontSize: '0.6rem', fontWeight: 800, color: asset.isInactive ? 'text.primary' : '#fff', lineHeight: 1.2 }}>
+            ₹{asset.value}Cr
+          </Typography>
+          {asset.isInactive && (
+            <Typography sx={{ fontSize: '0.46rem', color: 'text.disabled', lineHeight: 1.1 }}>inactive</Typography>
+          )}
+        </Box>
+      </Box>
+    )
+  }
+
   return (
     <BottomSheet title={label}>
       <CounterpartyStrip player={creditor} highlightColors={selectedColors} />
@@ -466,8 +574,18 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.5 }}>
                 🏠 Property (⚠️ = {creditor.name} ka set badhega):
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.25 }}>
                 {propAssets.map(renderAsset)}
+              </Box>
+            </>
+          )}
+          {buildingAssets.length > 0 && (
+            <>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                🏗️ Buildings (house=₹3Cr, hotel=₹4Cr):
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.25 }}>
+                {buildingAssets.map(renderBuildingAsset)}
               </Box>
             </>
           )}

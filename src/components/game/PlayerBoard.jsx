@@ -310,6 +310,25 @@ export default function PlayerBoard({ player, compact = false }) {
                             )}
                           </Box>
                         )}
+                        {(() => {
+                          const inactive = player.inactiveBuildings?.[color] || {}
+                          return (inactive.houses > 0 || inactive.hotels > 0) ? (
+                            <Box sx={{ display: 'flex', gap: 0.3, mt: 0.15, opacity: 0.45 }} title="Inactive buildings (set broken)">
+                              {inactive.houses > 0 && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2 }}>
+                                  <HomeIcon sx={{ fontSize: 9, color: 'text.secondary' }} />
+                                  <Typography sx={{ fontSize: '0.4rem', color: 'text.secondary', fontWeight: 700 }}>×{inactive.houses}💤</Typography>
+                                </Box>
+                              )}
+                              {inactive.hotels > 0 && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2 }}>
+                                  <HotelIcon sx={{ fontSize: 9, color: 'text.secondary' }} />
+                                  <Typography sx={{ fontSize: '0.4rem', color: 'text.secondary', fontWeight: 700 }}>×{inactive.hotels}💤</Typography>
+                                </Box>
+                              )}
+                            </Box>
+                          ) : null
+                        })()}
                       </Box>
                     </Box>
                   )
