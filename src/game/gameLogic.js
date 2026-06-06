@@ -140,7 +140,11 @@ export function playCardToBank(state, playerId, cardId) {
   const player = s.players[playerId]
   const cardIdx = player.hand.findIndex(c => c.id === cardId)
   if (cardIdx === -1) return state
-  const [card] = player.hand.splice(cardIdx, 1)
+  const card = player.hand[cardIdx]
+  // Property cards can never be banked as cash — they only go to the property
+  // area, or leave play entirely when paid to an opponent.
+  if (card.type === CARD_TYPES.PROPERTY || card.type === CARD_TYPES.WILD_PROPERTY) return state
+  player.hand.splice(cardIdx, 1)
   player.bank.push(card)
   s.cardsPlayedThisTurn++
   s.log.push(`${player.name} ne $${card.value}M bank mein daala.`)

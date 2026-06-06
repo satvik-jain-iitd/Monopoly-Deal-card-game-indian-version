@@ -1,7 +1,9 @@
 import { Box, Typography } from '@mui/material'
 import Card from './Card'
+import { orderHandCards } from '../../game/cardSort'
 
 export default function CardHand({ cards, selectable, selectedId, onCardClick, label }) {
+  const ordered = orderHandCards(cards)
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
       {label && (
@@ -16,7 +18,7 @@ export default function CardHand({ cards, selectable, selectedId, onCardClick, l
         '&::-webkit-scrollbar': { display: 'none' },
         msOverflowStyle: 'none', scrollbarWidth: 'none',
       }}>
-        {cards.map((card) => {
+        {ordered.map((card) => {
           const isSelected = selectedId === card.id
           return (
             <Box

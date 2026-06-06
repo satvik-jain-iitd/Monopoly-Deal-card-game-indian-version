@@ -28,6 +28,8 @@ function gameReducer(state, action) {
     }
 
     case 'PLAY_AS_MONEY': {
+      const banking = state.players[state.currentPlayerIndex].hand.find(c => c.id === action.cardId)
+      if (!banking || banking.type === CARD_TYPES.PROPERTY || banking.type === CARD_TYPES.WILD_PROPERTY) return state
       const s = playCardToBank(state, state.currentPlayerIndex, action.cardId)
       const winner = checkWinner(s.players)
       if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }

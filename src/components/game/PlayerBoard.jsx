@@ -12,14 +12,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import Card from './Card'
 import { COLOR_DISPLAY, PROPERTY_SETS } from '../../game/constants'
 import { isSetComplete, countCompleteSets, getPlayerBankTotal, getRentForColor } from '../../game/gameLogic'
-
-function groupedBank(bankCards) {
-  const counts = {}
-  for (const c of bankCards) counts[c.value] = (counts[c.value] || 0) + 1
-  return Object.entries(counts)
-    .map(([v, n]) => ({ value: Number(v), count: n }))
-    .sort((a, b) => b.value - a.value)
-}
+import { groupedBank, orderPropertyColors } from '../../game/cardSort'
 
 function RentInfoDialog({ info, onClose }) {
   if (!info) return null
@@ -111,7 +104,7 @@ export default function PlayerBoard({ player, compact = false }) {
   const [rentInfo, setRentInfo] = useState(null)
   const sets = countCompleteSets(player)
   const bankTotal = getPlayerBankTotal(player)
-  const propertyColors = Object.keys(player.properties).filter(c => player.properties[c].length > 0)
+  const propertyColors = orderPropertyColors(player.properties)
 
   const openRent = (color) => setRentInfo({
     color,

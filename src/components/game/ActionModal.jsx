@@ -8,6 +8,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility'
 import { PHASE } from '../../game/gameLogic'
 import { ACTION_TYPES, COLOR_DISPLAY, CARD_TYPES, PROPERTY_SETS, COLORS } from '../../game/constants'
 import { isSetComplete, getPlayerBankTotal } from '../../game/gameLogic'
+import { orderPropertyColors } from '../../game/cardSort'
 import Card from './Card'
 import PlayerBoard from './PlayerBoard'
 
@@ -297,9 +298,9 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
   const [passConfirmed, setPassConfirmed] = useState(false)
 
   const allAssets = [
-    ...payer.bank.map(c => ({ ...c, _from: 'bank', _color: null })),
-    ...Object.entries(payer.properties).flatMap(([color, cards]) =>
-      cards.map(c => ({ ...c, _from: 'property', _color: color }))),
+    ...[...payer.bank].sort((a, b) => b.value - a.value).map(c => ({ ...c, _from: 'bank', _color: null })),
+    ...orderPropertyColors(payer.properties).flatMap(color =>
+      payer.properties[color].map(c => ({ ...c, _from: 'property', _color: color }))),
   ]
   const totalSelected = selectedAssets.reduce((s, c) => s + c.value, 0)
 
@@ -403,9 +404,9 @@ function StolenPropertySheet({ title, subtitle, others, canSteal, onSelect, onCa
   const [selectedPlayer, setSelectedPlayer] = useState(null)
 
   const stealableProps = selectedPlayer
-    ? Object.entries(selectedPlayer.properties)
-        .filter(([color]) => canSteal(selectedPlayer, color))
-        .flatMap(([color, cards]) => cards.map(c => ({ card: c, color, player: selectedPlayer })))
+    ? orderPropertyColors(selectedPlayer.properties)
+        .filter(color => canSteal(selectedPlayer, color))
+        .flatMap(color => selectedPlayer.properties[color].map(c => ({ card: c, color, player: selectedPlayer })))
     : []
 
   return (
@@ -460,13 +461,13 @@ function ForcedDealSheet({ currentPlayer, others, onSwap, onCancel }) {
   const [theirColor, setTheirColor] = useState(null)
   const [theirCardId, setTheirCardId] = useState(null)
 
-  const myProps = Object.entries(currentPlayer.properties)
-    .flatMap(([color, cards]) => cards.map(c => ({ card: c, color })))
+  const myProps = orderPropertyColors(currentPlayer.properties)
+    .flatMap(color => currentPlayer.properties[color].map(c => ({ card: c, color })))
 
   const theirProps = theirPlayer
-    ? Object.entries(theirPlayer.properties)
-        .filter(([color]) => !isSetComplete(color, theirPlayer.properties[color] || []))
-        .flatMap(([color, cards]) => cards.map(c => ({ card: c, color })))
+    ? orderPropertyColors(theirPlayer.properties)
+        .filter(color => !isSetComplete(color, theirPlayer.properties[color] || []))
+        .flatMap(color => theirPlayer.properties[color].map(c => ({ card: c, color })))
     : []
 
   return (
