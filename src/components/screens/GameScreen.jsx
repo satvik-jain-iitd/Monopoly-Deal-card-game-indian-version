@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
-  AppBar, Box, Button, Chip, IconButton, Paper, Toolbar, Typography,
+  AppBar, Box, Button, Chip, CircularProgress, IconButton, Paper, Toolbar, Typography,
 } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import ListAltIcon from '@mui/icons-material/ListAlt'
@@ -14,21 +14,72 @@ import ActionModal from '../game/ActionModal'
 import GameLog from '../game/GameLog'
 import PassDeviceModal from '../game/PassDeviceModal'
 
-export default function GameScreen({ state, dispatch, onHome }) {
+const PAYMENT_PHASES = [PHASE.RENT_COLLECT, PHASE.ACTION_RESPONSE, PHASE.BIRTHDAY_COLLECT]
+
+function getActiveInteractorIndex(state) {
+  const pa = state.pendingAction
+  if (state.phase === PHASE.RENT_COLLECT && pa?.payerIds) {
+    return pa.payerIds[pa.currentPayerIdx] ?? state.currentPlayerIndex
+  }
+  if (state.phase === PHASE.ACTION_RESPONSE && pa) {
+    if (pa.type === ACTION_TYPES.BIRTHDAY || pa.type === ACTION_TYPES.DEBT_COLLECTOR) {
+      return pa.targetIds?.[pa.currentTargetIdx] ?? state.currentPlayerIndex
+    }
+  }
+  return state.currentPlayerIndex
+}
+
+export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
   const [showLog, setShowLog] = useState(false)
   const [passConfirmed, setPassConfirmed] = useState(false)
   const [selectedCard, setSelectedCard] = useState(null)
   const [selectedAction, setSelectedAction] = useState(null)
+  const prevPhaseRef = useRef(null)
 
+  const isMultiplayer = myPlayerIndex != null
   const currentPlayer = state.players[state.currentPlayerIndex]
+  const activeInteractorIdx = getActiveInteractorIndex(state)
 
-  // ── PASS DEVICE ────────────────────────────────────────────────────
-  if (!passConfirmed) {
+  // Hotfix 2: after a payment phase ends and acting player regains control,
+  // force pass-device screen so they re-identify before seeing their hand
+  useEffect(() => {
+    const prev = prevPhaseRef.current
+    prevPhaseRef.current = state.phase
+    if (
+      !isMultiplayer && prev !== null &&
+      PAYMENT_PHASES.includes(prev) &&
+      (state.phase === PHASE.PLAY || state.phase === PHASE.DISCARD)
+    ) {
+      setPassConfirmed(false)
+    }
+  }, [state.phase]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── PASS DEVICE (pass-and-play only) ──────────────────────────────
+  if (!isMultiplayer && !passConfirmed) {
     return (
       <PassDeviceModal
         playerName={currentPlayer.name}
         onConfirm={() => setPassConfirmed(true)}
       />
+    )
+  }
+
+  // ── MULTIPLAYER WAITING SCREEN ────────────────────────────────────
+  if (isMultiplayer && activeInteractorIdx !== myPlayerIndex) {
+    const activePlayer = state.players[activeInteractorIdx]
+    return (
+      <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default', gap: 2, px: 3, textAlign: 'center' }}>
+        <CircularProgress size={40} thickness={4} sx={{ color: 'primary.main' }} />
+        <Typography variant="h6" sx={{ fontWeight: 800 }}>
+          {activePlayer.name} ki baari hai...
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          Intezaar karo
+        </Typography>
+        <Button size="small" variant="text" onClick={onHome} sx={{ color: 'text.disabled', mt: 2 }}>
+          Quit
+        </Button>
+      </Box>
     )
   }
 

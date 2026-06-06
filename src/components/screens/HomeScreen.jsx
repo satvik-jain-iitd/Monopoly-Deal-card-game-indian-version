@@ -8,7 +8,7 @@ const RULES = [
   'Sabse pehle 3 complete sets — winner!',
 ]
 
-export default function HomeScreen({ onPlay }) {
+export default function HomeScreen({ onPlay, onMultiplayer }) {
   return (
     <Box sx={{
       height: '100dvh', width: '100%',
@@ -71,7 +71,7 @@ export default function HomeScreen({ onPlay }) {
         {/* Info */}
         <Box sx={{ textAlign: 'center' }}>
           <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-            2–6 players • Pass &amp; Play
+            2–6 players • Pass &amp; Play ya Online
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             3 complete property sets jitao!
@@ -88,6 +88,17 @@ export default function HomeScreen({ onPlay }) {
         >
           Khelo!
         </Button>
+        {onMultiplayer && (
+          <Button
+            variant="outlined"
+            size="large"
+            onClick={onMultiplayer}
+            fullWidth
+            sx={{ borderRadius: 3, py: 1.2, fontSize: '0.95rem', fontWeight: 700, borderWidth: 2, borderColor: 'primary.main', color: 'primary.main', mt: -1 }}
+          >
+            🌐 Online Khelo
+          </Button>
+        )}
 
         {/* Rules */}
         <Box sx={{ width: '100%', mt: 0.5 }}>

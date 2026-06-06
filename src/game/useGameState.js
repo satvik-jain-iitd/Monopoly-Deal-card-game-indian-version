@@ -160,18 +160,16 @@ function gameReducer(state, action) {
         case ACTION_TYPES.HOUSE: {
           // Can only play on a complete set (not railroad/utility)
           player.hand.splice(cardIdx, 1)
-          s.discard.push(card)
           s.cardsPlayedThisTurn++
-          // pendingAction for picking which color set
-          s.pendingAction = { type: ACTION_TYPES.HOUSE, actingPlayerId: s.currentPlayerIndex }
+          // Card is NOT discarded — stored in pendingAction so cancel can restore it
+          s.pendingAction = { type: ACTION_TYPES.HOUSE, actingPlayerId: s.currentPlayerIndex, card }
           s.phase = PHASE.ACTION_RESPONSE
           return s
         }
         case ACTION_TYPES.HOTEL: {
           player.hand.splice(cardIdx, 1)
-          s.discard.push(card)
           s.cardsPlayedThisTurn++
-          s.pendingAction = { type: ACTION_TYPES.HOTEL, actingPlayerId: s.currentPlayerIndex }
+          s.pendingAction = { type: ACTION_TYPES.HOTEL, actingPlayerId: s.currentPlayerIndex, card }
           s.phase = PHASE.ACTION_RESPONSE
           return s
         }
@@ -473,6 +471,11 @@ function gameReducer(state, action) {
 
     case '_CANCEL_PENDING': {
       const s = deepClone(state)
+      const pa = s.pendingAction
+      if (pa?.card && (pa.type === ACTION_TYPES.HOUSE || pa.type === ACTION_TYPES.HOTEL)) {
+        s.players[pa.actingPlayerId].hand.push(pa.card)
+        s.cardsPlayedThisTurn--
+      }
       s.pendingAction = null
       s.phase = PHASE.PLAY
       return s
