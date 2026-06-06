@@ -12,7 +12,6 @@ import PlayerBoard from '../game/PlayerBoard'
 import CardHand from '../game/CardHand'
 import ActionModal from '../game/ActionModal'
 import GameLog from '../game/GameLog'
-import WinScreen from '../game/WinScreen'
 import PassDeviceModal from '../game/PassDeviceModal'
 
 export default function GameScreen({ state, dispatch, onHome }) {
@@ -22,11 +21,6 @@ export default function GameScreen({ state, dispatch, onHome }) {
   const [selectedAction, setSelectedAction] = useState(null)
 
   const currentPlayer = state.players[state.currentPlayerIndex]
-
-  // ── GAME OVER ──────────────────────────────────────────────────────
-  if (state.phase === PHASE.GAME_OVER) {
-    return <WinScreen winner={state.winner} players={state.players} onHome={onHome} />
-  }
 
   // ── PASS DEVICE ────────────────────────────────────────────────────
   if (!passConfirmed) {

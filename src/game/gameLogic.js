@@ -31,6 +31,7 @@ export function initGame(playerNames) {
   })
 
   return {
+    gameId: Date.now(),
     players,
     deck,
     discard: [],
