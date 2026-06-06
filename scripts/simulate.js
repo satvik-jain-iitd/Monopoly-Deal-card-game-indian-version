@@ -345,31 +345,66 @@ function runGame(seed, customCards, names) {
   let steps = 0
   const MAX_STEPS = 6000
   let lastAction = 'INIT'
-  let noProgress = 0 // consecutive steps where the reducer returned the same state ref
+  let noProgress = 0
+  let turns = 0
+
+  // Per-action-type play counts
+  const actionCounts = {}
+  // Steals: { slyDeal, forcedDeal, dealBreaker }
+  let slySteals = 0, forcedSwaps = 0, dealBreakers = 0
+  // Rents collected
+  let rentEvents = 0
+  // Times a player had to discard
+  let discardEvents = 0
+  // Track previous phase to count transitions
+  let prevPhase = s.phase
+  // Track which colors ended up completed by the winner
+  let winnerColors = []
+  // Track turn counts per player
+  const playerTurns = Object.fromEntries(names.map(n => [n, 0]))
+  // Payments: total ₹ transferred
+  let totalCrTransferred = 0
+  // Pass Go plays
+  let passGoCount = 0
 
   bugs.push(...checkInvariants(s, `seed ${seed} init`, customCards))
 
   while (steps < MAX_STEPS) {
     steps++
     let action
-    try {
-      action = nextAction(s, rng)
-    } catch (e) {
+    try { action = nextAction(s, rng) }
+    catch (e) {
       bugs.push(`[seed ${seed} step ${steps}] AGENT THREW after ${lastAction} (phase=${s.phase}): ${e.message}`)
       break
     }
     if (action.done) break
 
+    // Count action plays before dispatch
+    if (action.type === 'PLAY_ACTION' || action.type === 'PLAY_AS_MONEY' ||
+        action.type === 'PLAY_PROPERTY' || action.type === 'PLAY_RENT') {
+      actionCounts[action.type] = (actionCounts[action.type] || 0) + 1
+    }
+    if (action.type === 'SLY_DEAL_STEAL') slySteals++
+    if (action.type === 'FORCED_DEAL_SWAP') forcedSwaps++
+    if (action.type === 'DEAL_BREAKER_STEAL') dealBreakers++
+    if (action.type === 'START_TURN') {
+      turns++
+      if (s.players[s.currentPlayerIndex]) {
+        playerTurns[s.players[s.currentPlayerIndex].name] = (playerTurns[s.players[s.currentPlayerIndex].name] || 0) + 1
+      }
+    }
+    if (action.type === 'PAY_DEBT' && action.payerCards) {
+      totalCrTransferred += action.payerCards.reduce((a, c) => a + (c.value || 0), 0)
+      rentEvents++
+    }
+
     let next
-    try {
-      next = reduce(s, action)
-    } catch (e) {
+    try { next = reduce(s, action) }
+    catch (e) {
       bugs.push(`[seed ${seed} step ${steps}] REDUCER THREW on ${action.type} (after ${lastAction}): ${e.message}`)
       break
     }
 
-    // True soft-lock detector: the reducer returns the *same* state object on a
-    // no-op (rejected/invalid action). Many in a row = the agent is wedged.
     if (next === s) {
       noProgress++
       if (noProgress > 40) {
@@ -380,58 +415,140 @@ function runGame(seed, customCards, names) {
       noProgress = 0
     }
 
-    bugs.push(...checkInvariants(next, `seed ${seed} step ${steps} ${action.type}`, customCards))
+    // Count PASS_GO draws after transition
+    if (action.type === 'PLAY_ACTION') {
+      const prevPlayer = s.players[s.currentPlayerIndex]
+      const card = prevPlayer?.hand.find(c => c.id === action.cardId)
+      if (card?.actionType === ACTION_TYPES.PASS_GO) passGoCount++
+    }
+    if (next.phase === PHASE.DISCARD && prevPhase !== PHASE.DISCARD) discardEvents++
+    prevPhase = next.phase
 
+    bugs.push(...checkInvariants(next, `seed ${seed} step ${steps} ${action.type}`, customCards))
     s = next
     lastAction = action.type
     if (s.phase === PHASE.GAME_OVER) break
   }
 
+  // Final board snapshot
+  const finalPlayers = s.players.map(p => {
+    const sets = Object.entries(p.properties)
+      .filter(([c, cards]) => c !== COLORS.WILD && isSetComplete(c, cards))
+      .map(([c]) => c)
+    const bankTotal = p.bank.reduce((a, c) => a + (c.value || 0), 0)
+    const propCount = Object.values(p.properties).reduce((a, c) => a + c.length, 0)
+    return { name: p.name, sets, bankTotal, propCount, handSize: p.hand.length }
+  })
+
+  if (s.winner) {
+    const wp = s.players.find(p => p === s.winner)
+    if (wp) winnerColors = Object.entries(wp.properties)
+      .filter(([c, cards]) => c !== COLORS.WILD && isSetComplete(c, cards))
+      .map(([c]) => c)
+  }
+
   const stalled = steps >= MAX_STEPS
-  return { bugs, finished: s.phase === PHASE.GAME_OVER, stalled, steps, winner: s.winner?.name }
+  return {
+    bugs, finished: s.phase === PHASE.GAME_OVER, stalled, steps, turns,
+    winner: s.winner?.name,
+    winnerColors,
+    finalPlayers,
+    actionCounts,
+    slySteals, forcedSwaps, dealBreakers,
+    rentEvents, discardEvents, passGoCount,
+    totalCrTransferred,
+    playerTurns,
+    customCards,
+  }
 }
 
 // ── Main ────────────────────────────────────────────────────────────
 const GAMES = Number(process.env.GAMES || 100)
-const BASE_SEED = Number(process.env.SEED || Date.now())  // random by default
+const BASE_SEED = Number(process.env.SEED || Date.now())
 const NAMES = ['satvik', 'sanika', 'aman', 'sonu', 'priya', 'rahul']
 let totalBugs = 0
 const seen = new Map()
-let finishedCount = 0
-let stalledCount = 0
-let totalSteps = 0
+let finishedCount = 0, stalledCount = 0, totalSteps = 0, totalTurns = 0
+let totalSly = 0, totalForced = 0, totalBreaker = 0
+let totalRentEvents = 0, totalCrTransferred = 0, totalPassGo = 0, totalDiscard = 0
+const winCounts = {}, colorWinCounts = {}, actionTotals = {}
+const allGames = []
 
 console.log(`Seeds: ${BASE_SEED} … ${BASE_SEED + GAMES - 1}  (pass SEED=N to reproduce)\n`)
 
 for (let i = 0; i < GAMES; i++) {
   const seed = BASE_SEED + i
-  const customCards = i % 2 === 0 // alternate custom cards on/off
-  const { bugs, finished, stalled, steps } = runGame(seed, customCards, NAMES)
-  if (finished) finishedCount++
-  if (stalled) stalledCount++
-  totalSteps += steps
-  for (const b of bugs) {
+  const customCards = i % 2 === 0
+  const r = runGame(seed, customCards, NAMES)
+  allGames.push({ seed, ...r })
+  if (r.finished) finishedCount++
+  if (r.stalled) stalledCount++
+  totalSteps += r.steps
+  totalTurns += r.turns
+  totalSly += r.slySteals; totalForced += r.forcedSwaps; totalBreaker += r.dealBreakers
+  totalRentEvents += r.rentEvents; totalCrTransferred += r.totalCrTransferred
+  totalPassGo += r.passGoCount; totalDiscard += r.discardEvents
+  if (r.winner) winCounts[r.winner] = (winCounts[r.winner] || 0) + 1
+  for (const c of r.winnerColors) colorWinCounts[c] = (colorWinCounts[c] || 0) + 1
+  for (const [k, v] of Object.entries(r.actionCounts)) actionTotals[k] = (actionTotals[k] || 0) + v
+  for (const b of r.bugs) {
     totalBugs++
-    // De-dupe by the message after the [ctx] prefix
     const key = b.replace(/\[[^\]]*\]\s*/, '')
     seen.set(key, (seen.get(key) || 0) + 1)
-    if (seen.get(key) <= 3) console.log(b) // print first few occurrences of each
+    if (seen.get(key) <= 3) console.log(b)
   }
 }
 
-console.log('\n──────── SIMULATION SUMMARY ────────')
-console.log(`Games:           ${GAMES} (6 players, custom cards alternating)`)
-console.log(`Finished (win):  ${finishedCount}/${GAMES}`)
-console.log(`Stalled (cap):   ${stalledCount}/${GAMES}  (random agents, no winner — not a correctness bug)`)
-console.log(`Avg steps/game:  ${Math.round(totalSteps / GAMES)}`)
-console.log(`Total bug hits:  ${totalBugs}`)
+const fin = finishedCount || 1
+console.log('══════════════════════════════════════════════')
+console.log('               GAME PATTERN ANALYSIS         ')
+console.log('══════════════════════════════════════════════')
+console.log(`\nGames: ${GAMES}  |  Finished: ${finishedCount}  |  Stalled: ${stalledCount}`)
+console.log(`Avg turns/game: ${(totalTurns/GAMES).toFixed(1)}  |  Avg steps/game: ${Math.round(totalSteps/GAMES)}`)
+
+console.log('\n── Per-game breakdown ─────────────────────��───')
+for (const g of allGames) {
+  const cc = g.customCards ? '+custom' : '       '
+  const result = g.finished ? `Winner: ${g.winner} (${g.winnerColors.join(', ')})` : 'STALLED'
+  console.log(`  seed ${g.seed}  ${cc}  ${g.turns} turns  ${result}`)
+}
+
+console.log('\n── Win counts (finished games) ────────────────')
+const sortedWins = Object.entries(winCounts).sort((a,b) => b[1]-a[1])
+for (const [name, n] of sortedWins) console.log(`  ${name.padEnd(10)} ${n} wins`)
+
+console.log('\n── Winning color sets (how often each color closes a win) ─')
+const sortedColors = Object.entries(colorWinCounts).sort((a,b) => b[1]-a[1])
+for (const [color, n] of sortedColors) console.log(`  ${color.padEnd(12)} ${n}×`)
+
+console.log('\n── Action card usage (total across all games) ─')
+console.log(`  PLAY_PROPERTY  ${actionTotals['PLAY_PROPERTY'] || 0}`)
+console.log(`  PLAY_AS_MONEY  ${actionTotals['PLAY_AS_MONEY'] || 0}`)
+console.log(`  PLAY_RENT      ${actionTotals['PLAY_RENT'] || 0}`)
+console.log(`  PLAY_ACTION    ${actionTotals['PLAY_ACTION'] || 0}`)
+console.log(`  Pass Go plays  ${totalPassGo}`)
+console.log(`  Sly Deals      ${totalSly}`)
+console.log(`  Forced Deals   ${totalForced}`)
+console.log(`  Deal Breakers  ${totalBreaker}`)
+
+console.log('\n── Payment / economy ──────────────────────────')
+console.log(`  Rent events:      ${totalRentEvents}  (avg ${(totalRentEvents/GAMES).toFixed(1)}/game)`)
+console.log(`  ₹Cr transferred:  ${totalCrTransferred}  (avg ${(totalCrTransferred/GAMES).toFixed(1)}/game)`)
+console.log(`  Discard events:   ${totalDiscard}  (avg ${(totalDiscard/GAMES).toFixed(1)}/game)`)
+
+console.log('\n── Final board (avg across ALL players, finished games) ─')
+const fpFlat = allGames.filter(g => g.finished).flatMap(g => g.finalPlayers)
+const avgBank = (fpFlat.reduce((a,p)=>a+p.bankTotal,0)/fpFlat.length).toFixed(1)
+const avgProps = (fpFlat.reduce((a,p)=>a+p.propCount,0)/fpFlat.length).toFixed(1)
+const avgHand = (fpFlat.reduce((a,p)=>a+p.handSize,0)/fpFlat.length).toFixed(1)
+console.log(`  Avg bank: ₹${avgBank}Cr  |  Avg props on table: ${avgProps}  |  Avg hand: ${avgHand} cards`)
+
+console.log('\n── Invariant check ────────────────────────────')
 if (seen.size === 0) {
-  console.log('Distinct issues: 0  ✓ all invariants held')
+  console.log('  0 issues  ✓ all invariants held across all games')
 } else {
-  console.log(`Distinct issues: ${seen.size}`)
-  console.log('\nIssue counts:')
-  for (const [k, n] of [...seen.entries()].sort((a, b) => b[1] - a[1])) {
-    console.log(`  ${n}×  ${k}`)
-  }
+  console.log(`  ${seen.size} distinct issues (${totalBugs} total hits):`)
+  for (const [k, n] of [...seen.entries()].sort((a,b)=>b[1]-a[1])) console.log(`    ${n}×  ${k}`)
   process.exitCode = 1
 }
+console.log('══════════════════════════════════════════════')
