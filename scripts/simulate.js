@@ -266,7 +266,7 @@ function runGame(seed, customCards, names) {
   let s = reduce(null, { type: '_INIT', _state: initGame(names, { customCards }) })
   const bugs = []
   let steps = 0
-  const MAX_STEPS = 30000
+  const MAX_STEPS = 6000
   let lastAction = 'INIT'
   let noProgress = 0 // consecutive steps where the reducer returned the same state ref
 
