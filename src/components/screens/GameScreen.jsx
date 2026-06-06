@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   AppBar, Box, Button, Chip, IconButton, Paper, Toolbar, Typography,
 } from '@mui/material'
@@ -7,6 +7,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt'
 import { PHASE } from '../../game/gameLogic'
 import { CARD_TYPES, ACTION_TYPES, COLOR_DISPLAY } from '../../game/constants'
 import { getRentForColor } from '../../game/gameLogic'
+import Card from '../game/Card'
 import PlayerBoard from '../game/PlayerBoard'
 import CardHand from '../game/CardHand'
 import ActionModal from '../game/ActionModal'
@@ -19,6 +20,8 @@ export default function GameScreen({ state, dispatch, onHome }) {
   const [passConfirmed, setPassConfirmed] = useState(false)
   const [selectedCard, setSelectedCard] = useState(null)
   const [selectedAction, setSelectedAction] = useState(null)
+  const [lastPlayedCard, setLastPlayedCard] = useState(null)
+  const lastPlayedTimerRef = useRef(null)
 
   const currentPlayer = state.players[state.currentPlayerIndex]
 
@@ -109,6 +112,12 @@ export default function GameScreen({ state, dispatch, onHome }) {
   const cardsLeft = state.maxCardsPerTurn - state.cardsPlayedThisTurn
   const otherPlayers = state.players.filter((_, i) => i !== state.currentPlayerIndex)
 
+  function showPlayedCard(card) {
+    setLastPlayedCard(card)
+    if (lastPlayedTimerRef.current) clearTimeout(lastPlayedTimerRef.current)
+    lastPlayedTimerRef.current = setTimeout(() => setLastPlayedCard(null), 4000)
+  }
+
   function handleCardSelect(card) {
     setSelectedCard(selectedCard?.id === card.id ? null : card)
     setSelectedAction(null)
@@ -151,6 +160,40 @@ export default function GameScreen({ state, dispatch, onHome }) {
         ))}
       </Box>
 
+      {/* Center zone — last played card */}
+      <Box sx={{
+        flexShrink: 0, minHeight: 28,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        borderTop: '1px dashed', borderBottom: '1px dashed', borderColor: 'divider',
+        backgroundColor: 'rgba(230,81,0,0.04)',
+        px: 1, py: lastPlayedCard ? 1 : 0.4,
+        transition: 'padding 200ms ease',
+      }}>
+        {lastPlayedCard ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.55rem', letterSpacing: '0.06em' }}>
+              PLAYED
+            </Typography>
+            <Box sx={{
+              animation: 'popIn 250ms cubic-bezier(0.175,0.885,0.32,1.275)',
+              '@keyframes popIn': {
+                from: { transform: 'scale(0.7)', opacity: 0 },
+                to: { transform: 'scale(1)', opacity: 1 },
+              },
+            }}>
+              <Card card={lastPlayedCard} />
+            </Box>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.55rem', letterSpacing: '0.06em' }}>
+              {currentPlayer.name}
+            </Typography>
+          </Box>
+        ) : (
+          <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.55rem' }}>
+            — Play zone —
+          </Typography>
+        )}
+      </Box>
+
       {/* Current player board */}
       <Box sx={{ flexShrink: 0 }}>
         <PlayerBoard player={currentPlayer} />
@@ -177,9 +220,9 @@ export default function GameScreen({ state, dispatch, onHome }) {
         {selectedCard && !selectedAction && (
           <PlayOptions
             card={selectedCard}
-            onPlayAsProperty={() => { dispatch({ type: 'PLAY_PROPERTY', cardId: selectedCard.id }); setSelectedCard(null) }}
-            onPlayAsMoney={() => { dispatch({ type: 'PLAY_AS_MONEY', cardId: selectedCard.id }); setSelectedCard(null) }}
-            onPlayAction={() => { dispatch({ type: 'PLAY_ACTION', cardId: selectedCard.id }); setSelectedCard(null) }}
+            onPlayAsProperty={() => { showPlayedCard(selectedCard); dispatch({ type: 'PLAY_PROPERTY', cardId: selectedCard.id }); setSelectedCard(null) }}
+            onPlayAsMoney={() => { showPlayedCard(selectedCard); dispatch({ type: 'PLAY_AS_MONEY', cardId: selectedCard.id }); setSelectedCard(null) }}
+            onPlayAction={() => { showPlayedCard(selectedCard); dispatch({ type: 'PLAY_ACTION', cardId: selectedCard.id }); setSelectedCard(null) }}
             onPlayRent={() => setSelectedAction({ type: 'rent', card: selectedCard })}
             onCancel={() => setSelectedCard(null)}
           />
@@ -192,6 +235,7 @@ export default function GameScreen({ state, dispatch, onHome }) {
             currentIdx={state.currentPlayerIndex}
             doubleRentActive={state.doubleRentActive}
             onPlay={(targetColor, targetPlayerId) => {
+              showPlayedCard(selectedAction.card)
               dispatch({ type: 'PLAY_RENT', cardId: selectedAction.card.id, targetColor, targetPlayerId })
               setSelectedAction(null); setSelectedCard(null)
             }}

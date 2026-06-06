@@ -389,36 +389,42 @@ function StolenPropertySheet({ title, subtitle, others, canSteal, onSelect, onCa
 
   return (
     <BottomSheet title={title}>
-      {subtitle && <Typography variant="caption" sx={{ color: 'text.secondary', px: 2.5, display: 'block', mb: 1 }}>{subtitle}</Typography>}
-      <Box sx={{ px: 2.5 }}>
-        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
-          {others.map(p => (
-            <Chip key={p.id} label={p.name}
-              onClick={() => setSelectedPlayer(p)}
-              color={selectedPlayer?.id === p.id ? 'primary' : 'default'}
-              variant={selectedPlayer?.id === p.id ? 'filled' : 'outlined'}
-              sx={{ fontWeight: 700 }}
-            />
-          ))}
-        </Box>
-        {selectedPlayer && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
-            {stealableProps.length === 0 && (
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                Koi stealable property nahi
-              </Typography>
-            )}
-            {stealableProps.map(({ card, color }) => (
-              <Box key={card.id} sx={{ cursor: 'pointer', borderRadius: '10px', '&:hover': { opacity: 0.8 } }}
-                onClick={() => onSelect({ fromPlayerId: selectedPlayer.id, cardId: card.id, color })}>
-                <Card card={card} />
-              </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {subtitle && <Typography variant="caption" sx={{ color: 'text.secondary', px: 2.5, display: 'block', mb: 1 }}>{subtitle}</Typography>}
+        {/* Scrollable content */}
+        <Box sx={{ px: 2.5, overflowY: 'auto', flex: 1, maxHeight: 'calc(75dvh - 100px)' }}>
+          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
+            {others.map(p => (
+              <Chip key={p.id} label={p.name}
+                onClick={() => setSelectedPlayer(p)}
+                color={selectedPlayer?.id === p.id ? 'primary' : 'default'}
+                variant={selectedPlayer?.id === p.id ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 700 }}
+              />
             ))}
           </Box>
-        )}
-        <Button variant="outlined" fullWidth onClick={onCancel} sx={{ borderRadius: 3 }}>
-          Cancel
-        </Button>
+          {selectedPlayer && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
+              {stealableProps.length === 0 && (
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                  Koi stealable property nahi
+                </Typography>
+              )}
+              {stealableProps.map(({ card, color }) => (
+                <Box key={card.id} sx={{ cursor: 'pointer', borderRadius: '6px', '&:hover': { opacity: 0.8 } }}
+                  onClick={() => onSelect({ fromPlayerId: selectedPlayer.id, cardId: card.id, color })}>
+                  <Card card={card} />
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+        {/* Sticky Cancel */}
+        <Box sx={{ px: 2.5, pt: 1, pb: 1.5, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Button variant="outlined" fullWidth onClick={onCancel} sx={{ borderRadius: 3 }}>
+            Cancel
+          </Button>
+        </Box>
       </Box>
     </BottomSheet>
   )
@@ -443,64 +449,68 @@ function ForcedDealSheet({ currentPlayer, others, onSwap, onCancel }) {
 
   return (
     <BottomSheet title="Forced Deal — Property Swap Karo">
-      <Box sx={{ px: 2.5, overflow: 'auto', maxHeight: '70dvh' }}>
-        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-          Tumhari property (dogi):
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
-          {myProps.map(({ card, color }) => (
-            <Box key={card.id}
-              onClick={() => { setMyCardId(card.id); setMyColor(color) }}
-              sx={{
-                cursor: 'pointer', borderRadius: '10px',
-                outline: myCardId === card.id ? '2px solid #E65100' : '2px solid transparent',
-                outlineOffset: '2px',
-                transform: myCardId === card.id ? 'translateY(-4px)' : 'none',
-                transition: 'all 150ms ease',
-              }}>
-              <Card card={card} />
-            </Box>
-          ))}
-        </Box>
-
-        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-          Kissa property loge?
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1 }}>
-          {others.map(p => (
-            <Chip key={p.id} label={p.name}
-              onClick={() => setTheirPlayer(p)}
-              color={theirPlayer?.id === p.id ? 'primary' : 'default'}
-              variant={theirPlayer?.id === p.id ? 'filled' : 'outlined'}
-              sx={{ fontWeight: 700 }}
-            />
-          ))}
-        </Box>
-        {theirPlayer && (
+      <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Scrollable content */}
+        <Box sx={{ px: 2.5, overflowY: 'auto', flex: 1, maxHeight: 'calc(75dvh - 120px)' }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+            Tumhari property (dogi):
+          </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
-            {theirProps.length === 0 && (
-              <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                Koi stealable property nahi
-              </Typography>
-            )}
-            {theirProps.map(({ card, color }) => (
+            {myProps.map(({ card, color }) => (
               <Box key={card.id}
-                onClick={() => { setTheirCardId(card.id); setTheirColor(color) }}
+                onClick={() => { setMyCardId(card.id); setMyColor(color) }}
                 sx={{
-                  cursor: 'pointer', borderRadius: '10px',
-                  outline: theirCardId === card.id ? '2px solid #E65100' : '2px solid transparent',
+                  cursor: 'pointer', borderRadius: '6px',
+                  outline: myCardId === card.id ? '2px solid #E65100' : '2px solid transparent',
                   outlineOffset: '2px',
-                  transform: theirCardId === card.id ? 'translateY(-4px)' : 'none',
+                  transform: myCardId === card.id ? 'translateY(-4px)' : 'none',
                   transition: 'all 150ms ease',
                 }}>
                 <Card card={card} />
               </Box>
             ))}
           </Box>
-        )}
 
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="contained" flex={1} size="large"
+          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+            Kissa property loge?
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1 }}>
+            {others.map(p => (
+              <Chip key={p.id} label={p.name}
+                onClick={() => setTheirPlayer(p)}
+                color={theirPlayer?.id === p.id ? 'primary' : 'default'}
+                variant={theirPlayer?.id === p.id ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 700 }}
+              />
+            ))}
+          </Box>
+          {theirPlayer && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
+              {theirProps.length === 0 && (
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                  Koi stealable property nahi
+                </Typography>
+              )}
+              {theirProps.map(({ card, color }) => (
+                <Box key={card.id}
+                  onClick={() => { setTheirCardId(card.id); setTheirColor(color) }}
+                  sx={{
+                    cursor: 'pointer', borderRadius: '6px',
+                    outline: theirCardId === card.id ? '2px solid #E65100' : '2px solid transparent',
+                    outlineOffset: '2px',
+                    transform: theirCardId === card.id ? 'translateY(-4px)' : 'none',
+                    transition: 'all 150ms ease',
+                  }}>
+                  <Card card={card} />
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+
+        {/* Sticky CTAs — always visible */}
+        <Box sx={{ px: 2.5, pt: 1, pb: 1.5, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider', display: 'flex', gap: 1 }}>
+          <Button variant="contained" size="large"
             disabled={!myCardId || !theirCardId}
             sx={{ borderRadius: 3, fontWeight: 800, flex: 1 }}
             onClick={() => onSwap({ fromPlayerId: theirPlayer.id, theirCardId, theirColor, myCardId, myColor })}>
