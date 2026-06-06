@@ -12,7 +12,7 @@ import HotelIcon from '@mui/icons-material/Hotel'
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee'
 import ShieldIcon from '@mui/icons-material/Shield'
 import RouteIcon from '@mui/icons-material/Route'
-import { CARD_TYPES, ACTION_TYPES, COLOR_DISPLAY, COLORS } from '../../game/constants'
+import { CARD_TYPES, ACTION_TYPES, COLOR_DISPLAY, COLORS, PROPERTY_SETS } from '../../game/constants'
 import { CityLandmark } from './CardArt'
 
 const ACTION_ICONS = {
@@ -60,7 +60,29 @@ const CARD_H = 122
 const MINI_W = 52
 const MINI_H = 74
 
-export default function Card({ card, mini = false }) {
+// Optional value pill for mini cards in selection contexts (so the player can
+// read a property's cash value without tapping). Money minis already show value.
+export default function Card({ card, mini = false, showValue = false }) {
+  if (!card) return null
+  const wantPill = mini && showValue && card.type !== CARD_TYPES.MONEY && (card.value || 0) > 0
+  if (!wantPill) return <CardFace card={card} mini={mini} />
+  return (
+    <Box sx={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+      <CardFace card={card} mini={mini} />
+      <Box sx={{
+        position: 'absolute', bottom: 2, right: 2,
+        backgroundColor: 'rgba(0,0,0,0.78)', color: '#fff',
+        borderRadius: '4px', px: 0.4, py: 0.1,
+        fontSize: '0.5rem', fontWeight: 800, lineHeight: 1.2,
+        pointerEvents: 'none',
+      }}>
+        ₹{card.value}
+      </Box>
+    </Box>
+  )
+}
+
+function CardFace({ card, mini = false }) {
   if (!card) return null
 
   const w = mini ? MINI_W : CARD_W
@@ -98,45 +120,86 @@ export default function Card({ card, mini = false }) {
     const display = COLOR_DISPLAY[card.color] || {}
     const bandH = mini ? 16 : 30
     const textOnBand = getTextColor(display.hex)
+    const set = PROPERTY_SETS[card.color]
+    const rentValues = set?.rentValues || []
+    const cardsNeeded = set?.cardsNeeded || rentValues.length
+
+    // Mini — compact: band + name only (value shown via showValue pill).
+    if (mini) {
+      return (
+        <Paper elevation={1} sx={{
+          width: w, height: h, borderRadius: `${r}px`,
+          display: 'flex', flexDirection: 'column',
+          overflow: 'hidden', flexShrink: 0, userSelect: 'none', backgroundColor: '#fff',
+        }}>
+          <Box sx={{ height: bandH, backgroundColor: display.hex, flexShrink: 0 }} />
+          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', px: 0.3 }}>
+            <Typography sx={{
+              fontSize: '0.5rem', fontWeight: 700, textAlign: 'center', lineHeight: 1.15, color: '#222',
+              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            }}>
+              {card.name}
+            </Typography>
+          </Box>
+        </Paper>
+      )
+    }
+
+    // Full — cash-value corner badge + name band + rent ladder (like the real card).
     return (
       <Paper elevation={1} sx={{
-        width: w, height: h, borderRadius: `${r}px`,
+        width: w, height: h, borderRadius: `${r}px`, position: 'relative',
         display: 'flex', flexDirection: 'column',
-        overflow: 'hidden', flexShrink: 0, userSelect: 'none',
-        backgroundColor: '#fff',
+        overflow: 'hidden', flexShrink: 0, userSelect: 'none', backgroundColor: '#fff',
       }}>
+        {/* Cash value (what it's worth if banked) — iconic corner circle */}
         <Box sx={{
-          height: bandH, backgroundColor: display.hex,
-          flexShrink: 0,
-        }} />
-        <Box sx={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          px: 0.4, pb: 0.5,
+          position: 'absolute', top: 2, left: 2, zIndex: 2,
+          width: 18, height: 18, borderRadius: '50%',
+          backgroundColor: '#fff', border: `1.5px solid ${display.hex}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.25)',
         }}>
-          {!mini && card.landmark && (
-            <Box sx={{ mb: 0.4, opacity: 0.85 }}>
-              <CityLandmark cityKey={card.landmark} size={26} color={display.hex} />
-            </Box>
-          )}
+          <Typography sx={{ fontSize: '0.46rem', fontWeight: 900, color: display.hex, lineHeight: 1 }}>
+            ₹{card.value}
+          </Typography>
+        </Box>
+
+        {/* Colour band — property name */}
+        <Box sx={{
+          height: bandH, backgroundColor: display.hex, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', px: 0.3, pl: 2.4,
+        }}>
           <Typography sx={{
-            fontSize: mini ? '0.54rem' : '0.7rem',
-            fontWeight: 700, textAlign: 'center',
-            lineHeight: 1.2, color: '#222',
-            display: '-webkit-box', WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical', overflow: 'hidden',
-            wordBreak: 'break-word',
+            fontSize: '0.56rem', fontWeight: 800, textAlign: 'center', lineHeight: 1.05,
+            color: textOnBand, textShadow: textOnBand === '#ffffff' ? '0 1px 1px rgba(0,0,0,0.3)' : 'none',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
           }}>
             {card.name}
           </Typography>
-          {!mini && (
-            <Typography sx={{
-              fontSize: '0.62rem', color: display.hex,
-              fontWeight: 800, mt: 'auto', pt: 0.3,
-            }}>
-              ₹{card.value}Cr
+        </Box>
+
+        {/* Body — landmark + rent ladder */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', px: 0.5, py: 0.3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.15 }}>
+            <Typography sx={{ fontSize: '0.4rem', fontWeight: 800, color: '#888', letterSpacing: '0.06em' }}>
+              RENT
             </Typography>
-          )}
+            {card.landmark && <CityLandmark cityKey={card.landmark} size={14} color={display.hex} />}
+          </Box>
+          {rentValues.map((rent, i) => {
+            const full = i + 1 === cardsNeeded
+            return (
+              <Box key={i} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', lineHeight: 1.1 }}>
+                <Typography sx={{ fontSize: '0.42rem', fontWeight: full ? 800 : 600, color: full ? display.hex : '#666' }}>
+                  {i + 1}{full ? ' (set)' : ''}
+                </Typography>
+                <Typography sx={{ fontSize: '0.46rem', fontWeight: 800, color: display.hex }}>
+                  ₹{rent}
+                </Typography>
+              </Box>
+            )
+          })}
         </Box>
       </Paper>
     )

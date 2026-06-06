@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "simulate": "node scripts/run-sim.mjs",
     "generate-icons": "pwa-assets-generator --config pwa-assets.config.js"
   },
   "dependencies": {

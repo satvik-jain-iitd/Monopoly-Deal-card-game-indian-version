@@ -17,7 +17,16 @@ function nextPhaseAfterPlay(s) {
   return s.players[s.currentPlayerIndex].hand.length > 7 ? PHASE.DISCARD : PHASE.PLAY
 }
 
+// Card-playing actions are capped at maxCardsPerTurn. We keep the phase in PLAY
+// after the 3rd play (to skip an empty discard screen), so this guard is what
+// actually prevents a 4th play from being registered.
+const PLAY_ACTIONS = new Set(['PLAY_AS_MONEY', 'PLAY_PROPERTY', 'PLAY_ACTION', 'PLAY_RENT'])
+
 function gameReducer(state, action) {
+  if (state && PLAY_ACTIONS.has(action.type) && state.cardsPlayedThisTurn >= state.maxCardsPerTurn) {
+    return state
+  }
+
   switch (action.type) {
 
     case 'START_TURN': {
@@ -242,7 +251,13 @@ function gameReducer(state, action) {
       const creditorId = pa.actingPlayerId
       s = applyPayment(s, payerId, creditorId, payerCards)
 
-      const log = `${s.players[payerId].name} ne ₹${payerCards.reduce((a,c) => a+c.value,0)}Cr diya.`
+      // Property cards paid go to the collector's property area (not the pile) —
+      // name them in the log so the transfer is transparent.
+      const propsGiven = payerCards.filter(c => c._from === 'property')
+      const propNote = propsGiven.length
+        ? ` (${propsGiven.map(c => c.name).join(', ')} → ${s.players[creditorId].name})`
+        : ''
+      const log = `${s.players[payerId].name} ne ₹${payerCards.reduce((a, c) => a + c.value, 0)}Cr diya${propNote}.`
       s.log.push(log)
 
       // Move to next payer

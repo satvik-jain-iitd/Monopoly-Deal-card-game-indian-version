@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# simulation build artifact
+scripts/.sim-bundle.mjs

@@ -106,6 +106,7 @@ export default function GameScreen({ state, dispatch, onHome }) {
   const topDiscard = state.discard[state.discard.length - 1]
 
   function handleCardSelect(card) {
+    if (cardsLeft <= 0) return
     setSelectedCard(selectedCard?.id === card.id ? null : card)
     setSelectedAction(null)
   }
@@ -216,10 +217,12 @@ export default function GameScreen({ state, dispatch, onHome }) {
       <Box sx={{ flexShrink: 0, pb: 0.5 }}>
         <CardHand
           cards={currentPlayer.hand}
-          selectable
+          selectable={cardsLeft > 0}
           selectedId={selectedCard?.id}
           onCardClick={handleCardSelect}
-          label={`Haath mein ${currentPlayer.hand.length} cards`}
+          label={cardsLeft > 0
+            ? `Haath mein ${currentPlayer.hand.length} cards`
+            : `Plays khatam — Turn end karo (${currentPlayer.hand.length} cards)`}
         />
       </Box>
 

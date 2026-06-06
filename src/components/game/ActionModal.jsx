@@ -4,13 +4,11 @@ import {
   Paper, SwipeableDrawer, Typography,
 } from '@mui/material'
 import BlockIcon from '@mui/icons-material/Block'
-import VisibilityIcon from '@mui/icons-material/Visibility'
 import { PHASE } from '../../game/gameLogic'
 import { ACTION_TYPES, COLOR_DISPLAY, CARD_TYPES, PROPERTY_SETS, COLORS } from '../../game/constants'
 import { isSetComplete, getPlayerBankTotal } from '../../game/gameLogic'
 import { orderPropertyColors } from '../../game/cardSort'
 import Card from './Card'
-import PlayerBoard from './PlayerBoard'
 
 const SheetHandle = () => (
   <Box sx={{ width: 40, height: 4, backgroundColor: 'divider', borderRadius: 2, mx: 'auto', mt: 1, mb: 0.5 }} />
@@ -83,6 +81,7 @@ export default function ActionModal({ state, dispatch, onDone }) {
     const payer = players[payerId]
     return (
       <PaymentSheet
+        key={`rent-${payerId}-${currentPayerIdx}`}
         payer={payer} creditor={actor} amount={amount} dispatch={dispatch}
         label={`${actor.name} ne rent maanga — ₹${amount}Cr do!`}
         actionType="PAY_DEBT" extraData={{ payerId }}
@@ -98,6 +97,7 @@ export default function ActionModal({ state, dispatch, onDone }) {
     const payer = players[payerId]
     return (
       <PaymentSheet
+        key={`bday-${payerId}-${currentTargetIdx}`}
         payer={payer} creditor={actor} amount={amountPerPlayer} dispatch={dispatch}
         label={`${actor.name} ka birthday! Tumhe ₹${amountPerPlayer}Cr dena hai!`}
         actionType="PAY_DEBT" extraData={{ payerId }}
@@ -130,6 +130,7 @@ export default function ActionModal({ state, dispatch, onDone }) {
     const payer = players[payerId]
     return (
       <PaymentSheet
+        key={`debt-${payerId}`}
         payer={payer} creditor={actor} amount={pendingAction.amount} dispatch={dispatch}
         label={`${actor.name} collector ban gaya — ₹${pendingAction.amount}Cr do!`}
         actionType="PAY_DEBT" extraData={{ payerId }}
@@ -210,8 +211,9 @@ export default function ActionModal({ state, dispatch, onDone }) {
     return (
       <StolenPropertySheet
         title="Sly Deal — Kaunsi property churaoge?"
-        subtitle="(Incomplete sets se hi chura sakte ho)"
+        subtitle="(Incomplete sets se hi chura sakte ho · ✓ = tumhara set badhega)"
         others={others}
+        thief={actor}
         canSteal={(player, color) => !isSetComplete(color, player.properties[color] || [])}
         onSelect={({ fromPlayerId, cardId, color }) =>
           dispatch({ type: 'SLY_DEAL_STEAL', fromPlayerId, cardId, color })}
@@ -286,22 +288,82 @@ export default function ActionModal({ state, dispatch, onDone }) {
   return null
 }
 
-// ── OPPONENT PEEK ──────────────────────────────────────────────────
-function OpponentPeek({ others }) {
-  const [open, setOpen] = useState(false)
+// ── COUNTERPARTY STRIP ─────────────────────────────────────────────
+// Always-on summary of the other player's *public* holdings (bank total +
+// property colour sets), so you can judge what's safe to give or worth taking.
+function CounterpartyStrip({ player, title, highlightColors = [] }) {
+  if (!player) return null
+  const colors = orderPropertyColors(player.properties)
+  const hl = new Set(highlightColors)
   return (
-    <Box sx={{ px: 2.5, mb: 1 }}>
-      <Button size="small" variant="text" onClick={() => setOpen(o => !o)}
-        startIcon={<VisibilityIcon />}
-        sx={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'none' }}>
-        {open ? 'Boards chhupao' : 'Baaki players dekho'}
-      </Button>
-      {open && (
-        <Box sx={{ mt: 0.75, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          {others.map(p => <PlayerBoard key={p.id} player={p} compact />)}
+    <Box sx={{ mx: 2.5, mb: 1, p: 1, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.045)' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: colors.length ? 0.5 : 0 }}>
+        <Typography sx={{ fontSize: '0.66rem', fontWeight: 800 }}>
+          {title || `${player.name} ke paas:`}
+        </Typography>
+        <Chip size="small" label={`🏦 ₹${getPlayerBankTotal(player)}Cr`}
+          sx={{ height: 18, fontSize: '0.58rem', fontWeight: 700, ml: 'auto' }} />
+      </Box>
+      {colors.length === 0 ? (
+        <Typography sx={{ fontSize: '0.58rem', color: 'text.disabled' }}>Koi property nahi</Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          {colors.map(color => {
+            const cards = player.properties[color]
+            const complete = isSetComplete(color, cards)
+            const needed = PROPERTY_SETS[color]?.cardsNeeded || 0
+            const display = COLOR_DISPLAY[color] || {}
+            return (
+              <Box key={color} sx={{
+                display: 'flex', alignItems: 'center', gap: 0.3,
+                backgroundColor: display.hex, borderRadius: '4px', px: 0.5, py: 0.2,
+                opacity: complete ? 1 : 0.85,
+                outline: hl.has(color) ? '2px solid #E65100' : 'none', outlineOffset: '1px',
+              }}>
+                <Typography sx={{ color: '#fff', fontSize: '0.55rem', fontWeight: 800, lineHeight: 1, textShadow: '0 1px 1px rgba(0,0,0,0.4)' }}>
+                  {COLOR_DISPLAY[color]?.name} {cards.length}/{needed}{complete ? ' ✓' : ''}
+                </Typography>
+              </Box>
+            )
+          })}
         </Box>
       )}
     </Box>
+  )
+}
+
+// What would a property of `color` do for `receiver`'s set?
+//   'completes' = this card finishes their set · 'collecting' = they hold some
+//   'complete'  = they already have a full set · null = they don't collect it
+function setImpact(receiver, color) {
+  const cards = receiver?.properties?.[color] || []
+  if (cards.length === 0) return null
+  const needed = PROPERTY_SETS[color]?.cardsNeeded || Infinity
+  if (cards.length >= needed) return 'complete'
+  if (cards.length + 1 >= needed) return 'completes'
+  return 'collecting'
+}
+
+// Per-card hint shown under a selectable card. mode: 'give' (warn) | 'take' (help).
+function ImpactBadge({ impact, mode, color }) {
+  if (!impact) return null
+  const name = COLOR_DISPLAY[color]?.name || color
+  let text, bg
+  if (mode === 'give') {
+    if (impact === 'collecting') { text = `⚠️ ${name} le raha hai`; bg = '#B26A00' }
+    else { text = `⚠️ Set pura kar dega!`; bg = '#C62828' }
+  } else {
+    if (impact === 'collecting') { text = `+1 tumhare ${name}`; bg = '#2E7D32' }
+    else { text = `Set complete! ✓`; bg = '#1B5E20' }
+  }
+  return (
+    <Typography sx={{
+      mt: 0.3, maxWidth: 84, fontSize: '0.48rem', fontWeight: 800, color: '#fff',
+      backgroundColor: bg, borderRadius: '4px', px: 0.4, py: 0.15,
+      textAlign: 'center', lineHeight: 1.2,
+    }}>
+      {text}
+    </Typography>
   )
 }
 
@@ -310,12 +372,12 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
   const [selectedAssets, setSelectedAssets] = useState([])
   const [passConfirmed, setPassConfirmed] = useState(false)
 
-  const allAssets = [
-    ...[...payer.bank].sort((a, b) => b.value - a.value).map(c => ({ ...c, _from: 'bank', _color: null })),
-    ...orderPropertyColors(payer.properties).flatMap(color =>
-      payer.properties[color].map(c => ({ ...c, _from: 'property', _color: color }))),
-  ]
+  const cashAssets = [...payer.bank].sort((a, b) => b.value - a.value).map(c => ({ ...c, _from: 'bank', _color: null }))
+  const propAssets = orderPropertyColors(payer.properties).flatMap(color =>
+    payer.properties[color].map(c => ({ ...c, _from: 'property', _color: color })))
+  const allAssets = [...cashAssets, ...propAssets]
   const totalSelected = selectedAssets.reduce((s, c) => s + c.value, 0)
+  const selectedColors = selectedAssets.filter(a => a._from === 'property').map(a => a._color)
 
   function toggleAsset(asset) {
     const exists = selectedAssets.find(a => a.id === asset.id)
@@ -342,8 +404,28 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
     )
   }
 
+  const renderAsset = (asset) => {
+    const sel = !!selectedAssets.find(a => a.id === asset.id)
+    const impact = asset._from === 'property' ? setImpact(creditor, asset._color) : null
+    return (
+      <Box key={asset.id} onClick={() => toggleAsset(asset)}
+        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+        <Box sx={{
+          outline: sel ? '2px solid #E65100' : '2px solid transparent',
+          outlineOffset: '2px', borderRadius: '10px',
+          transform: sel ? 'translateY(-4px)' : 'none',
+          transition: 'all 150ms ease',
+        }}>
+          <Card card={asset} mini showValue />
+        </Box>
+        <ImpactBadge impact={impact} mode="give" color={asset._color} />
+      </Box>
+    )
+  }
+
   return (
     <BottomSheet title={label}>
+      <CounterpartyStrip player={creditor} highlightColors={selectedColors} />
       <Box sx={{ px: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
           <Chip
@@ -362,29 +444,27 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
           )}
         </Box>
 
-        <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-          Apni assets select karo:
-        </Typography>
-        <Box sx={{
-          display: 'flex', flexWrap: 'wrap', gap: 0.75, maxHeight: '30dvh',
-          overflowY: 'auto', pb: 1,
-        }}>
-          {allAssets.map(asset => {
-            const sel = !!selectedAssets.find(a => a.id === asset.id)
-            return (
-              <Box key={asset.id} onClick={() => toggleAsset(asset)}
-                sx={{
-                  cursor: 'pointer',
-                  outline: sel ? '2px solid #E65100' : '2px solid transparent',
-                  outlineOffset: '2px',
-                  borderRadius: '10px',
-                  transform: sel ? 'translateY(-4px)' : 'none',
-                  transition: 'all 150ms ease',
-                }}>
-                <Card card={asset} mini />
+        <Box sx={{ maxHeight: '34dvh', overflowY: 'auto', pb: 1 }}>
+          {cashAssets.length > 0 && (
+            <>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                💵 Cash:
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.25 }}>
+                {cashAssets.map(renderAsset)}
               </Box>
-            )
-          })}
+            </>
+          )}
+          {propAssets.length > 0 && (
+            <>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                🏠 Property (⚠️ = {creditor.name} ka set badhega):
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                {propAssets.map(renderAsset)}
+              </Box>
+            </>
+          )}
           {allAssets.length === 0 && (
             <Typography variant="caption" sx={{ color: 'text.disabled' }}>
               Koi asset nahi — seedha pass!
@@ -413,7 +493,7 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
 }
 
 // ── STOLEN PROPERTY SHEET ──────────────────────────────────────────
-function StolenPropertySheet({ title, subtitle, others, canSteal, onSelect, onCancel }) {
+function StolenPropertySheet({ title, subtitle, others, thief, canSteal, onSelect, onCancel }) {
   const [selectedPlayer, setSelectedPlayer] = useState(null)
 
   const stealableProps = selectedPlayer
@@ -426,10 +506,9 @@ function StolenPropertySheet({ title, subtitle, others, canSteal, onSelect, onCa
     <BottomSheet title={title}>
       <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {subtitle && <Typography variant="caption" sx={{ color: 'text.secondary', px: 2.5, display: 'block', mb: 1 }}>{subtitle}</Typography>}
-        <OpponentPeek others={others} />
         {/* Scrollable content */}
         <Box sx={{ px: 2.5, overflowY: 'auto', flex: 1, maxHeight: 'calc(75dvh - 100px)' }}>
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
+          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1 }}>
             {others.map(p => (
               <Chip key={p.id} label={p.name}
                 onClick={() => setSelectedPlayer(p)}
@@ -440,6 +519,11 @@ function StolenPropertySheet({ title, subtitle, others, canSteal, onSelect, onCa
             ))}
           </Box>
           {selectedPlayer && (
+            <Box sx={{ mb: 1, mx: -1 }}>
+              <CounterpartyStrip player={selectedPlayer} title={`${selectedPlayer.name} ke paas:`} />
+            </Box>
+          )}
+          {selectedPlayer && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
               {stealableProps.length === 0 && (
                 <Typography variant="caption" sx={{ color: 'text.disabled' }}>
@@ -447,9 +531,11 @@ function StolenPropertySheet({ title, subtitle, others, canSteal, onSelect, onCa
                 </Typography>
               )}
               {stealableProps.map(({ card, color }) => (
-                <Box key={card.id} sx={{ cursor: 'pointer', borderRadius: '6px', '&:hover': { opacity: 0.8 } }}
-                  onClick={() => onSelect({ fromPlayerId: selectedPlayer.id, cardId: card.id, color })}>
+                <Box key={card.id}
+                  onClick={() => onSelect({ fromPlayerId: selectedPlayer.id, cardId: card.id, color })}
+                  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', '&:hover': { opacity: 0.85 } }}>
                   <Card card={card} />
+                  <ImpactBadge impact={setImpact(thief, color)} mode="take" color={color} />
                 </Box>
               ))}
             </Box>
@@ -486,24 +572,26 @@ function ForcedDealSheet({ currentPlayer, others, onSwap, onCancel }) {
   return (
     <BottomSheet title="Forced Deal — Property Swap Karo">
       <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <OpponentPeek others={others} />
         {/* Scrollable content */}
         <Box sx={{ px: 2.5, overflowY: 'auto', flex: 1, maxHeight: 'calc(75dvh - 120px)' }}>
           <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-            Tumhari property (dogi):
+            Tumhari property (dogi){theirPlayer ? ` — ⚠️ = ${theirPlayer.name} ka set badhega` : ''}:
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
             {myProps.map(({ card, color }) => (
               <Box key={card.id}
                 onClick={() => { setMyCardId(card.id); setMyColor(color) }}
-                sx={{
-                  cursor: 'pointer', borderRadius: '6px',
+                sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                <Box sx={{
+                  borderRadius: '6px',
                   outline: myCardId === card.id ? '2px solid #E65100' : '2px solid transparent',
                   outlineOffset: '2px',
                   transform: myCardId === card.id ? 'translateY(-4px)' : 'none',
                   transition: 'all 150ms ease',
                 }}>
-                <Card card={card} />
+                  <Card card={card} />
+                </Box>
+                <ImpactBadge impact={theirPlayer ? setImpact(theirPlayer, color) : null} mode="give" color={color} />
               </Box>
             ))}
           </Box>
@@ -522,6 +610,11 @@ function ForcedDealSheet({ currentPlayer, others, onSwap, onCancel }) {
             ))}
           </Box>
           {theirPlayer && (
+            <Box sx={{ mb: 1, mx: -1 }}>
+              <CounterpartyStrip player={theirPlayer} title={`${theirPlayer.name} ke paas:`} />
+            </Box>
+          )}
+          {theirPlayer && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
               {theirProps.length === 0 && (
                 <Typography variant="caption" sx={{ color: 'text.disabled' }}>
@@ -531,14 +624,17 @@ function ForcedDealSheet({ currentPlayer, others, onSwap, onCancel }) {
               {theirProps.map(({ card, color }) => (
                 <Box key={card.id}
                   onClick={() => { setTheirCardId(card.id); setTheirColor(color) }}
-                  sx={{
-                    cursor: 'pointer', borderRadius: '6px',
+                  sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                  <Box sx={{
+                    borderRadius: '6px',
                     outline: theirCardId === card.id ? '2px solid #E65100' : '2px solid transparent',
                     outlineOffset: '2px',
                     transform: theirCardId === card.id ? 'translateY(-4px)' : 'none',
                     transition: 'all 150ms ease',
                   }}>
-                  <Card card={card} />
+                    <Card card={card} />
+                  </Box>
+                  <ImpactBadge impact={setImpact(currentPlayer, color)} mode="take" color={color} />
                 </Box>
               ))}
             </Box>
@@ -598,7 +694,7 @@ function TradeRouteSheet({ actor, discard, onSwap, onCancel }) {
                     transform: discardId === card.id ? 'translateY(-4px)' : 'none',
                     transition: 'all 150ms ease',
                   }}>
-                  <Card card={card} mini />
+                  <Card card={card} mini showValue />
                 </Box>
               ))}
             </Box>
@@ -619,14 +715,17 @@ function TradeRouteSheet({ actor, discard, onSwap, onCancel }) {
                   {eligible.map(card => (
                     <Box key={card.id}
                       onClick={() => setTakeId(card.id)}
-                      sx={{
-                        cursor: 'pointer', borderRadius: '6px',
+                      sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                      <Box sx={{
+                        borderRadius: '6px',
                         outline: takeId === card.id ? '2px solid #2E7D32' : '2px solid transparent',
                         outlineOffset: '2px',
                         transform: takeId === card.id ? 'translateY(-4px)' : 'none',
                         transition: 'all 150ms ease',
                       }}>
-                      <Card card={card} mini />
+                        <Card card={card} mini showValue />
+                      </Box>
+                      <ImpactBadge impact={setImpact(actor, card.color)} mode="take" color={card.color} />
                     </Box>
                   ))}
                 </Box>
