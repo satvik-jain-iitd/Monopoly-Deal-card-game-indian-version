@@ -29,10 +29,11 @@ export default function QRDisplay({ data, size = 240, label }) {
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
       <Box
         sx={{
-          borderRadius: 3,
-          overflow: 'hidden',
+          borderRadius: 2,
           boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
           lineHeight: 0,
+          padding: '8px',
+          backgroundColor: '#fff',
         }}
       >
         <canvas ref={canvasRef} />
