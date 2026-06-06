@@ -23,7 +23,7 @@ export const COLOR_DISPLAY = {
   green:     { name: 'Green',      hex: '#1FB25A', light: '#6FCE96' },
   darkBlue:  { name: 'Dark Blue',  hex: '#003F9E', light: '#4A7ECC' },
   railroad:  { name: 'Station',    hex: '#2C2C2C', light: '#555555' },
-  utility:   { name: 'Utility',    hex: '#5B8B5B', light: '#8EBC8E' },
+  utility:   { name: 'Utility',    hex: '#00796B', light: '#4DB6AC' },
   wild:      { name: 'Wild',       hex: '#9B59B6', light: '#C39BD3' },
 }
 
