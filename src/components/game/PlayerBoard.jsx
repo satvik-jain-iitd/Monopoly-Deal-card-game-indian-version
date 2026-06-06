@@ -6,6 +6,14 @@ import Card from './Card'
 import { COLOR_DISPLAY, PROPERTY_SETS } from '../../game/constants'
 import { isSetComplete, countCompleteSets, getPlayerBankTotal } from '../../game/gameLogic'
 
+function groupedBank(bankCards) {
+  const counts = {}
+  for (const c of bankCards) counts[c.value] = (counts[c.value] || 0) + 1
+  return Object.entries(counts)
+    .map(([v, n]) => ({ value: Number(v), count: n }))
+    .sort((a, b) => b.value - a.value)
+}
+
 export default function PlayerBoard({ player, compact = false }) {
   const sets = countCompleteSets(player)
   const bankTotal = getPlayerBankTotal(player)
@@ -24,6 +32,18 @@ export default function PlayerBoard({ player, compact = false }) {
             <Chip label={`₹${bankTotal}Cr`} size="small" color="success" sx={{ height: 18, fontSize: '0.6rem' }} />
             <Chip label={`🃏 ${player.hand?.length || 0}`} size="small" sx={{ height: 18, fontSize: '0.6rem' }} />
           </Box>
+          {player.bank.length > 0 && (
+            <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap', mb: 0.4 }}>
+              {groupedBank(player.bank).map(({ value, count }) => (
+                <Typography key={value} sx={{
+                  fontSize: '0.52rem', color: 'success.main', fontWeight: 700, lineHeight: 1,
+                  backgroundColor: 'rgba(46,125,50,0.1)', borderRadius: '4px', px: 0.5, py: 0.2,
+                }}>
+                  ₹{value}{count > 1 ? ` ×${count}` : ''}
+                </Typography>
+              ))}
+            </Box>
+          )}
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             {propertyColors.map(color => {
               const cards = player.properties[color]
