@@ -114,14 +114,24 @@ export function applyPayment(state, debtorId, creditorId, paidCards) {
 
   for (const card of paidCards) {
     if (card._from === 'bank') {
+      const before = debtor.bank.length
       debtor.bank = debtor.bank.filter(c => c.id !== card.id)
-      creditor.bank.push({ ...card, _from: undefined, _color: undefined })
+      // Only credit the collector if the card was actually removed from the
+      // debtor — prevents duplication if a stale/invalid card id is passed in.
+      if (debtor.bank.length < before) {
+        creditor.bank.push({ ...card, _from: undefined, _color: undefined })
+      }
     } else if (card._from === 'property') {
       const color = card._color
-      debtor.properties[color] = (debtor.properties[color] || []).filter(c => c.id !== card.id)
-      if (debtor.properties[color].length === 0) delete debtor.properties[color]
-      if (!creditor.properties[color]) creditor.properties[color] = []
-      creditor.properties[color].push({ ...card, _from: undefined, _color: undefined })
+      const pile = debtor.properties[color] || []
+      const before = pile.length
+      const remaining = pile.filter(c => c.id !== card.id)
+      if (remaining.length < before) {
+        if (remaining.length === 0) delete debtor.properties[color]
+        else debtor.properties[color] = remaining
+        if (!creditor.properties[color]) creditor.properties[color] = []
+        creditor.properties[color].push({ ...card, _from: undefined, _color: undefined })
+      }
     }
   }
   return s
@@ -151,7 +161,7 @@ export function playCardToBank(state, playerId, cardId) {
   player.hand.splice(cardIdx, 1)
   player.bank.push(card)
   s.cardsPlayedThisTurn++
-  s.log.push(`${player.name} ne $${card.value}M bank mein daala.`)
+  s.log.push(`${player.name} ne ₹${card.value}Cr bank mein daala.`)
   return s
 }
 
