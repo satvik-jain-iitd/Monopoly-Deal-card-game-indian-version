@@ -153,8 +153,13 @@ export default function GameScreen({ state, dispatch, onHome }) {
 
       {showLog && <GameLog logs={state.log} onClose={() => setShowLog(false)} />}
 
-      {/* Opponent boards */}
-      <Box sx={{ px: 1, pt: 0.5, flexShrink: 0 }}>
+      {/* Opponent boards — horizontal swipe strip (scales 2–6 players) */}
+      <Box sx={{
+        display: 'flex', gap: 0.75, px: 1, pt: 0.5, pb: 0.25, flexShrink: 0,
+        overflowX: 'auto',
+        '&::-webkit-scrollbar': { display: 'none' },
+        scrollbarWidth: 'none',
+      }}>
         {otherPlayers.map(p => (
           <PlayerBoard key={p.id} player={p} compact />
         ))}
@@ -172,7 +177,7 @@ export default function GameScreen({ state, dispatch, onHome }) {
         {lastPlayedCard ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.55rem', letterSpacing: '0.06em' }}>
-              PLAYED
+              KHELA
             </Typography>
             <Box sx={{
               animation: 'popIn 250ms cubic-bezier(0.175,0.885,0.32,1.275)',
@@ -189,7 +194,7 @@ export default function GameScreen({ state, dispatch, onHome }) {
           </Box>
         ) : (
           <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.55rem' }}>
-            — Play zone —
+            — Action / Rent zone —
           </Typography>
         )}
       </Box>
@@ -220,8 +225,8 @@ export default function GameScreen({ state, dispatch, onHome }) {
         {selectedCard && !selectedAction && (
           <PlayOptions
             card={selectedCard}
-            onPlayAsProperty={() => { showPlayedCard(selectedCard); dispatch({ type: 'PLAY_PROPERTY', cardId: selectedCard.id }); setSelectedCard(null) }}
-            onPlayAsMoney={() => { showPlayedCard(selectedCard); dispatch({ type: 'PLAY_AS_MONEY', cardId: selectedCard.id }); setSelectedCard(null) }}
+            onPlayAsProperty={() => { dispatch({ type: 'PLAY_PROPERTY', cardId: selectedCard.id }); setSelectedCard(null) }}
+            onPlayAsMoney={() => { dispatch({ type: 'PLAY_AS_MONEY', cardId: selectedCard.id }); setSelectedCard(null) }}
             onPlayAction={() => { showPlayedCard(selectedCard); dispatch({ type: 'PLAY_ACTION', cardId: selectedCard.id }); setSelectedCard(null) }}
             onPlayRent={() => setSelectedAction({ type: 'rent', card: selectedCard })}
             onCancel={() => setSelectedCard(null)}
