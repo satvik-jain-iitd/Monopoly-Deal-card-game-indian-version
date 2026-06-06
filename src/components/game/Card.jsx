@@ -60,7 +60,29 @@ const CARD_H = 122
 const MINI_W = 52
 const MINI_H = 74
 
-export default function Card({ card, mini = false }) {
+// Optional value pill for mini cards in selection contexts (so the player can
+// read a property's cash value without tapping). Money minis already show value.
+export default function Card({ card, mini = false, showValue = false }) {
+  if (!card) return null
+  const wantPill = mini && showValue && card.type !== CARD_TYPES.MONEY && (card.value || 0) > 0
+  if (!wantPill) return <CardFace card={card} mini={mini} />
+  return (
+    <Box sx={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+      <CardFace card={card} mini={mini} />
+      <Box sx={{
+        position: 'absolute', bottom: 2, right: 2,
+        backgroundColor: 'rgba(0,0,0,0.78)', color: '#fff',
+        borderRadius: '4px', px: 0.4, py: 0.1,
+        fontSize: '0.5rem', fontWeight: 800, lineHeight: 1.2,
+        pointerEvents: 'none',
+      }}>
+        ₹{card.value}
+      </Box>
+    </Box>
+  )
+}
+
+function CardFace({ card, mini = false }) {
   if (!card) return null
 
   const w = mini ? MINI_W : CARD_W
