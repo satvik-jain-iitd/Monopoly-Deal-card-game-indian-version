@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import {
   Box, Button, Chip, Paper, Table, TableBody, TableCell,
   TableHead, TableRow, Typography,
@@ -8,6 +9,7 @@ import ReplayIcon from '@mui/icons-material/Replay'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import HomeIcon from '@mui/icons-material/Home'
 import { tiebreakerLabel } from '../../game/scoring'
+import { sounds } from '../../game/sounds'
 
 const RANK_MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
@@ -16,6 +18,8 @@ export default function ResultsScreen({
 }) {
   const winner = ranked[0]
   const champion = standings[0]
+
+  useEffect(() => { sounds.win() }, [])
 
   return (
     <Box sx={{

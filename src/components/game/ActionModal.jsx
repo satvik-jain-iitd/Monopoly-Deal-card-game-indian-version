@@ -69,6 +69,12 @@ export default function ActionModal({ state, dispatch, onDone }) {
             />
           ))}
         </Box>
+        {/* Mind changed before picking a colour? Cancel — card stays in hand, no play used. */}
+        <Box sx={{ px: 2.5, pb: 1, pt: 0.5 }}>
+          <Button variant="outlined" fullWidth onClick={() => dispatch({ type: '_CANCEL_PENDING' })} sx={{ borderRadius: 3 }}>
+            Cancel — wapas haath mein rakho
+          </Button>
+        </Box>
       </BottomSheet>
     )
   }
