@@ -57,19 +57,28 @@ export default function GameScreen({ state, dispatch, onHome }) {
   // ── DISCARD PHASE ──────────────────────────────────────────────────
   if (state.phase === PHASE.DISCARD) {
     const excess = currentPlayer.hand.length - 7
+    const newCardIds = state.passGoDrawnIds
     return (
       <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', backgroundColor: 'background.default' }}>
-        <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+        <Box sx={{ px: 2, pt: 2, pb: 1, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          {newCardIds?.length > 0 && (
+            <Chip
+              label={`✦ Pass Go se ${newCardIds.length} naye cards mile (green highlighted)`}
+              size="small"
+              sx={{ fontWeight: 700, backgroundColor: '#E8F5E9', color: '#2E7D32', border: '1px solid #2E7D32', alignSelf: 'flex-start' }}
+            />
+          )}
           <Chip
             label={excess > 0 ? `${excess} card(s) discard karo (max 7)` : 'Discard complete!'}
             color={excess > 0 ? 'error' : 'success'}
-            sx={{ fontWeight: 700 }}
+            sx={{ fontWeight: 700, alignSelf: 'flex-start' }}
           />
         </Box>
         <Box sx={{ flex: 1, overflow: 'auto' }}>
           <CardHand
             cards={currentPlayer.hand}
             selectable
+            highlightIds={newCardIds}
             onCardClick={(card) => excess > 0 && dispatch({ type: 'DISCARD_CARD', cardId: card.id })}
             label="Kaunsa card hatoge?"
           />
