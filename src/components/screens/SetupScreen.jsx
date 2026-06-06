@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import {
-  AppBar, Avatar, Box, Button, IconButton, TextField,
+  AppBar, Avatar, Box, Button, IconButton, Switch, TextField,
   ToggleButton, ToggleButtonGroup, Toolbar, Typography,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PersonIcon from '@mui/icons-material/Person'
+import ShieldIcon from '@mui/icons-material/Shield'
+import RouteIcon from '@mui/icons-material/Route'
 
 const DEFAULT_NAMES = ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6']
 
@@ -13,6 +15,7 @@ export const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59
 export default function SetupScreen({ onStart, onBack }) {
   const [playerCount, setPlayerCount] = useState(2)
   const [names, setNames] = useState(DEFAULT_NAMES.slice())
+  const [customCards, setCustomCards] = useState(false)
 
   function updateName(i, val) {
     const n = [...names]
@@ -22,7 +25,7 @@ export default function SetupScreen({ onStart, onBack }) {
 
   function handleStart() {
     const finalNames = names.slice(0, playerCount).map((n, i) => n.trim() || `Player ${i + 1}`)
-    onStart(finalNames)
+    onStart(finalNames, customCards)
   }
 
   return (
@@ -104,6 +107,43 @@ export default function SetupScreen({ onStart, onBack }) {
                 />
               </Box>
             ))}
+          </Box>
+        </Box>
+
+        {/* Custom cards toggle */}
+        <Box>
+          <Box sx={{
+            border: '1.5px solid', borderColor: customCards ? 'primary.main' : 'divider',
+            borderRadius: 3, p: 1.5, transition: 'border-color 150ms ease',
+            backgroundColor: customCards ? 'rgba(230,81,0,0.04)' : 'transparent',
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                  Custom Cards
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  2 extra cards jo luck kam karte hain
+                </Typography>
+              </Box>
+              <Switch checked={customCards} onChange={e => setCustomCards(e.target.checked)} />
+            </Box>
+            {customCards && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 1.25 }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <ShieldIcon sx={{ fontSize: 18, color: '#00897B', mt: 0.2, flexShrink: 0 }} />
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    <b>Insurance</b> — face-up lagao; agla Deal Breaker jo tumpe aaye, cancel ho jaata hai (Just Say No ki zaroorat nahi).
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <RouteIcon sx={{ fontSize: 18, color: '#8E24AA', mt: 0.2, flexShrink: 0 }} />
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    <b>Trade Route</b> — haath se ek property discard karke, discard pile se alag colour ki property utha lo.
+                  </Typography>
+                </Box>
+              </Box>
+            )}
           </Box>
         </Box>
       </Box>

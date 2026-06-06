@@ -166,6 +166,23 @@ function gameReducer(state, action) {
           s.phase = PHASE.ACTION_RESPONSE
           return s
         }
+        case ACTION_TYPES.INSURANCE: {
+          // Already insured? Can't stack — leave the play unspent.
+          if (player.insurance) return state
+          player.hand.splice(cardIdx, 1)
+          player.insurance = card // stays face-up on the table
+          s.cardsPlayedThisTurn++
+          s.log.push(`${player.name} ne Insurance lagaya — Deal Breaker se safety! 🛡️`)
+          s.phase = nextPhaseAfterPlay(s)
+          return s
+        }
+        case ACTION_TYPES.TRADE_ROUTE: {
+          // Two-step selection — the card is only committed on swap, so a
+          // cancel costs nothing (the discard pile may have no usable property).
+          s.phase = PHASE.TRADE_ROUTE_SELECT
+          s.pendingAction = { type: ACTION_TYPES.TRADE_ROUTE, actingPlayerId: s.currentPlayerIndex, cardId }
+          return s
+        }
         default: return state
       }
     }
@@ -336,6 +353,16 @@ function gameReducer(state, action) {
 
       if (!isSetComplete(color, victim.properties[color] || [])) return state
 
+      // Insurance auto-cancels a Deal Breaker (no Just Say No needed).
+      if (victim.insurance) {
+        s.discard.push(victim.insurance)
+        victim.insurance = null
+        s.log.push(`${victim.name} ke Insurance ne ${thief.name} ka Deal Breaker rok diya! 🛡️`)
+        s.pendingAction = null
+        s.phase = nextPhaseAfterPlay(s)
+        return s
+      }
+
       const set = victim.properties[color]
       delete victim.properties[color]
       if (victim.buildings?.[color]) delete victim.buildings[color]
@@ -372,6 +399,34 @@ function gameReducer(state, action) {
       if (!player.buildings[color]) player.buildings[color] = { houses: 0, hotels: 0 }
       player.buildings[color].hotels++
       s.log.push(`${player.name} ne ${color} pe hotel banaya!`)
+      s.pendingAction = null
+      s.phase = nextPhaseAfterPlay(s)
+      return s
+    }
+
+    case 'TRADE_ROUTE_SWAP': {
+      const { discardCardId, takeCardId } = action
+      const s = deepClone(state)
+      const pa = s.pendingAction
+      if (!pa || pa.type !== ACTION_TYPES.TRADE_ROUTE) return state
+      const player = s.players[s.currentPlayerIndex]
+
+      const trCard = player.hand.find(c => c.id === pa.cardId)
+      const handProp = player.hand.find(c => c.id === discardCardId)
+      const takeCard = s.discard.find(c => c.id === takeCardId)
+      if (!trCard || !handProp || !takeCard) return state
+      // Must take a property of a *different* colour than the one discarded.
+      if (takeCard.color === handProp.color) return state
+
+      // Trade Route action card + the chosen hand property leave the hand → discard.
+      player.hand = player.hand.filter(c => c.id !== pa.cardId && c.id !== discardCardId)
+      s.discard = s.discard.filter(c => c.id !== takeCardId)
+      s.discard.push(trCard, handProp)
+      delete takeCard._from
+      player.hand.push(takeCard)
+
+      s.cardsPlayedThisTurn++
+      s.log.push(`${player.name} ne Trade Route khela — ${handProp.name} di, ${takeCard.name} li.`)
       s.pendingAction = null
       s.phase = nextPhaseAfterPlay(s)
       return s

@@ -128,6 +128,10 @@ export default function PlayerBoard({ player, compact = false }) {
               </Typography>
               <Chip label={`🏠${sets}`} size="small" sx={{ height: 17, fontSize: '0.55rem', '& .MuiChip-label': { px: 0.6 } }} />
               <Chip label={`🃏${player.hand?.length || 0}`} size="small" sx={{ height: 17, fontSize: '0.55rem', '& .MuiChip-label': { px: 0.6 } }} />
+              {player.insurance && (
+                <Chip label="🛡️" size="small" title="Insured vs Deal Breaker"
+                  sx={{ height: 17, fontSize: '0.55rem', backgroundColor: 'rgba(0,121,107,0.15)', '& .MuiChip-label': { px: 0.5 } }} />
+              )}
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 0.4 }}>
               <Typography sx={{ fontSize: '0.78rem', fontWeight: 900, color: 'success.main', lineHeight: 1 }}>
@@ -198,6 +202,10 @@ export default function PlayerBoard({ player, compact = false }) {
                   icon={sets >= 3 ? <CheckCircleIcon /> : undefined}
                   sx={{ height: 20, fontSize: '0.6rem' }}
                 />
+                {player.insurance && (
+                  <Chip label="🛡️ Insured" size="small"
+                    sx={{ height: 20, fontSize: '0.58rem', fontWeight: 700, backgroundColor: 'rgba(0,121,107,0.15)', color: '#00695C' }} />
+                )}
               </Box>
             </Box>
             {sets > 0 && (

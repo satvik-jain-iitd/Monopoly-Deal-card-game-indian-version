@@ -14,6 +14,8 @@
 - [The deck (106 cards)](#the-deck-106-cards)
 - [Indian city map](#indian-city-map)
 - [UX & design decisions](#ux--design-decisions)
+- [Scoring & multi-game series](#scoring--multi-game-series)
+- [Custom cards (optional)](#custom-cards-optional)
 - [Tech stack](#tech-stack)
 - [Architecture](#architecture)
 - [Project structure](#project-structure)
@@ -69,8 +71,10 @@ Everything is localised for an Indian audience:
 | **House / Hotel** | Add to a **complete** set to boost its rent (hotel needs a house first) |
 | **Wild properties** | Assigned a colour when played; full wilds can be any colour |
 | **Paying debts** | Pay from bank and/or properties; property given in payment **leaves play** (it is never converted to your cash) |
+| **End-game ranking** | Every player is ranked at the instant the game ends; rank → points → multi-game series (see below) |
+| **Custom cards** *(opt-in)* | Insurance + Trade Route, two extra cards that reduce luck swings (see below) |
 
-> **Card conservation:** every transfer (banking, property play, steals, swaps, payments) is move-only — the deck total stays at exactly **106** for the whole game.
+> **Card conservation:** every transfer (banking, property play, steals, swaps, payments) is move-only — the deck total stays at exactly **106** for the whole game (**108** with custom cards enabled).
 
 ---
 
@@ -143,6 +147,93 @@ The interface is designed for a **small phone (≈375×667, iPhone 6/7-class)** 
 
 ---
 
+## Scoring & multi-game series
+
+Monopoly Deal is fast and swingy — one lucky draw can decide a game. To make a play session
+*competitive*, Dhandha ranks **every** player the instant the game ends ("frozen board"), turns
+that rank into points, and accumulates points across games into a **series standings** table. After
+a handful of games the most *consistent* player — not the luckiest — tops the table.
+
+### Frozen-board ranking (strict tiebreakers, all descending)
+
+At the moment a player completes their 3rd set, all boards freeze and players are ranked by:
+
+| Priority | Criterion |
+|:--:|---|
+| 1 | **Completed property sets** (incl. the winning 3) |
+| 2 | **Total property cards on the table** (finished sets + loose piles + wilds) |
+| 3 | **Cash in bank** (money + action/rent cards played as money) |
+| 4 | **Cards remaining in hand** |
+
+A higher priority-1 value always outranks a lower one; ties fall through to priority-2, then 3,
+then 4. Eliminated players naturally score all zeros and sort to the bottom.
+
+### Rank → points
+
+Points per finishing position scale with the player count `n` — **1st = `n+1`, every lower rank
+`r` = `n+1−r`** — so a win is always worth meaningfully more than merely surviving:
+
+| Players | Points by place | Total |
+|:--:|---|:--:|
+| 2 | `3, 1` | 4 |
+| 3 | `4, 2, 1` | 7 |
+| 4 | `5, 3, 2, 1` | 11 |
+| 5 | `6, 4, 3, 2, 1` | 16 |
+| 6 | `7, 5, 4, 3, 2, 1` | 22 |
+
+Players **completely tied** on all four criteria share a rank and **split the combined points of the
+positions they occupy**, rounded to one decimal — e.g. two players tied for 3rd in a 4-player game
+get `(2 + 1) / 2 = 1.5` each. Points are never dropped; per-game totals stay constant.
+
+### The series
+
+- Standings are saved in the **browser (localStorage)** and survive refreshes — the series is
+  **open-ended**, with a manual **"Nayi Series"** reset.
+- A series belongs to a **group of player names**; starting a game with a different set of names
+  automatically begins a fresh series.
+- Series standings sort by **total points**, breaking ties by most 1st-place finishes, then 2nd,
+  then 3rd.
+- After each game the **results screen** shows the per-game ranking (with the exact tiebreaker that
+  separated close players highlighted) and the cumulative series standings with the champion crowned.
+  **"Agla Game"** replays with the same players and continues the series.
+
+*Implementation: `src/game/scoring.js` (pure ranking + points), `src/game/series.js` (persistence),
+`src/components/screens/ResultsScreen.jsx` (UI); recorded once per game from `App.jsx`.*
+
+---
+
+## Custom cards (optional)
+
+Toggle **"Custom Cards"** on the setup screen to shuffle **two extra cards** into the deck (filling
+the two blank slots of a physical deck, one copy of each). They're designed to **cut the worst luck
+swings** without adding new phases, hidden information, or trust issues — every effect is public and
+enforced by the engine.
+
+### 🛡️ Insurance
+*Action — play immediately.* Placed **face-up** in front of you (like a property, and visible to
+everyone). The next **Deal Breaker** that targets you is **completely cancelled** and the Insurance
+is discarded — no Just Say No required. You can hold only one at a time.
+
+> Counters the game's most punishing moment — an early Deal Breaker stealing your only set — and
+> turns defence into a deliberate choice: you spend a play *now* to be protected *later*.
+
+### 🧭 Trade Route
+*Action — play immediately.* Discard one property from your hand, then take **any one property of a
+different colour** from the **discard pile** into your hand (a strict 1-for-1 swap). The pile is
+public, so there's no hidden information; cancel costs nothing if the pile has no usable property.
+
+> Counters "colour-screw" — drawing properties you can't use — and rewards board awareness (grab the
+> exact colour an opponent just discarded, or deny a key piece from the pile).
+
+Both are played like any other Action card (and can be banked for value). Custom cards render with a
+distinct gradient and a `✦ CUSTOM` tag so they're instantly recognisable.
+
+*Implementation: card defs in `src/game/constants.js` (behind the `customCards` flag); Insurance
+resolves inside the Deal Breaker case and Trade Route uses a `TRADE_ROUTE_SELECT` phase, both in
+`src/game/useGameState.js`.*
+
+---
+
 ## Tech stack
 
 ```
@@ -164,7 +255,9 @@ No backend. No database. No auth. Pure client-side state — the entire game eng
 **Pure logic vs. display.**
 - `src/game/gameLogic.js` — the rules: deal, draw, bank, play property, rent maths, steals, swaps, payments, win check. All pure functions.
 - `src/game/cardSort.js` — display-only ordering helpers (`orderHandCards`, `orderPropertyColors`, `groupedBank`). These never mutate game state; they only decide render order so every screen looks consistent.
-- `src/game/constants.js` — the deck definition, colour palette, and `PROPERTY_SETS` rent tables (single source of truth).
+- `src/game/scoring.js` — pure end-game ranking + points (`buildSnapshot`, `rankAndScore`, `tiebreakerLabel`).
+- `src/game/series.js` — localStorage-backed multi-game series standings.
+- `src/game/constants.js` — the deck definition (incl. opt-in custom cards), colour palette, and `PROPERTY_SETS` rent tables (single source of truth).
 
 **No server for pass-and-play.** Instead of real-time sync, the app uses a device-passing UX with a hand-hiding screen between turns. This keeps it offline-capable and zero-infrastructure.
 
@@ -176,10 +269,13 @@ No backend. No database. No auth. Pure client-side state — the entire game eng
 
 ```
 src/
+├── App.jsx               # Screen flow + records each finished game into the series
 ├── game/
-│   ├── constants.js      # Deck, COLOR_DISPLAY, PROPERTY_SETS rent tables
+│   ├── constants.js      # Deck (+ opt-in custom cards), COLOR_DISPLAY, rent tables
 │   ├── gameLogic.js      # Pure rules: deal, play, rent, steal, pay, win check
 │   ├── cardSort.js       # Display ordering: hand / properties / bank
+│   ├── scoring.js        # End-game ranking + points (frozen board)
+│   ├── series.js         # localStorage multi-game series standings
 │   └── useGameState.js   # useReducer game state machine (PHASE-driven)
 │
 └── components/
@@ -190,12 +286,12 @@ src/
     │   ├── PlayerBoard.jsx   # Bank (left) + property sets (right); compact & full modes
     │   ├── ActionModal.jsx   # Bottom-sheet flows for every action/response phase
     │   ├── PassDeviceModal.jsx
-    │   ├── GameLog.jsx
-    │   └── WinScreen.jsx
+    │   └── GameLog.jsx
     └── screens/
         ├── HomeScreen.jsx
-        ├── SetupScreen.jsx
-        └── GameScreen.jsx    # Main loop: draw / play / discard + persistent play zone
+        ├── SetupScreen.jsx   # Player count/names + "Custom Cards" toggle
+        ├── GameScreen.jsx    # Main loop: draw / play / discard + persistent play zone
+        └── ResultsScreen.jsx # Per-game ranking + cumulative series standings
 ```
 
 ---

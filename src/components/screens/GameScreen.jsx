@@ -90,7 +90,7 @@ export default function GameScreen({ state, dispatch, onHome }) {
   // ── ACTION RESPONSE PHASES ─────────────────────────────────────────
   if ([PHASE.ACTION_RESPONSE, PHASE.RENT_COLLECT, PHASE.BIRTHDAY_COLLECT,
     PHASE.SLY_DEAL_SELECT, PHASE.FORCED_DEAL_SELECT, PHASE.DEAL_BREAKER_SELECT,
-    PHASE.WILD_COLOR_SELECT].includes(state.phase)) {
+    PHASE.TRADE_ROUTE_SELECT, PHASE.WILD_COLOR_SELECT].includes(state.phase)) {
     return (
       <ActionModal
         state={state}

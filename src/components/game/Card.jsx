@@ -10,6 +10,8 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import HomeIcon from '@mui/icons-material/Home'
 import HotelIcon from '@mui/icons-material/Hotel'
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee'
+import ShieldIcon from '@mui/icons-material/Shield'
+import RouteIcon from '@mui/icons-material/Route'
 import { CARD_TYPES, ACTION_TYPES, COLOR_DISPLAY, COLORS } from '../../game/constants'
 import { CityLandmark } from './CardArt'
 
@@ -24,6 +26,8 @@ const ACTION_ICONS = {
   [ACTION_TYPES.DOUBLE_RENT]: TrendingUpIcon,
   [ACTION_TYPES.HOUSE]: HomeIcon,
   [ACTION_TYPES.HOTEL]: HotelIcon,
+  [ACTION_TYPES.INSURANCE]: ShieldIcon,
+  [ACTION_TYPES.TRADE_ROUTE]: RouteIcon,
 }
 
 const ACTION_DESC = {
@@ -37,6 +41,8 @@ const ACTION_DESC = {
   [ACTION_TYPES.DOUBLE_RENT]: 'Rent double karo',
   [ACTION_TYPES.HOUSE]: 'Complete set pe ghar',
   [ACTION_TYPES.HOTEL]: 'Ghar ke upar hotel',
+  [ACTION_TYPES.INSURANCE]: 'Deal Breaker se bachao',
+  [ACTION_TYPES.TRADE_ROUTE]: 'Discard se swap karo',
 }
 
 function getTextColor(hexBg) {
@@ -191,15 +197,33 @@ export default function Card({ card, mini = false }) {
   // ── ACTION ──────────────────────────────────────────────────────────
   if (card.type === CARD_TYPES.ACTION) {
     const IconComponent = ACTION_ICONS[card.actionType]
+    // Custom cards get a distinct gradient so they read as "special".
+    const actionBg = card.actionType === ACTION_TYPES.INSURANCE
+      ? 'linear-gradient(145deg, #00695C, #00897B)'
+      : card.actionType === ACTION_TYPES.TRADE_ROUTE
+        ? 'linear-gradient(145deg, #6A1B9A, #8E24AA)'
+        : 'linear-gradient(145deg, #1A237E, #283593)'
+    const isCustom = card.actionType === ACTION_TYPES.INSURANCE || card.actionType === ACTION_TYPES.TRADE_ROUTE
     return (
       <Paper elevation={1} sx={{
         width: w, height: h, borderRadius: `${r}px`,
-        background: 'linear-gradient(145deg, #1A237E, #283593)',
+        background: actionBg,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, overflow: 'hidden', userSelect: 'none',
         px: 0.5,
+        position: 'relative',
+        ...(isCustom && { boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.35)' }),
       }}>
+        {isCustom && !mini && (
+          <Typography sx={{
+            position: 'absolute', top: 3, right: 4,
+            fontSize: '0.4rem', fontWeight: 800, letterSpacing: '0.05em',
+            color: 'rgba(255,255,255,0.7)',
+          }}>
+            ✦ CUSTOM
+          </Typography>
+        )}
         {IconComponent && (
           <Box sx={{ color: '#fff', opacity: 0.9, mb: mini ? 0 : 0.4 }}>
             <IconComponent sx={{ fontSize: mini ? 22 : 30 }} />

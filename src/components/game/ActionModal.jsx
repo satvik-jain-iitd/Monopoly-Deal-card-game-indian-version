@@ -270,6 +270,19 @@ export default function ActionModal({ state, dispatch, onDone }) {
     )
   }
 
+  // ── TRADE ROUTE SELECT (custom card) ───────────────────────────────
+  if (phase === PHASE.TRADE_ROUTE_SELECT) {
+    return (
+      <TradeRouteSheet
+        actor={actor}
+        discard={state.discard}
+        onSwap={(discardCardId, takeCardId) =>
+          dispatch({ type: 'TRADE_ROUTE_SWAP', discardCardId, takeCardId })}
+        onCancel={() => dispatch({ type: '_CANCEL_PENDING' })}
+      />
+    )
+  }
+
   return null
 }
 
@@ -538,6 +551,96 @@ function ForcedDealSheet({ currentPlayer, others, onSwap, onCancel }) {
             disabled={!myCardId || !theirCardId}
             sx={{ borderRadius: 3, fontWeight: 800, flex: 1 }}
             onClick={() => onSwap({ fromPlayerId: theirPlayer.id, theirCardId, theirColor, myCardId, myColor })}>
+            Swap Karo!
+          </Button>
+          <Button variant="outlined" onClick={onCancel} sx={{ borderRadius: 3 }}>
+            Cancel
+          </Button>
+        </Box>
+      </Box>
+    </BottomSheet>
+  )
+}
+
+// ── TRADE ROUTE SHEET (custom card) ────────────────────────────────
+function TradeRouteSheet({ actor, discard, onSwap, onCancel }) {
+  const [discardId, setDiscardId] = useState(null)
+  const [takeId, setTakeId] = useState(null)
+
+  const isProp = (c) => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.WILD_PROPERTY
+  const myProps = actor.hand.filter(isProp)
+  const discarded = myProps.find(c => c.id === discardId)
+  const pileProps = discard.filter(isProp)
+  // Eligible pile cards = a *different* colour than the one being discarded.
+  const eligible = discarded ? pileProps.filter(c => c.color !== discarded.color) : []
+
+  return (
+    <BottomSheet title="Trade Route — Card Swap">
+      <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Box sx={{ px: 2.5, overflowY: 'auto', flex: 1, maxHeight: 'calc(75dvh - 120px)' }}>
+          {/* Step 1 — discard one of your properties */}
+          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+            1. Haath se ek property discard karo:
+          </Typography>
+          {myProps.length === 0 ? (
+            <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
+              Haath mein koi property nahi — Trade Route nahi khel sakte.
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+              {myProps.map(card => (
+                <Box key={card.id}
+                  onClick={() => { setDiscardId(card.id); setTakeId(null) }}
+                  sx={{
+                    cursor: 'pointer', borderRadius: '6px',
+                    outline: discardId === card.id ? '2px solid #E65100' : '2px solid transparent',
+                    outlineOffset: '2px',
+                    transform: discardId === card.id ? 'translateY(-4px)' : 'none',
+                    transition: 'all 150ms ease',
+                  }}>
+                  <Card card={card} mini />
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {/* Step 2 — take a different-colour property from the discard pile */}
+          {discarded && (
+            <>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+                2. Discard pile se alag colour ki property lo:
+              </Typography>
+              {eligible.length === 0 ? (
+                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
+                  Discard pile mein alag colour ki koi property nahi. (Cancel karke card bacha lo.)
+                </Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
+                  {eligible.map(card => (
+                    <Box key={card.id}
+                      onClick={() => setTakeId(card.id)}
+                      sx={{
+                        cursor: 'pointer', borderRadius: '6px',
+                        outline: takeId === card.id ? '2px solid #2E7D32' : '2px solid transparent',
+                        outlineOffset: '2px',
+                        transform: takeId === card.id ? 'translateY(-4px)' : 'none',
+                        transition: 'all 150ms ease',
+                      }}>
+                      <Card card={card} mini />
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </>
+          )}
+        </Box>
+
+        {/* Sticky CTAs */}
+        <Box sx={{ px: 2.5, pt: 1, pb: 1.5, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider', display: 'flex', gap: 1 }}>
+          <Button variant="contained" size="large"
+            disabled={!discardId || !takeId}
+            sx={{ borderRadius: 3, fontWeight: 800, flex: 1 }}
+            onClick={() => onSwap(discardId, takeId)}>
             Swap Karo!
           </Button>
           <Button variant="outlined" onClick={onCancel} sx={{ borderRadius: 3 }}>

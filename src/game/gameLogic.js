@@ -9,13 +9,14 @@ export const PHASE = {
   FORCED_DEAL_SELECT: 'forcedDealSelect',
   SLY_DEAL_SELECT: 'slyDealSelect',
   DEAL_BREAKER_SELECT: 'dealBreakerSelect',
+  TRADE_ROUTE_SELECT: 'tradeRouteSelect',  // custom card: pick hand prop + discard-pile prop
   WILD_COLOR_SELECT: 'wildColorSelect',
   DISCARD: 'discard',
   GAME_OVER: 'gameOver',
 }
 
-export function initGame(playerNames) {
-  const deck = createDeck()
+export function initGame(playerNames, { customCards = false } = {}) {
+  const deck = createDeck(customCards)
   const players = playerNames.map((name, i) => ({
     id: i,
     name,
@@ -23,6 +24,7 @@ export function initGame(playerNames) {
     bank: [],       // money + action cards played as money
     properties: {}, // { color: [cards] }
     buildings: {},  // { color: { houses: 0, hotels: 0 } }
+    insurance: null, // custom card: face-up Deal Breaker shield (or null)
   }))
 
   // Deal 5 cards each
@@ -32,6 +34,7 @@ export function initGame(playerNames) {
 
   return {
     gameId: Date.now(),
+    customCards,
     players,
     deck,
     discard: [],

@@ -35,15 +35,15 @@ export default function App() {
   function handleStartSetup() { setScreen('setup') }
   function handleGoHome() { setScreen('home') }
 
-  function handleStartGame(playerNames) {
+  function handleStartGame(playerNames, customCards = false) {
     setResults(null)
-    dispatch({ type: '_INIT', _state: initGame(playerNames) })
+    dispatch({ type: '_INIT', _state: initGame(playerNames, { customCards }) })
     setScreen('game')
   }
 
   function handleNextGame() {
-    // Replay with the same players — series continues (same roster key).
-    handleStartGame(gameState.players.map(p => p.name))
+    // Replay with the same players & settings — series continues (same roster key).
+    handleStartGame(gameState.players.map(p => p.name), gameState.customCards)
   }
 
   function handleNewSeries() {
