@@ -82,8 +82,10 @@ function gameReducer(state, action) {
           s.cardsPlayedThisTurn++
           const drawn = s.deck.splice(0, 2)
           player.hand.push(...drawn)
-          s.log.push(`${player.name} ne Pass Go khela — 2 extra cards mile!`)
+          s.log.push(`${player.name} ne Pass Go khela — ${drawn.length} extra cards mile!`)
           s.phase = nextPhaseAfterPlay(s)
+          // Mark drawn cards so the DISCARD screen can highlight them.
+          s.passGoDrawnIds = drawn.map(c => c.id)
           return s
         }
         case ACTION_TYPES.DOUBLE_RENT: {
@@ -463,12 +465,16 @@ function gameReducer(state, action) {
       if (idx === -1) return state
       const [card] = player.hand.splice(idx, 1)
       s.discard.push(card)
-      if (player.hand.length <= 7) s.phase = PHASE.PLAY
+      if (player.hand.length <= 7) {
+        s.phase = PHASE.PLAY
+        s.passGoDrawnIds = null
+      }
       return s
     }
 
     case 'END_TURN': {
-      return endTurn(state)
+      const s = endTurn(state)
+      return { ...s, passGoDrawnIds: null }
     }
 
     case '_CANCEL_PENDING': {

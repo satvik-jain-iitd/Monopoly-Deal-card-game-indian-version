@@ -2,8 +2,9 @@ import { Box, Typography } from '@mui/material'
 import Card from './Card'
 import { orderHandCards } from '../../game/cardSort'
 
-export default function CardHand({ cards, selectable, selectedId, onCardClick, label }) {
+export default function CardHand({ cards, selectable, selectedId, onCardClick, label, highlightIds }) {
   const ordered = orderHandCards(cards)
+  const highlighted = highlightIds ? new Set(highlightIds) : null
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
       {label && (
@@ -20,6 +21,7 @@ export default function CardHand({ cards, selectable, selectedId, onCardClick, l
       }}>
         {ordered.map((card) => {
           const isSelected = selectedId === card.id
+          const isNew = highlighted?.has(card.id)
           return (
             <Box
               key={card.id}
@@ -28,11 +30,15 @@ export default function CardHand({ cards, selectable, selectedId, onCardClick, l
                 scrollSnapAlign: 'start',
                 flexShrink: 0,
                 cursor: selectable ? 'pointer' : 'default',
-                transform: isSelected ? 'translateY(-10px)' : 'translateY(0)',
+                transform: isSelected ? 'translateY(-10px)' : isNew ? 'translateY(-5px)' : 'translateY(0)',
                 transition: 'transform 150ms ease, box-shadow 150ms ease',
                 borderRadius: '10px',
-                boxShadow: isSelected ? '0 6px 20px rgba(230,81,0,0.35)' : 'none',
-                outline: isSelected ? '2px solid #E65100' : '2px solid transparent',
+                boxShadow: isSelected
+                  ? '0 6px 20px rgba(230,81,0,0.35)'
+                  : isNew ? '0 4px 14px rgba(46,125,50,0.40)' : 'none',
+                outline: isSelected
+                  ? '2px solid #E65100'
+                  : isNew ? '2px solid #2E7D32' : '2px solid transparent',
                 outlineOffset: '2px',
               }}
             >
