@@ -5,6 +5,7 @@ import HomeScreen from './components/screens/HomeScreen'
 import SetupScreen from './components/screens/SetupScreen'
 import MultiplayerSetupScreen from './components/screens/MultiplayerSetupScreen'
 import LocalMultiplayerSetupScreen from './components/screens/LocalMultiplayerSetupScreen'
+import OfflineSetupScreen from './components/screens/OfflineSetupScreen'
 import LobbyScreen from './components/screens/LobbyScreen'
 import GameScreen from './components/screens/GameScreen'
 import ResultsScreen from './components/screens/ResultsScreen'
@@ -14,6 +15,7 @@ import { rankAndScore } from './game/scoring'
 import { loadSeries, saveSeries, resetSeries, recordGame, getStandings, rosterKey } from './game/series'
 import { sounds, ACTION_SOUND_MAP, ACTION_TYPE_SOUND } from './game/sounds'
 import { useMultiplayer } from './multiplayer/useMultiplayer'
+import { useWebRTC } from './multiplayer/useWebRTC'
 import theme from './theme'
 
 export default function App() {
@@ -33,6 +35,9 @@ export default function App() {
   const [mpGuestState, setMpGuestState] = useState(null)
   const mpModeRef = useRef(null)
   const mpMyNameRef = useRef('')
+  const mpTransportRef = useRef('cloud') // 'cloud' | 'offline'
+  // Points to whichever send fn is active for the current session
+  const activeSendRef = useRef(null)
 
   // ── MULTIPLAYER MESSAGE HANDLER ───────────────────────────────────────
   const handleMessage = useCallback((msg) => {
@@ -40,7 +45,7 @@ export default function App() {
       setMpPlayers(prev => {
         if (prev.find(p => p.name === msg.name)) return prev
         const next = [...prev, { name: msg.name, isHost: false }]
-        setTimeout(() => mpRef.current.send({ type: 'ROSTER', players: next }), 0)
+        setTimeout(() => activeSendRef.current?.({ type: 'ROSTER', players: next }), 0)
         return next
       })
     } else if (msg.type === 'ROSTER') {
@@ -58,16 +63,29 @@ export default function App() {
     }
   }, [rawDispatch])
 
+  // ── CLOUD / LOCAL-SERVER TRANSPORT ───────────────────────────────────
   const mp = useMultiplayer({ onMessage: handleMessage })
   const mpRef = useRef(mp)
   useEffect(() => { mpRef.current = mp }, [mp])
   const mpSend = useCallback((msg) => mpRef.current.send(msg), [])
-  Object.assign(mp, { send: mpSend })
+
+  // ── WEBRTC (OFFLINE P2P) TRANSPORT ───────────────────────────────────
+  const handlePeerConnected = useCallback(() => {
+    // Guest sends HELLO when DataChannel opens; host waits for guest's HELLO
+    if (mpModeRef.current === 'guest') {
+      activeSendRef.current?.({ type: 'HELLO', name: mpMyNameRef.current })
+    }
+  }, [])
+
+  const webrtcMp = useWebRTC({ onMessage: handleMessage, onPeerConnected: handlePeerConnected })
+  const webrtcMpRef = useRef(webrtcMp)
+  useEffect(() => { webrtcMpRef.current = webrtcMp }, [webrtcMp])
+  const webrtcMpSend = useCallback((msg) => webrtcMpRef.current.send(msg), [])
 
   // ── HOST BROADCASTS STATE AFTER EVERY CHANGE ──────────────────────────
   useEffect(() => {
-    if (mpModeRef.current !== 'host' || !gameState || !mp.connected) return
-    mp.send({ type: 'GAME_STATE', state: gameState })
+    if (mpModeRef.current !== 'host' || !gameState) return
+    activeSendRef.current?.({ type: 'GAME_STATE', state: gameState })
   }, [gameState]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── UNIFIED DISPATCH (sounds + multiplayer routing) ───────────────────
@@ -89,9 +107,9 @@ export default function App() {
     } else if (mpModeRef.current === 'host') {
       rawDispatch(action)  // broadcast happens via the gameState effect above
     } else {
-      mp.send({ type: 'GAME_ACTION', action })  // guest → host
+      activeSendRef.current?.({ type: 'GAME_ACTION', action })  // guest → host
     }
-  }, [rawDispatch, mp])
+  }, [rawDispatch])
 
   // ── SERIES RECORDING ──────────────────────────────────────────────────
   const effectiveState = mpMode === 'guest' ? mpGuestState : gameState
@@ -111,8 +129,11 @@ export default function App() {
   // ── HANDLERS ──────────────────────────────────────────────────────────
   function resetMpState() {
     mp.disconnect()
+    webrtcMp.disconnect()
     mpModeRef.current = null
     mpMyNameRef.current = ''
+    mpTransportRef.current = 'cloud'
+    activeSendRef.current = mpSend
     setMpMode(null); setMpRoom(''); setMpMyName(''); setMpMyIndex(null)
     setMpPlayers([]); setMpGuestState(null)
   }
@@ -141,6 +162,8 @@ export default function App() {
   function handleRoomReady(roomCode, isHost, myName, wsBase) {
     mpModeRef.current = isHost ? 'host' : 'guest'
     mpMyNameRef.current = myName
+    mpTransportRef.current = 'cloud'
+    activeSendRef.current = mpSend
     setMpMode(isHost ? 'host' : 'guest')
     setMpRoom(roomCode)
     setMpMyName(myName)
@@ -153,9 +176,31 @@ export default function App() {
     mp.connect(roomCode, wsBase)
 
     if (!isHost) {
-      setTimeout(() => mp.send({ type: 'HELLO', name: myName }), 600)
+      setTimeout(() => mpSend({ type: 'HELLO', name: myName }), 600)
     }
 
+    setScreen('lobby')
+  }
+
+  // Called by OfflineSetupScreen once role+name are chosen (before QR exchange).
+  // Screen stays on 'offlineSetup' until handleOfflineConnectionMade fires.
+  function handleOfflineModeSet(isHost, myName) {
+    mpModeRef.current = isHost ? 'host' : 'guest'
+    mpMyNameRef.current = myName
+    mpTransportRef.current = 'offline'
+    activeSendRef.current = webrtcMpSend
+    setMpMode(isHost ? 'host' : 'guest')
+    setMpMyName(myName)
+    setMpRoom('OFFLINE')
+
+    if (isHost) {
+      setMpPlayers([{ name: myName, isHost: true }])
+      setMpMyIndex(0)
+    }
+  }
+
+  // Called by OfflineSetupScreen once WebRTC DataChannel is open.
+  function handleOfflineConnectionMade() {
     setScreen('lobby')
   }
 
@@ -176,6 +221,7 @@ export default function App() {
             onPlay={() => setScreen('setup')}
             onMultiplayer={() => setScreen('mpSetup')}
             onLocalMultiplayer={() => setScreen('localSetup')}
+            onOfflineMultiplayer={() => setScreen('offlineSetup')}
           />
         )}
         {screen === 'setup' && <SetupScreen onStart={handleStartGame} onBack={() => setScreen('home')} />}
@@ -184,6 +230,14 @@ export default function App() {
         )}
         {screen === 'localSetup' && (
           <LocalMultiplayerSetupScreen onBack={() => setScreen('home')} onRoomReady={handleRoomReady} />
+        )}
+        {screen === 'offlineSetup' && (
+          <OfflineSetupScreen
+            webrtc={webrtcMp}
+            onModeSet={handleOfflineModeSet}
+            onConnectionMade={handleOfflineConnectionMade}
+            onBack={handleGoHome}
+          />
         )}
         {screen === 'lobby' && (
           <LobbyScreen

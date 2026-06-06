@@ -8,7 +8,7 @@ const RULES = [
   'Sabse pehle 3 complete sets — winner!',
 ]
 
-export default function HomeScreen({ onPlay, onMultiplayer, onLocalMultiplayer }) {
+export default function HomeScreen({ onPlay, onMultiplayer, onLocalMultiplayer, onOfflineMultiplayer }) {
   return (
     <Box sx={{
       height: '100dvh', width: '100%',
@@ -109,6 +109,17 @@ export default function HomeScreen({ onPlay, onMultiplayer, onLocalMultiplayer }
               sx={{ borderRadius: 3, py: 1.2, fontSize: '0.95rem', fontWeight: 700, borderWidth: 2, borderColor: 'success.main', color: 'success.main' }}
             >
               📡 Hotspot Khelo (No Internet)
+            </Button>
+          )}
+          {onOfflineMultiplayer && (
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={onOfflineMultiplayer}
+              fullWidth
+              sx={{ borderRadius: 3, py: 1.2, fontSize: '0.95rem', fontWeight: 700, borderWidth: 2, borderColor: 'info.main', color: 'info.main' }}
+            >
+              📵 Offline Khelo (Bus/No Internet)
             </Button>
           )}
         </Box>
