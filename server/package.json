@@ -1,0 +1,16 @@
+{
+  "name": "dhandha-local-server",
+  "version": "1.0.0",
+  "description": "Local WiFi relay server for Dhandha — no internet required",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
