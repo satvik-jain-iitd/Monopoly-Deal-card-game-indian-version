@@ -83,6 +83,83 @@ function checkInvariants(s, ctx, customCards) {
     if (bankVal < 0) errors.push(`NEGATIVE BANK: ${p.name} = ${bankVal}`)
   }
 
+  // ── Additional Monopoly Deal rule checks ───────────────────────────
+  for (const p of s.players) {
+    for (const [color, cards] of Object.entries(p.properties)) {
+      const setDef = PROPERTY_SETS[color]
+
+      // 9. Non-wild (regular) property cards in a pile must never exceed the
+      //    set's cardsNeeded — the deck has exactly that many non-wild cards per color.
+      //    Wilds are free to stack on top (official rules allow it).
+      if (setDef) {
+        const nonWildCount = cards.filter(c => c.type === CARD_TYPES.PROPERTY).length
+        if (nonWildCount > setDef.cardsNeeded) {
+          errors.push(`TOO MANY REGULAR CARDS: ${p.name}/${color} has ${nonWildCount} non-wild cards, set only needs ${setDef.cardsNeeded}`)
+        }
+      }
+
+      // 10. Wild cards in property piles must match that color
+      //     (either dual-color wild including this color, or an all-color wild).
+      for (const c of cards) {
+        if (c.type === CARD_TYPES.WILD_PROPERTY) {
+          const isAllWild = !c.colors || c.colors.length === 0 || c.colors.includes('wild')
+          if (!isAllWild && !c.colors.includes(color)) {
+            errors.push(`WILD COLOR MISMATCH: ${p.name} wild ${c.name} in ${color} pile but colors=${JSON.stringify(c.colors)}`)
+          }
+        }
+      }
+
+      // 11. Buildings only exist on complete sets
+      const bld = p.buildings?.[color]
+      if (bld && (bld.houses > 0 || bld.hotels > 0)) {
+        if (!isSetComplete(color, cards)) {
+          errors.push(`BUILDING ON INCOMPLETE SET: ${p.name}/${color} has house/hotel but set incomplete`)
+        }
+        // 12. At most 1 house and 1 hotel per set
+        if (bld.houses > 1) errors.push(`TOO MANY HOUSES: ${p.name}/${color} houses=${bld.houses}`)
+        if (bld.hotels > 1) errors.push(`TOO MANY HOTELS: ${p.name}/${color} hotels=${bld.hotels}`)
+        // 13. Hotel requires a house first
+        if (bld.hotels > 0 && !(bld.houses > 0)) {
+          errors.push(`HOTEL WITHOUT HOUSE: ${p.name}/${color} hotel but no house`)
+        }
+      }
+    }
+
+    // 14. Hand size during DISCARD phase must be > 7
+    if (s.phase === PHASE.DISCARD && s.currentPlayerIndex === p.id) {
+      if (p.hand.length <= 7) {
+        errors.push(`SPURIOUS DISCARD: ${p.name} in DISCARD with only ${p.hand.length} cards (should be > 7)`)
+      }
+    }
+
+    // 15. At DRAW phase (start of turn) every player should have ≤ 7 cards
+    //     (they all discarded to 7 at end of their previous turn)
+    if (s.phase === PHASE.DRAW) {
+      if (p.hand.length > 7) {
+        errors.push(`HAND OVERFLOW AT DRAW: ${p.name} starts turn with ${p.hand.length} cards (max 7)`)
+      }
+    }
+  }
+
+  // 16. Winner must have 3+ complete sets (win condition)
+  if (s.phase === PHASE.GAME_OVER && s.winner) {
+    const winnerPlayer = s.players.find(pl => pl === s.winner)
+    if (winnerPlayer) {
+      const completeSets = Object.entries(winnerPlayer.properties)
+        .filter(([color, cards]) => color !== COLORS.WILD && isSetComplete(color, cards)).length
+      if (completeSets < 3) {
+        errors.push(`INVALID WIN: ${winnerPlayer.name} has only ${completeSets} complete sets`)
+      }
+    }
+  }
+
+  // 17. doubleRentActive must be cleared after END_TURN (persisting across turns is illegal)
+  //     It CAN be true mid-turn across action phases (played Double Rent, then played Deal
+  //     Breaker before Rent) — that is valid. Only flag it if stuck at DRAW phase.
+  if (s.doubleRentActive && s.phase === PHASE.DRAW) {
+    errors.push(`DOUBLE_RENT SURVIVED TURN END: still active at DRAW phase`)
+  }
+
   return errors.map(e => `[${ctx}] ${e}`)
 }
 
@@ -316,6 +393,7 @@ function runGame(seed, customCards, names) {
 
 // ── Main ────────────────────────────────────────────────────────────
 const GAMES = Number(process.env.GAMES || 100)
+const BASE_SEED = Number(process.env.SEED || Date.now())  // random by default
 const NAMES = ['satvik', 'sanika', 'aman', 'sonu', 'priya', 'rahul']
 let totalBugs = 0
 const seen = new Map()
@@ -323,8 +401,10 @@ let finishedCount = 0
 let stalledCount = 0
 let totalSteps = 0
 
+console.log(`Seeds: ${BASE_SEED} … ${BASE_SEED + GAMES - 1}  (pass SEED=N to reproduce)\n`)
+
 for (let i = 0; i < GAMES; i++) {
-  const seed = 1000 + i
+  const seed = BASE_SEED + i
   const customCards = i % 2 === 0 // alternate custom cards on/off
   const { bugs, finished, stalled, steps } = runGame(seed, customCards, NAMES)
   if (finished) finishedCount++
