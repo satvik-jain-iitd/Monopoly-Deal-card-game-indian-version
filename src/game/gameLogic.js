@@ -127,8 +127,15 @@ export function applyPayment(state, debtorId, creditorId, paidCards) {
       const before = pile.length
       const remaining = pile.filter(c => c.id !== card.id)
       if (remaining.length < before) {
-        if (remaining.length === 0) delete debtor.properties[color]
-        else debtor.properties[color] = remaining
+        if (remaining.length === 0) {
+          delete debtor.properties[color]
+        } else {
+          debtor.properties[color] = remaining
+        }
+        // If the set is now incomplete, any house/hotel on it must be cleared.
+        if (!isSetComplete(color, debtor.properties[color] || [])) {
+          if (debtor.buildings?.[color]) delete debtor.buildings[color]
+        }
         if (!creditor.properties[color]) creditor.properties[color] = []
         creditor.properties[color].push({ ...card, _from: undefined, _color: undefined })
       }
