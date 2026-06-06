@@ -8,7 +8,7 @@ const RULES = [
   'Sabse pehle 3 complete sets — winner!',
 ]
 
-export default function HomeScreen({ onPlay }) {
+export default function HomeScreen({ onPlay, onMultiplayer, onLocalMultiplayer }) {
   return (
     <Box sx={{
       height: '100dvh', width: '100%',
@@ -71,23 +71,47 @@ export default function HomeScreen({ onPlay }) {
         {/* Info */}
         <Box sx={{ textAlign: 'center' }}>
           <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-            2–6 players • Pass &amp; Play
+            2–6 players • Pass &amp; Play ya Online
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             3 complete property sets jitao!
           </Typography>
         </Box>
 
-        {/* CTA */}
-        <Button
-          variant="contained"
-          size="large"
-          onClick={onPlay}
-          fullWidth
-          sx={{ borderRadius: 3, py: 1.5, fontSize: '1.05rem', fontWeight: 800, boxShadow: '0 6px 18px rgba(230,81,0,0.4)' }}
-        >
-          Khelo!
-        </Button>
+        {/* CTAs */}
+        <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={onPlay}
+            fullWidth
+            sx={{ borderRadius: 3, py: 1.5, fontSize: '1.05rem', fontWeight: 800, boxShadow: '0 6px 18px rgba(230,81,0,0.4)' }}
+          >
+            Khelo! (Pass &amp; Play)
+          </Button>
+          {onMultiplayer && (
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={onMultiplayer}
+              fullWidth
+              sx={{ borderRadius: 3, py: 1.2, fontSize: '0.95rem', fontWeight: 700, borderWidth: 2 }}
+            >
+              🌐 Online Khelo (Internet)
+            </Button>
+          )}
+          {onLocalMultiplayer && (
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={onLocalMultiplayer}
+              fullWidth
+              sx={{ borderRadius: 3, py: 1.2, fontSize: '0.95rem', fontWeight: 700, borderWidth: 2, borderColor: 'success.main', color: 'success.main' }}
+            >
+              📡 Hotspot Khelo (No Internet)
+            </Button>
+          )}
+        </Box>
 
         {/* Rules */}
         <Box sx={{ width: '100%', mt: 0.5 }}>
