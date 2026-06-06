@@ -141,6 +141,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
         },
       },
     },
