@@ -1,4 +1,4 @@
-import { useReducer, useState, useRef, useEffect } from 'react'
+import { useReducer, useState, useRef, useEffect, useCallback } from 'react'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import HomeScreen from './components/screens/HomeScreen'
@@ -9,13 +9,32 @@ import { initGame, PHASE } from './game/gameLogic'
 import { patchedGameReducer } from './game/useGameState'
 import { rankAndScore } from './game/scoring'
 import { loadSeries, saveSeries, resetSeries, recordGame, getStandings, rosterKey } from './game/series'
+import { sounds, ACTION_SOUND_MAP, ACTION_TYPE_SOUND } from './game/sounds'
 import theme from './theme'
 
 export default function App() {
   const [screen, setScreen] = useState('home')
-  const [gameState, dispatch] = useReducer(patchedGameReducer, null)
+  const [gameState, rawDispatch] = useReducer(patchedGameReducer, null)
   const [results, setResults] = useState(null) // { ranked, standings, gamesPlayed }
   const recordedGameIdRef = useRef(null)
+  const gameStateRef = useRef(gameState)
+  useEffect(() => { gameStateRef.current = gameState }, [gameState])
+
+  // Sound-aware dispatch: plays the right effect before every reducer call.
+  const dispatch = useCallback((action) => {
+    try {
+      const state = gameStateRef.current
+      let soundKey = ACTION_SOUND_MAP[action.type]
+      if (action.type === 'PLAY_ACTION' && state) {
+        const player = state.players[state.currentPlayerIndex]
+        const card = player?.hand.find(c => c.id === action.cardId)
+        if (card?.actionType) soundKey = ACTION_TYPE_SOUND[card.actionType] ?? 'cardPlay'
+        else soundKey = 'cardPlay'
+      }
+      if (soundKey) sounds[soundKey]()
+    } catch (_) {}
+    rawDispatch(action)
+  }, [rawDispatch])
 
   const isGameOver = screen === 'game' && gameState?.phase === PHASE.GAME_OVER
 
