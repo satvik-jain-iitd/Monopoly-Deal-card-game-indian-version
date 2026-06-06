@@ -10,6 +10,8 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import HomeIcon from '@mui/icons-material/Home'
 import HotelIcon from '@mui/icons-material/Hotel'
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee'
+import ShieldIcon from '@mui/icons-material/Shield'
+import RouteIcon from '@mui/icons-material/Route'
 import { CARD_TYPES, ACTION_TYPES, COLOR_DISPLAY, COLORS } from '../../game/constants'
 import { CityLandmark } from './CardArt'
 
@@ -24,6 +26,8 @@ const ACTION_ICONS = {
   [ACTION_TYPES.DOUBLE_RENT]: TrendingUpIcon,
   [ACTION_TYPES.HOUSE]: HomeIcon,
   [ACTION_TYPES.HOTEL]: HotelIcon,
+  [ACTION_TYPES.INSURANCE]: ShieldIcon,
+  [ACTION_TYPES.TRADE_ROUTE]: RouteIcon,
 }
 
 const ACTION_DESC = {
@@ -37,6 +41,8 @@ const ACTION_DESC = {
   [ACTION_TYPES.DOUBLE_RENT]: 'Rent double karo',
   [ACTION_TYPES.HOUSE]: 'Complete set pe ghar',
   [ACTION_TYPES.HOTEL]: 'Ghar ke upar hotel',
+  [ACTION_TYPES.INSURANCE]: 'Deal Breaker se bachao',
+  [ACTION_TYPES.TRADE_ROUTE]: 'Discard se swap karo',
 }
 
 function getTextColor(hexBg) {
@@ -49,10 +55,10 @@ function getTextColor(hexBg) {
   return luminance > 0.55 ? '#000000' : '#ffffff'
 }
 
-const CARD_W = 72
-const CARD_H = 105
-const MINI_W = 44
-const MINI_H = 62
+const CARD_W = 84
+const CARD_H = 122
+const MINI_W = 52
+const MINI_H = 74
 
 export default function Card({ card, mini = false }) {
   if (!card) return null
@@ -73,13 +79,13 @@ export default function Card({ card, mini = false }) {
       }}>
         <Typography sx={{
           color: '#fff', fontWeight: 900,
-          fontSize: mini ? '0.7rem' : '1rem',
+          fontSize: mini ? '0.82rem' : '1.15rem',
           lineHeight: 1, letterSpacing: '-0.5px',
         }}>
           ₹{card.value}Cr
         </Typography>
         {!mini && (
-          <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.6rem', mt: 0.3 }}>
+          <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.62rem', mt: 0.3, letterSpacing: '0.04em' }}>
             Money
           </Typography>
         )}
@@ -90,7 +96,7 @@ export default function Card({ card, mini = false }) {
   // ── PROPERTY ────────────────────────────────────────────────────────
   if (card.type === CARD_TYPES.PROPERTY) {
     const display = COLOR_DISPLAY[card.color] || {}
-    const bandH = mini ? 14 : 26
+    const bandH = mini ? 16 : 30
     const textOnBand = getTextColor(display.hex)
     return (
       <Paper elevation={1} sx={{
@@ -109,12 +115,12 @@ export default function Card({ card, mini = false }) {
           px: 0.4, pb: 0.5,
         }}>
           {!mini && card.landmark && (
-            <Box sx={{ mb: 0.3, opacity: 0.85 }}>
-              <CityLandmark cityKey={card.landmark} size={22} color={display.hex} />
+            <Box sx={{ mb: 0.4, opacity: 0.85 }}>
+              <CityLandmark cityKey={card.landmark} size={26} color={display.hex} />
             </Box>
           )}
           <Typography sx={{
-            fontSize: mini ? '0.48rem' : '0.62rem',
+            fontSize: mini ? '0.54rem' : '0.7rem',
             fontWeight: 700, textAlign: 'center',
             lineHeight: 1.2, color: '#222',
             display: '-webkit-box', WebkitLineClamp: 2,
@@ -125,8 +131,8 @@ export default function Card({ card, mini = false }) {
           </Typography>
           {!mini && (
             <Typography sx={{
-              fontSize: '0.55rem', color: display.hex,
-              fontWeight: 700, mt: 'auto', pt: 0.3,
+              fontSize: '0.62rem', color: display.hex,
+              fontWeight: 800, mt: 'auto', pt: 0.3,
             }}>
               ₹{card.value}Cr
             </Typography>
@@ -151,10 +157,10 @@ export default function Card({ card, mini = false }) {
         }}>
           {!mini && (
             <>
-              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.62rem', textAlign: 'center', textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
+              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.7rem', textAlign: 'center', textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
                 Wild
               </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.5rem', textAlign: 'center', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+              <Typography sx={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.56rem', textAlign: 'center', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                 Kisi bhi color mein
               </Typography>
             </>
@@ -176,10 +182,10 @@ export default function Card({ card, mini = false }) {
       }}>
         {!mini && (
           <>
-            <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.6rem', textAlign: 'center', textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>
+            <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.68rem', textAlign: 'center', textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>
               {card.name}
             </Typography>
-            <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.55rem', textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>
+            <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.62rem', textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>
               ₹{card.value}Cr
             </Typography>
           </>
@@ -191,29 +197,47 @@ export default function Card({ card, mini = false }) {
   // ── ACTION ──────────────────────────────────────────────────────────
   if (card.type === CARD_TYPES.ACTION) {
     const IconComponent = ACTION_ICONS[card.actionType]
+    // Custom cards get a distinct gradient so they read as "special".
+    const actionBg = card.actionType === ACTION_TYPES.INSURANCE
+      ? 'linear-gradient(145deg, #00695C, #00897B)'
+      : card.actionType === ACTION_TYPES.TRADE_ROUTE
+        ? 'linear-gradient(145deg, #6A1B9A, #8E24AA)'
+        : 'linear-gradient(145deg, #1A237E, #283593)'
+    const isCustom = card.actionType === ACTION_TYPES.INSURANCE || card.actionType === ACTION_TYPES.TRADE_ROUTE
     return (
       <Paper elevation={1} sx={{
         width: w, height: h, borderRadius: `${r}px`,
-        background: 'linear-gradient(145deg, #1A237E, #283593)',
+        background: actionBg,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, overflow: 'hidden', userSelect: 'none',
         px: 0.5,
+        position: 'relative',
+        ...(isCustom && { boxShadow: 'inset 0 0 0 1.5px rgba(255,255,255,0.35)' }),
       }}>
+        {isCustom && !mini && (
+          <Typography sx={{
+            position: 'absolute', top: 3, right: 4,
+            fontSize: '0.4rem', fontWeight: 800, letterSpacing: '0.05em',
+            color: 'rgba(255,255,255,0.7)',
+          }}>
+            ✦ CUSTOM
+          </Typography>
+        )}
         {IconComponent && (
-          <Box sx={{ color: '#fff', opacity: 0.9, mb: mini ? 0 : 0.3 }}>
-            <IconComponent sx={{ fontSize: mini ? 18 : 26 }} />
+          <Box sx={{ color: '#fff', opacity: 0.9, mb: mini ? 0 : 0.4 }}>
+            <IconComponent sx={{ fontSize: mini ? 22 : 30 }} />
           </Box>
         )}
         {!mini && (
           <>
-            <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.58rem', textAlign: 'center', lineHeight: 1.2 }}>
+            <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.65rem', textAlign: 'center', lineHeight: 1.2 }}>
               {card.name}
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.48rem', textAlign: 'center', mt: 0.2, lineHeight: 1.2 }}>
+            <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.54rem', textAlign: 'center', mt: 0.2, lineHeight: 1.2 }}>
               {ACTION_DESC[card.actionType]}
             </Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.52rem', fontWeight: 700, mt: 0.3 }}>
+            <Typography sx={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.58rem', fontWeight: 800, mt: 0.3 }}>
               ₹{card.value}Cr
             </Typography>
           </>
@@ -234,13 +258,13 @@ export default function Card({ card, mini = false }) {
           flexShrink: 0, overflow: 'hidden', userSelect: 'none',
           px: 0.5,
         }}>
-          <CurrencyRupeeIcon sx={{ color: '#fff', fontSize: mini ? 18 : 28, opacity: 0.9 }} />
+          <CurrencyRupeeIcon sx={{ color: '#fff', fontSize: mini ? 22 : 32, opacity: 0.9 }} />
           {!mini && (
             <>
-              <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.58rem', textAlign: 'center', mt: 0.3 }}>
+              <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.65rem', textAlign: 'center', mt: 0.3 }}>
                 Wild Rent
               </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.48rem', textAlign: 'center' }}>
+              <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.54rem', textAlign: 'center' }}>
                 Kisi se bhi rent lo
               </Typography>
             </>
@@ -261,9 +285,9 @@ export default function Card({ card, mini = false }) {
         flexShrink: 0, overflow: 'hidden', userSelect: 'none',
         px: 0.5,
       }}>
-        <CurrencyRupeeIcon sx={{ color: '#fff', fontSize: mini ? 16 : 24, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
+        <CurrencyRupeeIcon sx={{ color: '#fff', fontSize: mini ? 20 : 28, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }} />
         {!mini && (
-          <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.58rem', textAlign: 'center', mt: 0.3, textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>
+          <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.65rem', textAlign: 'center', mt: 0.3, textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>
             {card.name}
           </Typography>
         )}

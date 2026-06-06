@@ -12,14 +12,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import Card from './Card'
 import { COLOR_DISPLAY, PROPERTY_SETS } from '../../game/constants'
 import { isSetComplete, countCompleteSets, getPlayerBankTotal, getRentForColor } from '../../game/gameLogic'
-
-function groupedBank(bankCards) {
-  const counts = {}
-  for (const c of bankCards) counts[c.value] = (counts[c.value] || 0) + 1
-  return Object.entries(counts)
-    .map(([v, n]) => ({ value: Number(v), count: n }))
-    .sort((a, b) => b.value - a.value)
-}
+import { groupedBank, orderPropertyColors } from '../../game/cardSort'
 
 function RentInfoDialog({ info, onClose }) {
   if (!info) return null
@@ -111,7 +104,7 @@ export default function PlayerBoard({ player, compact = false }) {
   const [rentInfo, setRentInfo] = useState(null)
   const sets = countCompleteSets(player)
   const bankTotal = getPlayerBankTotal(player)
-  const propertyColors = Object.keys(player.properties).filter(c => player.properties[c].length > 0)
+  const propertyColors = orderPropertyColors(player.properties)
 
   const openRent = (color) => setRentInfo({
     color,
@@ -135,6 +128,10 @@ export default function PlayerBoard({ player, compact = false }) {
               </Typography>
               <Chip label={`🏠${sets}`} size="small" sx={{ height: 17, fontSize: '0.55rem', '& .MuiChip-label': { px: 0.6 } }} />
               <Chip label={`🃏${player.hand?.length || 0}`} size="small" sx={{ height: 17, fontSize: '0.55rem', '& .MuiChip-label': { px: 0.6 } }} />
+              {player.insurance && (
+                <Chip label="🛡️" size="small" title="Insured vs Deal Breaker"
+                  sx={{ height: 17, fontSize: '0.55rem', backgroundColor: 'rgba(0,121,107,0.15)', '& .MuiChip-label': { px: 0.5 } }} />
+              )}
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 0.4 }}>
               <Typography sx={{ fontSize: '0.78rem', fontWeight: 900, color: 'success.main', lineHeight: 1 }}>
@@ -205,6 +202,10 @@ export default function PlayerBoard({ player, compact = false }) {
                   icon={sets >= 3 ? <CheckCircleIcon /> : undefined}
                   sx={{ height: 20, fontSize: '0.6rem' }}
                 />
+                {player.insurance && (
+                  <Chip label="🛡️ Insured" size="small"
+                    sx={{ height: 20, fontSize: '0.58rem', fontWeight: 700, backgroundColor: 'rgba(0,121,107,0.15)', color: '#00695C' }} />
+                )}
               </Box>
             </Box>
             {sets > 0 && (

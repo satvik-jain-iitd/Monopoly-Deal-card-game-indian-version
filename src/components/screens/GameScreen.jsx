@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import {
   AppBar, Box, Button, Chip, IconButton, Paper, Toolbar, Typography,
 } from '@mui/material'
@@ -12,7 +12,6 @@ import PlayerBoard from '../game/PlayerBoard'
 import CardHand from '../game/CardHand'
 import ActionModal from '../game/ActionModal'
 import GameLog from '../game/GameLog'
-import WinScreen from '../game/WinScreen'
 import PassDeviceModal from '../game/PassDeviceModal'
 
 export default function GameScreen({ state, dispatch, onHome }) {
@@ -20,15 +19,8 @@ export default function GameScreen({ state, dispatch, onHome }) {
   const [passConfirmed, setPassConfirmed] = useState(false)
   const [selectedCard, setSelectedCard] = useState(null)
   const [selectedAction, setSelectedAction] = useState(null)
-  const [lastPlayedCard, setLastPlayedCard] = useState(null)
-  const lastPlayedTimerRef = useRef(null)
 
   const currentPlayer = state.players[state.currentPlayerIndex]
-
-  // ── GAME OVER ──────────────────────────────────────────────────────
-  if (state.phase === PHASE.GAME_OVER) {
-    return <WinScreen winner={state.winner} players={state.players} onHome={onHome} />
-  }
 
   // ── PASS DEVICE ────────────────────────────────────────────────────
   if (!passConfirmed) {
@@ -98,7 +90,7 @@ export default function GameScreen({ state, dispatch, onHome }) {
   // ── ACTION RESPONSE PHASES ─────────────────────────────────────────
   if ([PHASE.ACTION_RESPONSE, PHASE.RENT_COLLECT, PHASE.BIRTHDAY_COLLECT,
     PHASE.SLY_DEAL_SELECT, PHASE.FORCED_DEAL_SELECT, PHASE.DEAL_BREAKER_SELECT,
-    PHASE.WILD_COLOR_SELECT].includes(state.phase)) {
+    PHASE.TRADE_ROUTE_SELECT, PHASE.WILD_COLOR_SELECT].includes(state.phase)) {
     return (
       <ActionModal
         state={state}
@@ -111,12 +103,7 @@ export default function GameScreen({ state, dispatch, onHome }) {
   // ── MAIN PLAY PHASE ────────────────────────────────────────────────
   const cardsLeft = state.maxCardsPerTurn - state.cardsPlayedThisTurn
   const otherPlayers = state.players.filter((_, i) => i !== state.currentPlayerIndex)
-
-  function showPlayedCard(card) {
-    setLastPlayedCard(card)
-    if (lastPlayedTimerRef.current) clearTimeout(lastPlayedTimerRef.current)
-    lastPlayedTimerRef.current = setTimeout(() => setLastPlayedCard(null), 4000)
-  }
+  const topDiscard = state.discard[state.discard.length - 1]
 
   function handleCardSelect(card) {
     setSelectedCard(selectedCard?.id === card.id ? null : card)
@@ -165,47 +152,68 @@ export default function GameScreen({ state, dispatch, onHome }) {
         ))}
       </Box>
 
-      {/* Center zone — last played card */}
+      {/* Play zone — persistent shared pile (top of discard, never auto-clears) */}
       <Box sx={{
-        flexShrink: 0, minHeight: 28,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        borderTop: '1px dashed', borderBottom: '1px dashed', borderColor: 'divider',
-        backgroundColor: 'rgba(230,81,0,0.04)',
-        px: 1, py: lastPlayedCard ? 1 : 0.4,
-        transition: 'padding 200ms ease',
+        flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5,
+        borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider',
+        background: 'radial-gradient(ellipse at center, rgba(230,81,0,0.07), transparent 72%)',
+        px: 1, py: 0.75, minHeight: 36,
       }}>
-        {lastPlayedCard ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.55rem', letterSpacing: '0.06em' }}>
-              KHELA
-            </Typography>
-            <Box sx={{
-              animation: 'popIn 250ms cubic-bezier(0.175,0.885,0.32,1.275)',
-              '@keyframes popIn': {
-                from: { transform: 'scale(0.7)', opacity: 0 },
-                to: { transform: 'scale(1)', opacity: 1 },
+        {topDiscard ? (
+          <>
+            <Box sx={{ textAlign: 'right', minWidth: 50 }}>
+              <Typography sx={{ fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.08em', color: 'text.secondary' }}>
+                MEZ PAR
+              </Typography>
+              <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'text.disabled' }}>
+                {state.discard.length} card{state.discard.length !== 1 ? 's' : ''}
+              </Typography>
+            </Box>
+
+            {/* Pile with depth — a fresh card pops in, then stays */}
+            <Box key={state.discard.length} sx={{
+              position: 'relative',
+              animation: 'playIn 300ms cubic-bezier(0.175,0.885,0.32,1.275)',
+              '@keyframes playIn': {
+                from: { transform: 'translateY(-16px) scale(0.82) rotate(-5deg)', opacity: 0 },
+                to: { transform: 'translateY(0) scale(1) rotate(0)', opacity: 1 },
               },
             }}>
-              <Card card={lastPlayedCard} />
+              {state.discard.length > 1 && (
+                <>
+                  <Box sx={{ position: 'absolute', inset: 0, transform: 'rotate(-6deg)', borderRadius: '4px', backgroundColor: 'rgba(0,0,0,0.10)' }} />
+                  <Box sx={{ position: 'absolute', inset: 0, transform: 'rotate(4deg)', borderRadius: '4px', backgroundColor: 'rgba(0,0,0,0.07)' }} />
+                </>
+              )}
+              <Box sx={{ position: 'relative', boxShadow: '0 4px 14px rgba(0,0,0,0.18)', borderRadius: '4px' }}>
+                <Card card={topDiscard} />
+              </Box>
             </Box>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.55rem', letterSpacing: '0.06em' }}>
-              {currentPlayer.name}
-            </Typography>
-          </Box>
+
+            <Box sx={{ minWidth: 50 }}>
+              <Typography sx={{ fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.08em', color: 'text.secondary' }}>
+                LAST PLAY
+              </Typography>
+              <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.2 }}>
+                {topDiscard.name}
+              </Typography>
+            </Box>
+          </>
         ) : (
-          <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.55rem' }}>
-            — Action / Rent zone —
+          <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', letterSpacing: '0.04em' }}>
+            — Mez khaali · koi card abhi nahi khela —
           </Typography>
         )}
       </Box>
 
-      {/* Current player board */}
-      <Box sx={{ flexShrink: 0 }}>
+      {/* Current player board — scrolls so the hand below stays pinned & fully visible */}
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
         <PlayerBoard player={currentPlayer} />
       </Box>
 
-      {/* Hand */}
-      <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', pb: 0.5 }}>
+      {/* Hand — primary focus, always fully visible at the bottom */}
+      <Box sx={{ flexShrink: 0, pb: 0.5 }}>
         <CardHand
           cards={currentPlayer.hand}
           selectable
@@ -227,7 +235,7 @@ export default function GameScreen({ state, dispatch, onHome }) {
             card={selectedCard}
             onPlayAsProperty={() => { dispatch({ type: 'PLAY_PROPERTY', cardId: selectedCard.id }); setSelectedCard(null) }}
             onPlayAsMoney={() => { dispatch({ type: 'PLAY_AS_MONEY', cardId: selectedCard.id }); setSelectedCard(null) }}
-            onPlayAction={() => { showPlayedCard(selectedCard); dispatch({ type: 'PLAY_ACTION', cardId: selectedCard.id }); setSelectedCard(null) }}
+            onPlayAction={() => { dispatch({ type: 'PLAY_ACTION', cardId: selectedCard.id }); setSelectedCard(null) }}
             onPlayRent={() => setSelectedAction({ type: 'rent', card: selectedCard })}
             onCancel={() => setSelectedCard(null)}
           />
@@ -240,7 +248,6 @@ export default function GameScreen({ state, dispatch, onHome }) {
             currentIdx={state.currentPlayerIndex}
             doubleRentActive={state.doubleRentActive}
             onPlay={(targetColor, targetPlayerId) => {
-              showPlayedCard(selectedAction.card)
               dispatch({ type: 'PLAY_RENT', cardId: selectedAction.card.id, targetColor, targetPlayerId })
               setSelectedAction(null); setSelectedCard(null)
             }}
@@ -303,7 +310,8 @@ function PlayOptions({ card, onPlayAsProperty, onPlayAsMoney, onPlayAction, onPl
             ⚡ Action Khelo
           </Button>
         )}
-        {!isMoney && (
+        {/* Property cards can NEVER be banked — only action/rent (as an alternative) and money. */}
+        {(isAction || isRent) && (
           <Button size="small" variant="outlined" color="success" onClick={onPlayAsMoney} sx={{ borderRadius: 3, fontWeight: 700, fontSize: '0.72rem' }}>
             🏦 Bank (₹{card.value}Cr)
           </Button>
