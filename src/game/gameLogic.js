@@ -13,6 +13,7 @@ export const PHASE = {
   WILD_COLOR_SELECT: 'wildColorSelect',
   DISCARD: 'discard',
   GAME_OVER: 'gameOver',
+  JSN_RESPONSE: 'jsnResponse',  // original actor decides whether to counter a Just Say No
 }
 
 export function initGame(playerNames, { customCards = false } = {}) {
@@ -23,7 +24,8 @@ export function initGame(playerNames, { customCards = false } = {}) {
     hand: [],
     bank: [],       // money + action cards played as money
     properties: {}, // { color: [cards] }
-    buildings: {},  // { color: { houses: 0, hotels: 0 } }
+    buildings: {},         // { color: { houses: 0, hotels: 0 } } — active (set is complete)
+    inactiveBuildings: {}, // same shape — buildings on a broken set (still owned, not rent-active)
     insurance: null, // custom card: face-up Deal Breaker shield (or null)
   }))
 
@@ -86,6 +88,29 @@ export function getPropertyCount(player, color) {
   return (player.properties[color] || []).length
 }
 
+// Move buildings to inactive when the set they're on becomes incomplete.
+export function deactivateBuildings(player, color) {
+  if (!player.buildings?.[color]) return
+  if (isSetComplete(color, player.properties[color] || [])) return
+  if (!player.inactiveBuildings) player.inactiveBuildings = {}
+  player.inactiveBuildings[color] = player.buildings[color]
+  delete player.buildings[color]
+}
+
+// Restore inactive buildings to active when the set becomes complete again.
+export function reactivateBuildings(player, color) {
+  if (!player.inactiveBuildings?.[color]) return
+  if (!isSetComplete(color, player.properties[color] || [])) return
+  if (!player.buildings) player.buildings = {}
+  if (player.buildings[color]) {
+    player.buildings[color].houses = (player.buildings[color].houses || 0) + (player.inactiveBuildings[color].houses || 0)
+    player.buildings[color].hotels = (player.buildings[color].hotels || 0) + (player.inactiveBuildings[color].hotels || 0)
+  } else {
+    player.buildings[color] = { ...player.inactiveBuildings[color] }
+  }
+  delete player.inactiveBuildings[color]
+}
+
 // Collect payment from a player towards an amount owed
 // Returns { paid: cards[], remaining: number }
 export function collectPayment(debtor, amount) {
@@ -132,13 +157,30 @@ export function applyPayment(state, debtorId, creditorId, paidCards) {
         } else {
           debtor.properties[color] = remaining
         }
-        // If the set is now incomplete, any house/hotel on it must be cleared.
-        if (!isSetComplete(color, debtor.properties[color] || [])) {
-          if (debtor.buildings?.[color]) delete debtor.buildings[color]
-        }
+        // If the set is now incomplete, buildings become inactive (not lost).
+        deactivateBuildings(debtor, color)
         if (!creditor.properties[color]) creditor.properties[color] = []
         creditor.properties[color].push({ ...card, _from: undefined, _color: undefined })
+        // If the creditor's set is now complete, reactivate their inactive buildings.
+        reactivateBuildings(creditor, color)
       }
+    } else if (card._from === 'building') {
+      // Building card used as payment at face value (house=₹3, hotel=₹4).
+      const color = card._color
+      const field = card.buildingType === 'house' ? 'houses' : 'hotels'
+      if ((debtor.buildings?.[color]?.[field] || 0) > 0) {
+        debtor.buildings[color][field]--
+        if (debtor.buildings[color].houses === 0 && debtor.buildings[color].hotels === 0) {
+          delete debtor.buildings[color]
+        }
+      } else if ((debtor.inactiveBuildings?.[color]?.[field] || 0) > 0) {
+        debtor.inactiveBuildings[color][field]--
+        if (debtor.inactiveBuildings[color].houses === 0 && debtor.inactiveBuildings[color].hotels === 0) {
+          delete debtor.inactiveBuildings[color]
+        }
+      }
+      // Goes to creditor's bank as its face-value cash equivalent.
+      creditor.bank.push({ id: card.id, name: card.name, value: card.value, type: CARD_TYPES.ACTION })
     }
   }
   return s
@@ -187,6 +229,8 @@ export function playPropertyCard(state, playerId, cardId, targetColor = null) {
 
   if (!player.properties[color]) player.properties[color] = []
   player.properties[color].push(card)
+  // If this card completes the set, inactive buildings on it become active again.
+  reactivateBuildings(player, color)
   s.cardsPlayedThisTurn++
   s.log.push(`${player.name} ne ${card.name} property play kiya.`)
   return s

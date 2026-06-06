@@ -4,6 +4,7 @@ import {
   playCardToBank, playPropertyCard, applyPayment,
   collectPayment, checkWinner, countCompleteSets,
   getRentForColor, isSetComplete, getPlayerBankTotal,
+  reactivateBuildings, deactivateBuildings,
   PHASE,
 } from './gameLogic'
 import { CARD_TYPES, ACTION_TYPES, COLORS, PROPERTY_SETS } from './constants'
@@ -212,15 +213,17 @@ function gameReducer(state, action) {
 
       const playerProps = player.properties[targetColor] || []
       const count = playerProps.length
-      let rentAmount = getRentForColor(targetColor, count, player.buildings)
-      if (s.doubleRentActive) { rentAmount *= 2; s.doubleRentActive = false }
+      const baseAmount = getRentForColor(targetColor, count, player.buildings)
+      let rentAmount = baseAmount
+      let wasDoubled = false
+      if (s.doubleRentActive) { rentAmount = baseAmount * 2; s.doubleRentActive = false; wasDoubled = true }
 
       // Determine who pays
       const payerIds = card.wild
         ? (targetPlayerId !== undefined ? [targetPlayerId] : [])
         : s.players.map((_, i) => i).filter(i => i !== s.currentPlayerIndex)
 
-      s.log.push(`${player.name} ne ${targetColor} ka rent maanga — ₹${rentAmount}Cr!`)
+      s.log.push(`${player.name} ne ${targetColor} ka rent maanga — ₹${rentAmount}Cr${wasDoubled ? ' (doubled!)' : ''}!`)
       s.phase = PHASE.RENT_COLLECT
       s.pendingAction = {
         type: 'rent',
@@ -228,6 +231,8 @@ function gameReducer(state, action) {
         payerIds,
         currentPayerIdx: 0,
         amount: rentAmount,
+        baseAmount,
+        wasDoubled,
         targetColor,
       }
       return s
@@ -293,7 +298,48 @@ function gameReducer(state, action) {
       if (cardIdx === -1) return state
       const [card] = player.hand.splice(cardIdx, 1)
       s.discard.push(card)
-      s.log.push(`${player.name} ne "Just Say No!" bola! Action cancel ho gaya.`)
+      s.log.push(`${player.name} ne "Just Say No!" bola!`)
+      // Save the blocked action so the original actor can counter with their own JSN.
+      s.pendingAction = {
+        type: 'jsnBlock',
+        jsnBlockerId: playerId,
+        actingPlayerId: s.pendingAction?.actingPlayerId ?? s.currentPlayerIndex,
+        savedAction: deepClone(s.pendingAction),
+        savedPhase: s.phase,
+      }
+      s.phase = PHASE.JSN_RESPONSE
+      return s
+    }
+
+    case 'COUNTER_JSN': {
+      // Original actor plays their own JSN to cancel the block — action resumes.
+      const { playerId, jsnCardId } = action
+      const s = deepClone(state)
+      const player = s.players[playerId]
+      const cardIdx = player.hand.findIndex(c => c.id === jsnCardId)
+      if (cardIdx === -1) return state
+      const [card] = player.hand.splice(cardIdx, 1)
+      s.discard.push(card)
+      s.log.push(`${player.name} ne JSN ke against JSN bola! Action jaari hai!`)
+      const saved = s.pendingAction.savedAction
+      s.pendingAction = saved
+      s.phase = s.pendingAction?.type === 'rent' ? PHASE.RENT_COLLECT : PHASE.ACTION_RESPONSE
+      return s
+    }
+
+    case 'ACCEPT_JSN': {
+      // Original actor accepts the block — action is cancelled.
+      const s = deepClone(state)
+      const saved = s.pendingAction?.savedAction
+      // Special rule: JSN against a doubled rent cancels the doubling only;
+      // the base rent still applies.
+      if (saved?.type === 'rent' && saved.wasDoubled) {
+        s.log.push(`Double Rent cancel hua — base rent ₹${saved.baseAmount}Cr baaki hai.`)
+        s.pendingAction = { ...saved, amount: saved.baseAmount, wasDoubled: false }
+        s.phase = PHASE.RENT_COLLECT
+        return s
+      }
+      s.log.push('Action cancel ho gaya.')
       s.pendingAction = null
       s.phase = nextPhaseAfterPlay(s)
       return s
@@ -314,9 +360,13 @@ function gameReducer(state, action) {
 
       const [stolen] = victim.properties[color].splice(cardIdx, 1)
       if (victim.properties[color].length === 0) delete victim.properties[color]
+      // Stolen card broke victim's set — deactivate their buildings on it.
+      deactivateBuildings(victim, color)
       if (!thief.properties[color]) thief.properties[color] = []
       stolen.color = color
       thief.properties[color].push(stolen)
+      // If this completes thief's set, reactivate their inactive buildings.
+      reactivateBuildings(thief, color)
 
       s.log.push(`${thief.name} ne ${victim.name} se ${stolen.name} chura liya!`)
       s.pendingAction = null
@@ -345,14 +395,20 @@ function gameReducer(state, action) {
       if (other.properties[theirColor].length === 0) delete other.properties[theirColor]
       if (player.properties[myColor].length === 0) delete player.properties[myColor]
 
+      // Sets may have just broken — deactivate buildings on broken sets.
+      deactivateBuildings(other, theirColor)
+      deactivateBuildings(player, myColor)
+
       theirCard.color = theirColor
       myCard.color = myColor
 
       if (!player.properties[theirColor]) player.properties[theirColor] = []
       player.properties[theirColor].push(theirCard)
+      reactivateBuildings(player, theirColor)
 
       if (!other.properties[myColor]) other.properties[myColor] = []
       other.properties[myColor].push(myCard)
+      reactivateBuildings(other, myColor)
 
       s.log.push(`${player.name} ne ${other.name} ke saath deal force ki!`)
       s.pendingAction = null
@@ -382,10 +438,17 @@ function gameReducer(state, action) {
 
       const set = victim.properties[color]
       delete victim.properties[color]
-      if (victim.buildings?.[color]) delete victim.buildings[color]
+      // Transfer buildings to thief — Deal Breaker takes the whole set including house/hotel.
+      if (victim.buildings?.[color]) {
+        if (!thief.buildings) thief.buildings = {}
+        thief.buildings[color] = victim.buildings[color]
+        delete victim.buildings[color]
+      }
 
       if (!thief.properties[color]) thief.properties[color] = []
       thief.properties[color].push(...set)
+      // Also reactivate any of thief's inactive buildings on this color.
+      reactivateBuildings(thief, color)
 
       s.log.push(`${thief.name} ne ${victim.name} ka poora ${color} set chura liya! Deal Breaker!`)
       s.pendingAction = null
