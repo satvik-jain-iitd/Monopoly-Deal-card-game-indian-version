@@ -11,7 +11,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import CloseIcon from '@mui/icons-material/Close'
 import Card from './Card'
 import { COLOR_DISPLAY, PROPERTY_SETS } from '../../game/constants'
-import { isSetComplete, countCompleteSets, getPlayerBankTotal } from '../../game/gameLogic'
+import { isSetComplete, countCompleteSets, getPlayerBankTotal, getRentForColor } from '../../game/gameLogic'
 
 function groupedBank(bankCards) {
   const counts = {}
@@ -21,11 +21,15 @@ function groupedBank(bankCards) {
     .sort((a, b) => b.value - a.value)
 }
 
-function RentInfoDialog({ color, onClose }) {
-  if (!color) return null
+function RentInfoDialog({ info, onClose }) {
+  if (!info) return null
+  const { color, count = 0, buildings } = info
   const display = COLOR_DISPLAY[color] || {}
   const set = PROPERTY_SETS[color]
   if (!set) return null
+  const remaining = Math.max(0, set.cardsNeeded - count)
+  const currentRent = getRentForColor(color, count, buildings)
+
   return (
     <Dialog open onClose={onClose} maxWidth="xs" fullWidth
       PaperProps={{ sx: { borderRadius: 3, mx: 2 } }}>
@@ -37,9 +41,30 @@ function RentInfoDialog({ color, onClose }) {
         <IconButton size="small" onClick={onClose}><CloseIcon fontSize="small" /></IconButton>
       </DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
-        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1 }}>
-          Full set = {set.cardsNeeded} cards
-        </Typography>
+        {/* Current status banner */}
+        <Box sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          backgroundColor: 'rgba(0,0,0,0.04)', borderRadius: 2, px: 1.5, py: 1, mb: 1.5,
+        }}>
+          <Box>
+            <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 600 }}>
+              Abhi tumhare paas
+            </Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: '0.85rem' }}>
+              {count}/{set.cardsNeeded} cards
+              {remaining > 0
+                ? <Box component="span" sx={{ color: 'text.secondary', fontWeight: 600 }}> · {remaining} aur chahiye</Box>
+                : <Box component="span" sx={{ color: 'success.main', fontWeight: 700 }}> · Complete! ✓</Box>}
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'right' }}>
+            <Typography sx={{ fontSize: '0.6rem', color: 'text.secondary', fontWeight: 600 }}>Abhi ka rent</Typography>
+            <Typography sx={{ fontWeight: 900, fontSize: '1.1rem', color: display.hex, lineHeight: 1 }}>
+              ₹{currentRent}Cr
+            </Typography>
+          </Box>
+        </Box>
+
         <Table size="small" sx={{ mb: 1 }}>
           <TableHead>
             <TableRow>
@@ -48,16 +73,21 @@ function RentInfoDialog({ color, onClose }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {set.rentValues.map((rent, i) => (
-              <TableRow key={i}>
-                <TableCell sx={{ fontSize: '0.72rem', py: 0.5, px: 1 }}>{i + 1} card{i > 0 ? 's' : ''}</TableCell>
-                <TableCell sx={{ fontSize: '0.72rem', fontWeight: 700, color: display.hex, py: 0.5, px: 1 }}>₹{rent}Cr</TableCell>
-              </TableRow>
-            ))}
+            {set.rentValues.map((rent, i) => {
+              const isCurrent = i + 1 === Math.min(count, set.rentValues.length) && count > 0
+              return (
+                <TableRow key={i} sx={isCurrent ? { backgroundColor: `${display.hex}22` } : undefined}>
+                  <TableCell sx={{ fontSize: '0.72rem', py: 0.5, px: 1, fontWeight: isCurrent ? 800 : 400 }}>
+                    {i + 1} card{i > 0 ? 's' : ''}{isCurrent ? '  ← abhi' : ''}
+                  </TableCell>
+                  <TableCell sx={{ fontSize: '0.72rem', fontWeight: isCurrent ? 900 : 700, color: display.hex, py: 0.5, px: 1 }}>₹{rent}Cr</TableCell>
+                </TableRow>
+              )
+            })}
             {set.houseBonus > 0 && (
               <TableRow>
                 <TableCell sx={{ fontSize: '0.72rem', py: 0.5, px: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <HomeIcon sx={{ fontSize: 12, color: '#4CAF50' }} /> House
+                  <HomeIcon sx={{ fontSize: 12, color: '#4CAF50' }} /> + House
                 </TableCell>
                 <TableCell sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#4CAF50', py: 0.5, px: 1 }}>+₹{set.houseBonus}Cr</TableCell>
               </TableRow>
@@ -65,7 +95,7 @@ function RentInfoDialog({ color, onClose }) {
             {set.hotelBonus > 0 && (
               <TableRow>
                 <TableCell sx={{ fontSize: '0.72rem', py: 0.5, px: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <HotelIcon sx={{ fontSize: 12, color: '#E65100' }} /> Hotel
+                  <HotelIcon sx={{ fontSize: 12, color: '#E65100' }} /> + Hotel
                 </TableCell>
                 <TableCell sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#E65100', py: 0.5, px: 1 }}>+₹{set.hotelBonus}Cr</TableCell>
               </TableRow>
@@ -78,59 +108,77 @@ function RentInfoDialog({ color, onClose }) {
 }
 
 export default function PlayerBoard({ player, compact = false }) {
-  const [rentInfoColor, setRentInfoColor] = useState(null)
+  const [rentInfo, setRentInfo] = useState(null)
   const sets = countCompleteSets(player)
   const bankTotal = getPlayerBankTotal(player)
   const propertyColors = Object.keys(player.properties).filter(c => player.properties[c].length > 0)
 
-  // ── COMPACT (opponents) ────────────────────────────────────────────
+  const openRent = (color) => setRentInfo({
+    color,
+    count: (player.properties[color] || []).length,
+    buildings: player.buildings,
+  })
+
+  // ── COMPACT (opponents — horizontal swipe tile) ────────────────────
   if (compact) {
     return (
       <>
-        <RentInfoDialog color={rentInfoColor} onClose={() => setRentInfoColor(null)} />
-        <MuiCard variant="outlined" sx={{ borderRadius: 2, py: 0, px: 0, mb: 0.5, overflow: 'hidden' }}>
-          <CardContent sx={{ py: '6px !important', px: '10px !important' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.4 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.7rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <RentInfoDialog info={rentInfo} onClose={() => setRentInfo(null)} />
+        <MuiCard variant="outlined" sx={{
+          borderRadius: '6px', overflow: 'hidden',
+          width: 158, flexShrink: 0,
+        }}>
+          <CardContent sx={{ py: '6px !important', px: '8px !important' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.4 }}>
+              <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.72rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {player.name}
               </Typography>
-              <Chip label={`🏠 ${sets}`} size="small" sx={{ height: 18, fontSize: '0.6rem' }} />
-              <Chip label={`₹${bankTotal}Cr`} size="small" color="success" sx={{ height: 18, fontSize: '0.6rem' }} />
-              <Chip label={`🃏 ${player.hand?.length || 0}`} size="small" sx={{ height: 18, fontSize: '0.6rem' }} />
+              <Chip label={`🏠${sets}`} size="small" sx={{ height: 17, fontSize: '0.55rem', '& .MuiChip-label': { px: 0.6 } }} />
+              <Chip label={`🃏${player.hand?.length || 0}`} size="small" sx={{ height: 17, fontSize: '0.55rem', '& .MuiChip-label': { px: 0.6 } }} />
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 0.4 }}>
+              <Typography sx={{ fontSize: '0.78rem', fontWeight: 900, color: 'success.main', lineHeight: 1 }}>
+                ₹{bankTotal}Cr
+              </Typography>
+              <Typography sx={{ fontSize: '0.5rem', color: 'text.secondary', fontWeight: 700 }}>bank</Typography>
             </Box>
             {player.bank.length > 0 && (
-              <Box sx={{ display: 'flex', gap: 0.4, flexWrap: 'wrap', mb: 0.4 }}>
+              <Box sx={{ display: 'flex', gap: 0.3, flexWrap: 'wrap', mb: 0.4 }}>
                 {groupedBank(player.bank).map(({ value, count }) => (
                   <Typography key={value} sx={{
-                    fontSize: '0.52rem', color: 'success.main', fontWeight: 700, lineHeight: 1,
-                    backgroundColor: 'rgba(46,125,50,0.1)', borderRadius: '4px', px: 0.5, py: 0.2,
+                    fontSize: '0.5rem', color: 'success.main', fontWeight: 700, lineHeight: 1,
+                    backgroundColor: 'rgba(46,125,50,0.1)', borderRadius: '3px', px: 0.4, py: 0.2,
                   }}>
-                    ₹{value}{count > 1 ? ` ×${count}` : ''}
+                    ₹{value}{count > 1 ? `×${count}` : ''}
                   </Typography>
                 ))}
               </Box>
             )}
-            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-              {propertyColors.map(color => {
-                const cards = player.properties[color]
-                const complete = isSetComplete(color, cards)
-                const display = COLOR_DISPLAY[color] || {}
-                return (
-                  <Box key={color} onClick={() => setRentInfoColor(color)} sx={{
-                    display: 'flex', alignItems: 'center', gap: 0.2,
-                    backgroundColor: display.hex, borderRadius: '4px',
-                    px: 0.5, py: 0.2, cursor: 'pointer',
-                    opacity: complete ? 1 : 0.75,
-                    border: complete ? '1.5px solid rgba(0,0,0,0.3)' : '1px solid transparent',
-                  }}>
-                    <Typography sx={{ color: '#fff', fontSize: '0.5rem', fontWeight: 700, lineHeight: 1 }}>
-                      {cards.length}
-                      {complete && ' ✓'}
-                    </Typography>
-                  </Box>
-                )
-              })}
-            </Box>
+            {propertyColors.length > 0 ? (
+              <Box sx={{ display: 'flex', gap: 0.3, flexWrap: 'wrap' }}>
+                {propertyColors.map(color => {
+                  const cards = player.properties[color]
+                  const complete = isSetComplete(color, cards)
+                  const needed = PROPERTY_SETS[color]?.cardsNeeded || 0
+                  const display = COLOR_DISPLAY[color] || {}
+                  return (
+                    <Box key={color} onClick={() => openRent(color)} sx={{
+                      display: 'flex', alignItems: 'center', gap: 0.2,
+                      backgroundColor: display.hex, borderRadius: '3px',
+                      px: 0.4, py: 0.2, cursor: 'pointer',
+                      opacity: complete ? 1 : 0.78,
+                      border: complete ? '1.5px solid rgba(0,0,0,0.35)' : '1px solid transparent',
+                    }}>
+                      <Typography sx={{ color: '#fff', fontSize: '0.5rem', fontWeight: 800, lineHeight: 1 }}>
+                        {cards.length}/{needed}{complete && ' ✓'}
+                      </Typography>
+                    </Box>
+                  )
+                })}
+              </Box>
+            ) : (
+              <Typography sx={{ fontSize: '0.5rem', color: 'text.disabled' }}>Koi property nahi</Typography>
+            )}
           </CardContent>
         </MuiCard>
       </>
@@ -140,7 +188,7 @@ export default function PlayerBoard({ player, compact = false }) {
   // ── FULL (current player) ──────────────────────────────────────────
   return (
     <>
-      <RentInfoDialog color={rentInfoColor} onClose={() => setRentInfoColor(null)} />
+      <RentInfoDialog info={rentInfo} onClose={() => setRentInfo(null)} />
       <MuiCard elevation={2} sx={{ borderRadius: 2, mx: 1, my: 0.5, overflow: 'hidden' }}>
         <CardContent sx={{ py: '8px !important', px: '12px !important' }}>
           {/* Header row */}
@@ -207,53 +255,61 @@ export default function PlayerBoard({ player, compact = false }) {
                   const cards = player.properties[color]
                   const complete = isSetComplete(color, cards)
                   const needed = PROPERTY_SETS[color]?.cardsNeeded || 0
+                  const remaining = Math.max(0, needed - cards.length)
                   const display = COLOR_DISPLAY[color] || {}
                   const buildings = player.buildings?.[color] || { houses: 0, hotels: 0 }
+                  const rentNow = getRentForColor(color, cards.length, player.buildings)
 
                   return (
-                    <Box key={color} sx={{
-                      flexShrink: 0, borderRadius: 1.5, overflow: 'hidden',
-                      border: complete ? `2px solid ${display.hex}` : '1.5px solid rgba(0,0,0,0.1)',
-                      minWidth: 50,
-                    }}>
-                      {/* Color header — tap for rent info */}
-                      <Box
-                        onClick={() => setRentInfoColor(color)}
-                        sx={{
-                          backgroundColor: display.hex, py: 0.3, px: 0.5,
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          cursor: 'pointer',
-                          '&:active': { opacity: 0.85 },
-                        }}>
-                        <Typography sx={{ color: '#fff', fontSize: '0.45rem', fontWeight: 700, lineHeight: 1 }}>
-                          {display.name}
+                    <Box key={color}
+                      onClick={() => openRent(color)}
+                      sx={{
+                        flexShrink: 0, borderRadius: '4px', overflow: 'hidden', cursor: 'pointer',
+                        border: complete ? `2px solid ${display.hex}` : '1.5px solid rgba(0,0,0,0.12)',
+                        minWidth: 56,
+                        '&:active': { transform: 'scale(0.98)' },
+                        transition: 'transform 100ms ease',
+                      }}>
+                      {/* Color header — set progress + tap affordance */}
+                      <Box sx={{
+                        backgroundColor: display.hex, py: 0.35, px: 0.5,
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 0.3,
+                      }}>
+                        <Typography sx={{ color: '#fff', fontSize: '0.5rem', fontWeight: 800, lineHeight: 1 }}>
+                          {cards.length}/{needed}
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2 }}>
-                          <Typography sx={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.45rem', fontWeight: 700 }}>
-                            {cards.length}/{needed}
-                          </Typography>
-                          <InfoOutlinedIcon sx={{ fontSize: 8, color: 'rgba(255,255,255,0.8)' }} />
-                        </Box>
+                        <InfoOutlinedIcon sx={{ fontSize: 12, color: 'rgba(255,255,255,0.95)' }} />
                       </Box>
                       <Box sx={{ display: 'flex', gap: 0.3, p: 0.4, flexWrap: 'wrap', backgroundColor: '#fff' }}>
                         {cards.map(c => <Card key={c.id} card={c} mini />)}
                       </Box>
-                      {(buildings.houses > 0 || buildings.hotels > 0) && (
-                        <Box sx={{ display: 'flex', gap: 0.3, px: 0.5, pb: 0.3, backgroundColor: '#fff' }}>
-                          {buildings.houses > 0 && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2 }}>
-                              <HomeIcon sx={{ fontSize: 10, color: '#4CAF50' }} />
-                              <Typography sx={{ fontSize: '0.45rem', color: '#4CAF50', fontWeight: 700 }}>×{buildings.houses}</Typography>
-                            </Box>
-                          )}
-                          {buildings.hotels > 0 && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2 }}>
-                              <HotelIcon sx={{ fontSize: 10, color: '#E65100' }} />
-                              <Typography sx={{ fontSize: '0.45rem', color: '#E65100', fontWeight: 700 }}>×{buildings.hotels}</Typography>
-                            </Box>
-                          )}
-                        </Box>
-                      )}
+                      {/* Always-visible current rent + remaining */}
+                      <Box sx={{ px: 0.5, pb: 0.35, backgroundColor: '#fff' }}>
+                        <Typography sx={{ fontSize: '0.48rem', fontWeight: 800, color: display.hex, lineHeight: 1.3 }}>
+                          Rent ₹{rentNow}Cr
+                        </Typography>
+                        {remaining > 0 && (
+                          <Typography sx={{ fontSize: '0.44rem', color: 'text.secondary', fontWeight: 600, lineHeight: 1.2 }}>
+                            +{remaining} for set
+                          </Typography>
+                        )}
+                        {(buildings.houses > 0 || buildings.hotels > 0) && (
+                          <Box sx={{ display: 'flex', gap: 0.3, mt: 0.2 }}>
+                            {buildings.houses > 0 && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2 }}>
+                                <HomeIcon sx={{ fontSize: 10, color: '#4CAF50' }} />
+                                <Typography sx={{ fontSize: '0.44rem', color: '#4CAF50', fontWeight: 700 }}>×{buildings.houses}</Typography>
+                              </Box>
+                            )}
+                            {buildings.hotels > 0 && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.2 }}>
+                                <HotelIcon sx={{ fontSize: 10, color: '#E65100' }} />
+                                <Typography sx={{ fontSize: '0.44rem', color: '#E65100', fontWeight: 700 }}>×{buildings.hotels}</Typography>
+                              </Box>
+                            )}
+                          </Box>
+                        )}
+                      </Box>
                     </Box>
                   )
                 })}

@@ -59,7 +59,7 @@ export default function Card({ card, mini = false }) {
 
   const w = mini ? MINI_W : CARD_W
   const h = mini ? MINI_H : CARD_H
-  const r = mini ? 3 : 5
+  const r = mini ? 2 : 4
 
   // ── MONEY ───────────────────────────────────────────────────────────
   if (card.type === CARD_TYPES.MONEY) {
