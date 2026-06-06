@@ -12,6 +12,11 @@ function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj))
 }
 
+function nextPhaseAfterPlay(s) {
+  if (s.cardsPlayedThisTurn < s.maxCardsPerTurn) return PHASE.PLAY
+  return s.players[s.currentPlayerIndex].hand.length > 7 ? PHASE.DISCARD : PHASE.PLAY
+}
+
 function gameReducer(state, action) {
   switch (action.type) {
 
@@ -27,7 +32,7 @@ function gameReducer(state, action) {
       const winner = checkWinner(s.players)
       if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }
       if (s.cardsPlayedThisTurn >= s.maxCardsPerTurn) {
-        return { ...s, phase: PHASE.DISCARD }
+        return { ...s, phase: nextPhaseAfterPlay(s) }
       }
       return s
     }
@@ -46,7 +51,7 @@ function gameReducer(state, action) {
       const winner = checkWinner(s.players)
       if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }
       if (s.cardsPlayedThisTurn >= s.maxCardsPerTurn) {
-        return { ...s, phase: PHASE.DISCARD }
+        return { ...s, phase: nextPhaseAfterPlay(s) }
       }
       return s
     }
@@ -67,7 +72,7 @@ function gameReducer(state, action) {
           const drawn = s.deck.splice(0, 2)
           player.hand.push(...drawn)
           s.log.push(`${player.name} ne Pass Go khela — 2 extra cards mile!`)
-          if (s.cardsPlayedThisTurn >= s.maxCardsPerTurn) s.phase = PHASE.DISCARD
+          s.phase = nextPhaseAfterPlay(s)
           return s
         }
         case ACTION_TYPES.DOUBLE_RENT: {
@@ -76,7 +81,7 @@ function gameReducer(state, action) {
           s.cardsPlayedThisTurn++
           s.doubleRentActive = true
           s.log.push(`${player.name} ne Double The Rent lagaaya!`)
-          if (s.cardsPlayedThisTurn >= s.maxCardsPerTurn) s.phase = PHASE.DISCARD
+          s.phase = nextPhaseAfterPlay(s)
           return s
         }
         case ACTION_TYPES.BIRTHDAY: {
@@ -226,17 +231,17 @@ function gameReducer(state, action) {
         pa.currentPayerIdx++
         if (pa.currentPayerIdx >= pa.payerIds.length) {
           s.pendingAction = null
-          s.phase = s.cardsPlayedThisTurn >= s.maxCardsPerTurn ? PHASE.DISCARD : PHASE.PLAY
+          s.phase = nextPhaseAfterPlay(s)
         }
       } else if (pa.type === ACTION_TYPES.BIRTHDAY) {
         pa.currentTargetIdx++
         if (pa.currentTargetIdx >= pa.targetIds.length) {
           s.pendingAction = null
-          s.phase = s.cardsPlayedThisTurn >= s.maxCardsPerTurn ? PHASE.DISCARD : PHASE.PLAY
+          s.phase = nextPhaseAfterPlay(s)
         }
       } else if (pa.type === ACTION_TYPES.DEBT_COLLECTOR) {
         s.pendingAction = null
-        s.phase = s.cardsPlayedThisTurn >= s.maxCardsPerTurn ? PHASE.DISCARD : PHASE.PLAY
+        s.phase = nextPhaseAfterPlay(s)
       }
       s.pendingAction = pa
       const winner = checkWinner(s.players)
@@ -254,7 +259,7 @@ function gameReducer(state, action) {
       s.discard.push(card)
       s.log.push(`${player.name} ne "Just Say No!" bola! Action cancel ho gaya.`)
       s.pendingAction = null
-      s.phase = s.cardsPlayedThisTurn >= s.maxCardsPerTurn ? PHASE.DISCARD : PHASE.PLAY
+      s.phase = nextPhaseAfterPlay(s)
       return s
     }
 
@@ -279,7 +284,7 @@ function gameReducer(state, action) {
 
       s.log.push(`${thief.name} ne ${victim.name} se ${stolen.name} chura liya!`)
       s.pendingAction = null
-      s.phase = s.cardsPlayedThisTurn >= s.maxCardsPerTurn ? PHASE.DISCARD : PHASE.PLAY
+      s.phase = nextPhaseAfterPlay(s)
       const winner = checkWinner(s.players)
       if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }
       return s
@@ -315,7 +320,7 @@ function gameReducer(state, action) {
 
       s.log.push(`${player.name} ne ${other.name} ke saath deal force ki!`)
       s.pendingAction = null
-      s.phase = s.cardsPlayedThisTurn >= s.maxCardsPerTurn ? PHASE.DISCARD : PHASE.PLAY
+      s.phase = nextPhaseAfterPlay(s)
       const winner = checkWinner(s.players)
       if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }
       return s
@@ -338,7 +343,7 @@ function gameReducer(state, action) {
 
       s.log.push(`${thief.name} ne ${victim.name} ka poora ${color} set chura liya! Deal Breaker!`)
       s.pendingAction = null
-      s.phase = s.cardsPlayedThisTurn >= s.maxCardsPerTurn ? PHASE.DISCARD : PHASE.PLAY
+      s.phase = nextPhaseAfterPlay(s)
       const winner = checkWinner(s.players)
       if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }
       return s
@@ -353,7 +358,7 @@ function gameReducer(state, action) {
       player.buildings[color].houses++
       s.log.push(`${player.name} ne ${color} pe ghar banaya!`)
       s.pendingAction = null
-      s.phase = s.cardsPlayedThisTurn >= s.maxCardsPerTurn ? PHASE.DISCARD : PHASE.PLAY
+      s.phase = nextPhaseAfterPlay(s)
       return s
     }
 
@@ -366,7 +371,7 @@ function gameReducer(state, action) {
       player.buildings[color].hotels++
       s.log.push(`${player.name} ne ${color} pe hotel banaya!`)
       s.pendingAction = null
-      s.phase = s.cardsPlayedThisTurn >= s.maxCardsPerTurn ? PHASE.DISCARD : PHASE.PLAY
+      s.phase = nextPhaseAfterPlay(s)
       return s
     }
 

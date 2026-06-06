@@ -4,10 +4,12 @@ import {
   Paper, SwipeableDrawer, Typography,
 } from '@mui/material'
 import BlockIcon from '@mui/icons-material/Block'
+import VisibilityIcon from '@mui/icons-material/Visibility'
 import { PHASE } from '../../game/gameLogic'
 import { ACTION_TYPES, COLOR_DISPLAY, CARD_TYPES, PROPERTY_SETS, COLORS } from '../../game/constants'
 import { isSetComplete, getPlayerBankTotal } from '../../game/gameLogic'
 import Card from './Card'
+import PlayerBoard from './PlayerBoard'
 
 const SheetHandle = () => (
   <Box sx={{ width: 40, height: 4, backgroundColor: 'divider', borderRadius: 2, mx: 'auto', mt: 1, mb: 0.5 }} />
@@ -270,6 +272,25 @@ export default function ActionModal({ state, dispatch, onDone }) {
   return null
 }
 
+// ── OPPONENT PEEK ──────────────────────────────────────────────────
+function OpponentPeek({ others }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <Box sx={{ px: 2.5, mb: 1 }}>
+      <Button size="small" variant="text" onClick={() => setOpen(o => !o)}
+        startIcon={<VisibilityIcon />}
+        sx={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'none' }}>
+        {open ? 'Boards chhupao' : 'Baaki players dekho'}
+      </Button>
+      {open && (
+        <Box sx={{ mt: 0.75, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          {others.map(p => <PlayerBoard key={p.id} player={p} compact />)}
+        </Box>
+      )}
+    </Box>
+  )
+}
+
 // ── PAYMENT SHEET ──────────────────────────────────────────────────
 function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, extraData }) {
   const [selectedAssets, setSelectedAssets] = useState([])
@@ -391,6 +412,7 @@ function StolenPropertySheet({ title, subtitle, others, canSteal, onSelect, onCa
     <BottomSheet title={title}>
       <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {subtitle && <Typography variant="caption" sx={{ color: 'text.secondary', px: 2.5, display: 'block', mb: 1 }}>{subtitle}</Typography>}
+        <OpponentPeek others={others} />
         {/* Scrollable content */}
         <Box sx={{ px: 2.5, overflowY: 'auto', flex: 1, maxHeight: 'calc(75dvh - 100px)' }}>
           <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
@@ -450,6 +472,7 @@ function ForcedDealSheet({ currentPlayer, others, onSwap, onCancel }) {
   return (
     <BottomSheet title="Forced Deal — Property Swap Karo">
       <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <OpponentPeek others={others} />
         {/* Scrollable content */}
         <Box sx={{ px: 2.5, overflowY: 'auto', flex: 1, maxHeight: 'calc(75dvh - 120px)' }}>
           <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
