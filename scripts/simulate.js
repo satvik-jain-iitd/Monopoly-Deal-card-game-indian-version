@@ -189,17 +189,40 @@ function eligibleRentColors(player, card) {
   })
 }
 
-// Returns the action to dispatch, or { done: true } if the game is over.
-function nextAction(s, rng) {
+// ── Helpers shared by both agents ───────────────────────────────────
+function completeSetsCount(player) {
+  return Object.entries(player.properties)
+    .filter(([c, cards]) => c !== COLORS.WILD && isSetComplete(c, cards)).length
+}
+
+// For a color, how many more cards does `player` need to complete it?
+function cardsNeededToComplete(player, color) {
+  const needed = PROPERTY_SETS[color]?.cardsNeeded || 99
+  const have = (player.properties[color] || []).length
+  return Math.max(0, needed - have)
+}
+
+// Index of the opponent with the most complete sets (the "leader").
+function leaderIdx(s, myIdx) {
+  let best = -1, bestScore = -1
+  s.players.forEach((p, i) => {
+    if (i === myIdx) return
+    const score = completeSetsCount(p) * 100 +
+      Object.values(p.properties).reduce((a, c) => a + c.length, 0)
+    if (score > bestScore) { bestScore = score; best = i }
+  })
+  return best
+}
+
+// ── Strategy A: "Property Hoarder" (original random agent) ───────────
+// 70% bias toward properties, 50% chance to bank action cards, random targets.
+function nextActionHoarder(s, rng) {
   const me = s.players[s.currentPlayerIndex]
   const pa = s.pendingAction
 
   switch (s.phase) {
-    case PHASE.GAME_OVER:
-      return { done: true }
-
-    case PHASE.DRAW:
-      return { type: 'START_TURN' }
+    case PHASE.GAME_OVER: return { done: true }
+    case PHASE.DRAW: return { type: 'START_TURN' }
 
     case PHASE.DISCARD: {
       if (me.hand.length > 7) return { type: 'DISCARD_CARD', cardId: pick(rng, me.hand).id }
@@ -214,15 +237,13 @@ function nextAction(s, rng) {
 
     case PHASE.RENT_COLLECT: {
       const payerId = pa.payerIds[pa.currentPayerIdx]
-      const payer = s.players[payerId]
-      return { type: 'PAY_DEBT', payerId, amount: pa.amount, payerCards: chooseAssetsToPay(payer, pa.amount) }
+      return { type: 'PAY_DEBT', payerId, amount: pa.amount, payerCards: chooseAssetsToPay(s.players[payerId], pa.amount) }
     }
 
     case PHASE.ACTION_RESPONSE: {
       if (pa?.type === ACTION_TYPES.BIRTHDAY) {
         const payerId = pa.targetIds[pa.currentTargetIdx]
-        const payer = s.players[payerId]
-        return { type: 'PAY_DEBT', payerId, amount: pa.amountPerPlayer, payerCards: chooseAssetsToPay(payer, pa.amountPerPlayer) }
+        return { type: 'PAY_DEBT', payerId, amount: pa.amountPerPlayer, payerCards: chooseAssetsToPay(s.players[payerId], pa.amountPerPlayer) }
       }
       if (pa?.type === ACTION_TYPES.DEBT_COLLECTOR) {
         if (!pa.targetIds) {
@@ -230,8 +251,7 @@ function nextAction(s, rng) {
           return { type: 'SELECT_TARGET_PLAYER', targetPlayerId: pick(rng, others) }
         }
         const payerId = pa.targetIds[0]
-        const payer = s.players[payerId]
-        return { type: 'PAY_DEBT', payerId, amount: pa.amount, payerCards: chooseAssetsToPay(payer, pa.amount) }
+        return { type: 'PAY_DEBT', payerId, amount: pa.amount, payerCards: chooseAssetsToPay(s.players[payerId], pa.amount) }
       }
       if (pa?.type === ACTION_TYPES.HOUSE || pa?.type === ACTION_TYPES.HOTEL) {
         const wantHotel = pa.type === ACTION_TYPES.HOTEL
@@ -251,9 +271,8 @@ function nextAction(s, rng) {
       const targets = []
       s.players.forEach((p, i) => {
         if (i === s.currentPlayerIndex) return
-        for (const [color, cards] of Object.entries(p.properties)) {
+        for (const [color, cards] of Object.entries(p.properties))
           if (!isSetComplete(color, cards)) cards.forEach(c => targets.push({ fromPlayerId: i, cardId: c.id, color }))
-        }
       })
       if (targets.length === 0) return { type: '_CANCEL_PENDING' }
       return { type: 'SLY_DEAL_STEAL', ...pick(rng, targets) }
@@ -264,9 +283,8 @@ function nextAction(s, rng) {
       const theirs = []
       s.players.forEach((p, i) => {
         if (i === s.currentPlayerIndex) return
-        for (const [color, cards] of Object.entries(p.properties)) {
+        for (const [color, cards] of Object.entries(p.properties))
           if (!isSetComplete(color, cards)) cards.forEach(c => theirs.push({ fromPlayerId: i, theirCardId: c.id, theirColor: color }))
-        }
       })
       if (mine.length === 0 || theirs.length === 0) return { type: '_CANCEL_PENDING' }
       return { type: 'FORCED_DEAL_SWAP', ...pick(rng, mine), ...pick(rng, theirs) }
@@ -276,9 +294,8 @@ function nextAction(s, rng) {
       const sets = []
       s.players.forEach((p, i) => {
         if (i === s.currentPlayerIndex) return
-        for (const [color, cards] of Object.entries(p.properties)) {
+        for (const [color, cards] of Object.entries(p.properties))
           if (isSetComplete(color, cards)) sets.push({ fromPlayerId: i, color })
-        }
       })
       if (sets.length === 0) return { type: '_CANCEL_PENDING' }
       return { type: 'DEAL_BREAKER_STEAL', ...pick(rng, sets) }
@@ -298,43 +315,268 @@ function nextAction(s, rng) {
     case PHASE.PLAY: {
       const left = s.maxCardsPerTurn - s.cardsPlayedThisTurn
       if (left <= 0 || me.hand.length === 0) return { type: 'END_TURN' }
-      if (rng() < 0.08) return { type: 'END_TURN' } // occasionally stop early
-
-      // Bias toward building sets so games actually converge to a winner,
-      // while still exercising every action type.
+      if (rng() < 0.08) return { type: 'END_TURN' }
       const props = me.hand.filter(c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.WILD_PROPERTY)
-      if (props.length && rng() < 0.7) {
-        return { type: 'PLAY_PROPERTY', cardId: pick(rng, props).id }
-      }
-
+      if (props.length && rng() < 0.7) return { type: 'PLAY_PROPERTY', cardId: pick(rng, props).id }
       const card = pick(rng, me.hand)
       switch (card.type) {
-        case CARD_TYPES.MONEY:
-          return { type: 'PLAY_AS_MONEY', cardId: card.id }
+        case CARD_TYPES.MONEY: return { type: 'PLAY_AS_MONEY', cardId: card.id }
         case CARD_TYPES.PROPERTY:
-        case CARD_TYPES.WILD_PROPERTY:
-          return { type: 'PLAY_PROPERTY', cardId: card.id } // wild routes to WILD_COLOR_SELECT
+        case CARD_TYPES.WILD_PROPERTY: return { type: 'PLAY_PROPERTY', cardId: card.id }
         case CARD_TYPES.RENT: {
           const colors = eligibleRentColors(me, card)
           if (colors.length === 0) return { type: 'PLAY_AS_MONEY', cardId: card.id }
           const targetColor = pick(rng, colors)
           const others = s.players.map((_, i) => i).filter(i => i !== s.currentPlayerIndex)
-          const targetPlayerId = card.wild ? pick(rng, others) : undefined
-          return { type: 'PLAY_RENT', cardId: card.id, targetColor, targetPlayerId }
+          return { type: 'PLAY_RENT', cardId: card.id, targetColor, targetPlayerId: card.wild ? pick(rng, others) : undefined }
         }
-        case CARD_TYPES.ACTION: {
-          // Some actions need a target/board state; if none, bank it instead.
-          if (rng() < 0.5) return { type: 'PLAY_AS_MONEY', cardId: card.id }
-          return { type: 'PLAY_ACTION', cardId: card.id }
-        }
-        default:
-          return { type: 'END_TURN' }
+        case CARD_TYPES.ACTION:
+          return rng() < 0.5 ? { type: 'PLAY_AS_MONEY', cardId: card.id } : { type: 'PLAY_ACTION', cardId: card.id }
+        default: return { type: 'END_TURN' }
       }
     }
 
-    default:
-      return { type: '_CANCEL_PENDING' }
+    default: return { type: '_CANCEL_PENDING' }
   }
+}
+
+// ── Strategy B: "Tactical Aggressor" ────────────────────────────────
+// Prioritises: Pass Go > set-completing property > max-rent play >
+// action cards (never banked) > money banking > any property.
+// Steals/deals always target the leader. Wild goes to the color closest
+// to completion. Discards lowest-value money first.
+function nextActionAggressor(s, rng) {
+  const me = s.players[s.currentPlayerIndex]
+  const pa = s.pendingAction
+  const myIdx = s.currentPlayerIndex
+
+  switch (s.phase) {
+    case PHASE.GAME_OVER: return { done: true }
+    case PHASE.DRAW: return { type: 'START_TURN' }
+
+    case PHASE.DISCARD: {
+      if (me.hand.length <= 7) return { type: 'END_TURN' }
+      // Discard lowest-value money card; if none, lowest-value action/rent; last resort: property.
+      const sorted = [...me.hand].sort((a, b) => {
+        const typePriority = c =>
+          c.type === CARD_TYPES.MONEY ? 0
+          : (c.type === CARD_TYPES.ACTION || c.type === CARD_TYPES.RENT) ? 1 : 2
+        const tp = typePriority(a) - typePriority(b)
+        return tp !== 0 ? tp : (a.value || 0) - (b.value || 0)
+      })
+      return { type: 'DISCARD_CARD', cardId: sorted[0].id }
+    }
+
+    case PHASE.WILD_COLOR_SELECT: {
+      const card = me.hand.find(c => c.id === pa.cardId)
+      const opts = card?.colors?.[0] === COLORS.WILD ? Object.keys(PROPERTY_SETS) : (card?.colors || [])
+      // Pick color where I need the fewest more cards (closest to completing).
+      const best = opts.slice().sort((a, b) => {
+        const diff = cardsNeededToComplete(me, a) - cardsNeededToComplete(me, b)
+        if (diff !== 0) return diff
+        return (PROPERTY_SETS[a]?.cardsNeeded || 99) - (PROPERTY_SETS[b]?.cardsNeeded || 99)
+      })
+      return { type: 'SELECT_WILD_COLOR', targetColor: best[0] || pick(rng, opts) }
+    }
+
+    case PHASE.RENT_COLLECT: {
+      const payerId = pa.payerIds[pa.currentPayerIdx]
+      return { type: 'PAY_DEBT', payerId, amount: pa.amount, payerCards: chooseAssetsToPay(s.players[payerId], pa.amount) }
+    }
+
+    case PHASE.ACTION_RESPONSE: {
+      if (pa?.type === ACTION_TYPES.BIRTHDAY) {
+        const payerId = pa.targetIds[pa.currentTargetIdx]
+        return { type: 'PAY_DEBT', payerId, amount: pa.amountPerPlayer, payerCards: chooseAssetsToPay(s.players[payerId], pa.amountPerPlayer) }
+      }
+      if (pa?.type === ACTION_TYPES.DEBT_COLLECTOR) {
+        if (!pa.targetIds) {
+          // Target the leader.
+          const target = leaderIdx(s, myIdx)
+          const others = s.players.map((_, i) => i).filter(i => i !== myIdx)
+          return { type: 'SELECT_TARGET_PLAYER', targetPlayerId: target >= 0 ? target : pick(rng, others) }
+        }
+        const payerId = pa.targetIds[0]
+        return { type: 'PAY_DEBT', payerId, amount: pa.amount, payerCards: chooseAssetsToPay(s.players[payerId], pa.amount) }
+      }
+      if (pa?.type === ACTION_TYPES.HOUSE || pa?.type === ACTION_TYPES.HOTEL) {
+        const wantHotel = pa.type === ACTION_TYPES.HOTEL
+        const eligible = Object.keys(me.properties).filter(color => {
+          if (color === COLORS.RAILROAD || color === COLORS.UTILITY) return false
+          if (!isSetComplete(color, me.properties[color])) return false
+          const b = me.buildings?.[color] || { houses: 0, hotels: 0 }
+          return wantHotel ? (b.houses > 0 && !(b.hotels > 0)) : !(b.houses > 0)
+        })
+        if (eligible.length === 0) return { type: '_CANCEL_PENDING' }
+        return { type: wantHotel ? 'PLACE_HOTEL' : 'PLACE_HOUSE', color: pick(rng, eligible) }
+      }
+      return { type: '_CANCEL_PENDING' }
+    }
+
+    case PHASE.SLY_DEAL_SELECT: {
+      // Prefer to steal from the leader; prefer cards that set them back most
+      // (i.e. take a card from a pile that's 1 away from being complete).
+      const leader = leaderIdx(s, myIdx)
+      const targets = []
+      s.players.forEach((p, i) => {
+        if (i === myIdx) return
+        const priority = i === leader ? 0 : 1
+        for (const [color, cards] of Object.entries(p.properties)) {
+          if (!isSetComplete(color, cards)) {
+            const setback = (PROPERTY_SETS[color]?.cardsNeeded || 0) - cards.length === 1 ? 0 : 1
+            cards.forEach(c => targets.push({ fromPlayerId: i, cardId: c.id, color, score: priority * 10 + setback }))
+          }
+        }
+      })
+      if (targets.length === 0) return { type: '_CANCEL_PENDING' }
+      targets.sort((a, b) => a.score - b.score)
+      const { score: _, ...best } = targets[0]
+      return { type: 'SLY_DEAL_STEAL', ...best }
+    }
+
+    case PHASE.FORCED_DEAL_SELECT: {
+      // Give away my lowest-value property from a non-completing pile.
+      // Take from the leader's most-advanced pile.
+      const leader = leaderIdx(s, myIdx)
+      const mine = Object.entries(me.properties).flatMap(([color, cards]) =>
+        cards.map(c => ({ myCardId: c.id, myColor: color, val: c.value || 0 }))
+      ).sort((a, b) => a.val - b.val) // give away lowest value
+      const theirs = []
+      s.players.forEach((p, i) => {
+        if (i === myIdx) return
+        const priority = i === leader ? 0 : 1
+        for (const [color, cards] of Object.entries(p.properties))
+          if (!isSetComplete(color, cards))
+            cards.forEach(c => theirs.push({ fromPlayerId: i, theirCardId: c.id, theirColor: color, score: priority }))
+      })
+      if (mine.length === 0 || theirs.length === 0) return { type: '_CANCEL_PENDING' }
+      theirs.sort((a, b) => a.score - b.score)
+      const { val: _v, ...myBest } = mine[0]
+      const { score: _s, ...theirBest } = theirs[0]
+      return { type: 'FORCED_DEAL_SWAP', ...myBest, ...theirBest }
+    }
+
+    case PHASE.DEAL_BREAKER_SELECT: {
+      // Steal from the leader first.
+      const leader = leaderIdx(s, myIdx)
+      const sets = []
+      s.players.forEach((p, i) => {
+        if (i === myIdx) return
+        for (const [color, cards] of Object.entries(p.properties))
+          if (isSetComplete(color, cards)) sets.push({ fromPlayerId: i, color, score: i === leader ? 0 : 1 })
+      })
+      if (sets.length === 0) return { type: '_CANCEL_PENDING' }
+      sets.sort((a, b) => a.score - b.score)
+      const { score: _, ...best } = sets[0]
+      return { type: 'DEAL_BREAKER_STEAL', ...best }
+    }
+
+    case PHASE.TRADE_ROUTE_SELECT: {
+      const isProp = c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.WILD_PROPERTY
+      const myProps = me.hand.filter(isProp)
+      const pileProps = s.discard.filter(isProp)
+      if (myProps.length === 0) return { type: '_CANCEL_PENDING' }
+      // Give up the property from my most-overloaded color; take the pile card
+      // that's most useful (color where I have the most already).
+      const discardCard = myProps.slice().sort((a, b) => {
+        const aHave = (me.properties[a.color] || []).length
+        const bHave = (me.properties[b.color] || []).length
+        return bHave - aHave // give from the color I have most of
+      })[0]
+      const eligible = pileProps.filter(c => c.color !== discardCard.color)
+        .sort((a, b) => (me.properties[b.color] || []).length - (me.properties[a.color] || []).length)
+      if (eligible.length === 0) return { type: '_CANCEL_PENDING' }
+      return { type: 'TRADE_ROUTE_SWAP', discardCardId: discardCard.id, takeCardId: eligible[0].id }
+    }
+
+    case PHASE.PLAY: {
+      const left = s.maxCardsPerTurn - s.cardsPlayedThisTurn
+      if (left <= 0 || me.hand.length === 0) return { type: 'END_TURN' }
+      if (rng() < 0.02) return { type: 'END_TURN' } // rarely quit early
+
+      // 1. Pass Go first — more cards = more options.
+      const passGo = me.hand.find(c => c.actionType === ACTION_TYPES.PASS_GO)
+      if (passGo) return { type: 'PLAY_ACTION', cardId: passGo.id }
+
+      // 2. Play any property that would complete a set.
+      const props = me.hand.filter(c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.WILD_PROPERTY)
+      const completing = props.filter(c => {
+        const color = c.color
+        if (!color || !PROPERTY_SETS[color]) return false
+        const have = (me.properties[color] || []).length
+        return have + 1 >= PROPERTY_SETS[color].cardsNeeded
+      })
+      if (completing.length) return { type: 'PLAY_PROPERTY', cardId: completing[0].id }
+
+      // 3. Play rent when I own 2+ cards in an eligible color (max rent value).
+      const rentCard = me.hand.find(c => c.type === CARD_TYPES.RENT)
+      if (rentCard) {
+        const colors = eligibleRentColors(me, rentCard).filter(color => (me.properties[color] || []).length >= 2)
+        if (colors.length) {
+          const best = colors.slice().sort((a, b) =>
+            (me.properties[b] || []).length - (me.properties[a] || []).length)[0]
+          const others = s.players.map((_, i) => i).filter(i => i !== myIdx)
+          return { type: 'PLAY_RENT', cardId: rentCard.id, targetColor: best, targetPlayerId: rentCard.wild ? pick(rng, others) : undefined }
+        }
+      }
+
+      // 4. Play any action card (never bank it) — skip cards that would be no-ops.
+      const isPropCard = c => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.WILD_PROPERTY
+      const pileProps = s.discard.filter(isPropCard)
+      const handProps = me.hand.filter(isPropCard)
+      const action = me.hand.find(c => {
+        if (c.type !== CARD_TYPES.ACTION) return false
+        // Insurance: skip if already insured (reducer returns no-op).
+        if (c.actionType === ACTION_TYPES.INSURANCE && me.insurance) return false
+        // Trade Route: only useful if there's a pile property of a different colour.
+        if (c.actionType === ACTION_TYPES.TRADE_ROUTE) {
+          return handProps.length > 0 && pileProps.some(p => handProps.some(m => m.color !== p.color))
+        }
+        // Just Say No: can't be played proactively (no pending action in PLAY phase).
+        if (c.actionType === ACTION_TYPES.JUST_SAY_NO) return false
+        return true
+      })
+      if (action) return { type: 'PLAY_ACTION', cardId: action.id }
+
+      // Bank unplayable action cards (Insurance already held, JSN, etc.).
+      const bankable = me.hand.find(c =>
+        (c.type === CARD_TYPES.ACTION || c.type === CARD_TYPES.RENT) &&
+        !(c.type === CARD_TYPES.PROPERTY) && !(c.type === CARD_TYPES.WILD_PROPERTY)
+      )
+      if (bankable && !me.hand.find(c => c.type === CARD_TYPES.MONEY)) {
+        return { type: 'PLAY_AS_MONEY', cardId: bankable.id }
+      }
+
+      // 5. Bank money.
+      const money = me.hand.find(c => c.type === CARD_TYPES.MONEY)
+      if (money) return { type: 'PLAY_AS_MONEY', cardId: money.id }
+
+      // 6. Play any property (prefer color closest to completion).
+      if (props.length) {
+        const sorted = props.slice().sort((a, b) => {
+          const aNeed = cardsNeededToComplete(me, a.color)
+          const bNeed = cardsNeededToComplete(me, b.color)
+          return aNeed - bNeed
+        })
+        return { type: 'PLAY_PROPERTY', cardId: sorted[0].id }
+      }
+
+      // 7. Bank any remaining card (rent/action as last resort).
+      const remaining = me.hand.find(c => c.type !== CARD_TYPES.PROPERTY && c.type !== CARD_TYPES.WILD_PROPERTY)
+      if (remaining) return { type: 'PLAY_AS_MONEY', cardId: remaining.id }
+
+      return { type: 'END_TURN' }
+    }
+
+    default: return { type: '_CANCEL_PENDING' }
+  }
+}
+
+// Route to the right agent based on player index parity:
+// even index = Hoarder (A), odd index = Aggressor (B).
+function nextAction(s, rng) {
+  const isAggressor = s.currentPlayerIndex % 2 === 1
+  return isAggressor ? nextActionAggressor(s, rng) : nextActionHoarder(s, rng)
 }
 
 // ── Run one game ────────────────────────────────────────────────────
@@ -465,7 +707,8 @@ function runGame(seed, customCards, names) {
 // ── Main ────────────────────────────────────────────────────────────
 const GAMES = Number(process.env.GAMES || 100)
 const BASE_SEED = Number(process.env.SEED || Date.now())
-const NAMES = ['satvik', 'sanika', 'aman', 'sonu', 'priya', 'rahul']
+// Even indices = Hoarder (A), Odd indices = Aggressor (B)
+const NAMES = ['satvik(A)', 'sanika(B)', 'aman(A)', 'sonu(B)', 'priya(A)', 'rahul(B)']
 let totalBugs = 0
 const seen = new Map()
 let finishedCount = 0, stalledCount = 0, totalSteps = 0, totalTurns = 0
@@ -513,9 +756,17 @@ for (const g of allGames) {
   console.log(`  seed ${g.seed}  ${cc}  ${g.turns} turns  ${result}`)
 }
 
-console.log('\n── Win counts (finished games) ────────────────')
+console.log('\n── Win counts  [A=Hoarder  B=Aggressor] ───────')
 const sortedWins = Object.entries(winCounts).sort((a,b) => b[1]-a[1])
-for (const [name, n] of sortedWins) console.log(`  ${name.padEnd(10)} ${n} wins`)
+let hoarderWins = 0, aggressorWins = 0
+for (const [name, n] of sortedWins) {
+  const tag = name.includes('(B)') ? 'B' : 'A'
+  if (tag === 'A') hoarderWins += n; else aggressorWins += n
+  console.log(`  ${name.padEnd(14)} ${n} wins  [${tag}]`)
+}
+console.log(`  ──`)
+console.log(`  Hoarder (A) total:    ${hoarderWins}`)
+console.log(`  Aggressor (B) total:  ${aggressorWins}`)
 
 console.log('\n── Winning color sets (how often each color closes a win) ─')
 const sortedColors = Object.entries(colorWinCounts).sort((a,b) => b[1]-a[1])
