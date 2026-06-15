@@ -165,6 +165,7 @@ function gameReducer(state, action) {
           s.pendingAction = {
             type: ACTION_TYPES.SLY_DEAL,
             actingPlayerId: s.currentPlayerIndex,
+            card,
           }
           return s
         }
@@ -176,6 +177,7 @@ function gameReducer(state, action) {
           s.pendingAction = {
             type: ACTION_TYPES.FORCED_DEAL,
             actingPlayerId: s.currentPlayerIndex,
+            card,
           }
           return s
         }
@@ -187,6 +189,7 @@ function gameReducer(state, action) {
           s.pendingAction = {
             type: ACTION_TYPES.DEAL_BREAKER,
             actingPlayerId: s.currentPlayerIndex,
+            card,
           }
           return s
         }
@@ -618,7 +621,9 @@ function gameReducer(state, action) {
     case '_CANCEL_PENDING': {
       const s = deepClone(state)
       const pa = s.pendingAction
-      if (pa?.card && (pa.type === ACTION_TYPES.HOUSE || pa.type === ACTION_TYPES.HOTEL)) {
+      if (pa?.card) {
+        const discardIdx = s.discard.findIndex(c => c.id === pa.card.id)
+        if (discardIdx !== -1) s.discard.splice(discardIdx, 1)
         s.players[pa.actingPlayerId].hand.push(pa.card)
         s.cardsPlayedThisTurn--
       }
