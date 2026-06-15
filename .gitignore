@@ -32,3 +32,8 @@ scripts/.sim-bundle.mjs
 .vision-brief.md
 .step*
 UAT-CHECKLIST.md
+
+# GitNexus generated files
+.claude/
+AGENTS.md
+CLAUDE.md

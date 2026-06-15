@@ -33,6 +33,7 @@ export default function App() {
   const [mpMyIndex, setMpMyIndex] = useState(null)
   const [mpPlayers, setMpPlayers] = useState([])
   const [mpGuestState, setMpGuestState] = useState(null)
+  const [mpError, setMpError] = useState(null)
   const mpModeRef = useRef(null)
   const mpMyNameRef = useRef('')
   const mpTransportRef = useRef('cloud') // 'cloud' | 'offline'
@@ -50,6 +51,9 @@ export default function App() {
       })
     } else if (msg.type === 'ROSTER') {
       setMpPlayers(msg.players)
+    } else if (msg.type === 'PLAYER_LEFT') {
+      setMpPlayers(prev => prev.length > 0 ? [prev[0]] : prev)
+      setMpError('Koi player disconnect ho gaya!')
     } else if (msg.type === 'GAME_STATE') {
       setMpGuestState(msg.state)
       setMpMyIndex(prev => {
@@ -135,7 +139,7 @@ export default function App() {
     mpTransportRef.current = 'cloud'
     activeSendRef.current = mpSend
     setMpMode(null); setMpRoom(''); setMpMyName(''); setMpMyIndex(null)
-    setMpPlayers([]); setMpGuestState(null)
+    setMpPlayers([]); setMpGuestState(null); setMpError(null)
   }
 
   function handleGoHome() {
@@ -245,8 +249,8 @@ export default function App() {
             players={mpPlayers}
             isHost={mpMode === 'host'}
             myName={mpMyName}
-            connected={mp.connected}
-            error={mp.error}
+            connected={mpTransportRef.current === 'offline' ? webrtcMp.connected : mp.connected}
+            error={mpError || mp.error}
             onStartGame={handleStartMultiplayerGame}
             onLeave={handleGoHome}
           />
@@ -264,6 +268,7 @@ export default function App() {
             ranked={results?.ranked ?? rankAndScore(effectiveState.players)}
             standings={results?.standings ?? getStandings(loadSeries())}
             gamesPlayed={results?.gamesPlayed ?? 0}
+            isGuest={mpMode === 'guest'}
             onNextGame={handleNextGame}
             onNewSeries={handleNewSeries}
             onHome={handleGoHome}

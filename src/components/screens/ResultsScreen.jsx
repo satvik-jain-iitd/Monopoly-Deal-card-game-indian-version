@@ -14,7 +14,7 @@ import { sounds } from '../../game/sounds'
 const RANK_MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
 export default function ResultsScreen({
-  ranked, standings, gamesPlayed, onNextGame, onNewSeries, onHome,
+  ranked, standings, gamesPlayed, isGuest, onNextGame, onNewSeries, onHome,
 }) {
   const winner = ranked[0]
   const champion = standings[0]
@@ -101,43 +101,59 @@ export default function ResultsScreen({
             <Chip label={`${gamesPlayed} game${gamesPlayed !== 1 ? 's' : ''}`} size="small"
               sx={{ height: 18, fontSize: '0.58rem', fontWeight: 700, backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }} />
           </Box>
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ '& th': { fontWeight: 800, fontSize: '0.6rem', py: 0.6, px: 1, color: 'text.secondary' } }}>
-                <TableCell>#</TableCell>
-                <TableCell>Player</TableCell>
-                <TableCell align="center">Games</TableCell>
-                <TableCell align="center">🥇</TableCell>
-                <TableCell align="right">Total</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {standings.map((s, i) => {
-                const isChamp = i === 0
-                return (
-                  <TableRow key={s.name} sx={{
-                    backgroundColor: isChamp ? 'rgba(27,94,32,0.08)' : 'transparent',
-                    '& td': { fontSize: '0.66rem', py: 0.55, px: 1 },
-                  }}>
-                    <TableCell sx={{ fontWeight: 800 }}>{isChamp ? '👑' : i + 1}</TableCell>
-                    <TableCell sx={{ fontWeight: isChamp ? 800 : 500, color: isChamp ? 'success.dark' : 'text.primary' }}>
-                      {s.name}
-                    </TableCell>
-                    <TableCell align="center">{s.gamesPlayed}</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 700 }}>{s.wins}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 900, color: 'success.dark' }}>{s.totalPoints}</TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+          {standings.length > 0 ? (
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ '& th': { fontWeight: 800, fontSize: '0.6rem', py: 0.6, px: 1, color: 'text.secondary' } }}>
+                  <TableCell>#</TableCell>
+                  <TableCell>Player</TableCell>
+                  <TableCell align="center">Games</TableCell>
+                  <TableCell align="center">🥇</TableCell>
+                  <TableCell align="right">Total</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {standings.map((s, i) => {
+                  const isChamp = i === 0
+                  return (
+                    <TableRow key={s.name} sx={{
+                      backgroundColor: isChamp ? 'rgba(27,94,32,0.08)' : 'transparent',
+                      '& td': { fontSize: '0.66rem', py: 0.55, px: 1 },
+                    }}>
+                      <TableCell sx={{ fontWeight: 800 }}>{isChamp ? '👑' : i + 1}</TableCell>
+                      <TableCell sx={{ fontWeight: isChamp ? 800 : 500, color: isChamp ? 'success.dark' : 'text.primary' }}>
+                        {s.name}
+                      </TableCell>
+                      <TableCell align="center">{s.gamesPlayed}</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>{s.wins}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 900, color: 'success.dark' }}>{s.totalPoints}</TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Series stats sirf host ke paas save hote hain
+              </Typography>
+            </Box>
+          )}
         </Paper>
 
         {/* ── Actions ─────────────────────────────────────────────── */}
-        <Button variant="contained" size="large" fullWidth startIcon={<ReplayIcon />} onClick={onNextGame}
-          sx={{ mt: 0.5, backgroundColor: '#fff', color: '#E65100', fontWeight: 800, borderRadius: 3, py: 1.35, fontSize: '0.95rem', '&:hover': { backgroundColor: 'rgba(255,255,255,0.9)' } }}>
-          Agla Game — Same Players
-        </Button>
+        {isGuest ? (
+          <Box sx={{ mt: 0.5, textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+              Host ke agla game shuru karne ka intezaar karo...
+            </Typography>
+          </Box>
+        ) : (
+          <Button variant="contained" size="large" fullWidth startIcon={<ReplayIcon />} onClick={onNextGame}
+            sx={{ mt: 0.5, backgroundColor: '#fff', color: '#E65100', fontWeight: 800, borderRadius: 3, py: 1.35, fontSize: '0.95rem', '&:hover': { backgroundColor: 'rgba(255,255,255,0.9)' } }}>
+            Agla Game — Same Players
+          </Button>
+        )}
         <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
           <Button variant="outlined" fullWidth startIcon={<RestartAltIcon />} onClick={onNewSeries}
             sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)', fontWeight: 700, borderRadius: 3, fontSize: '0.78rem', '&:hover': { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.1)' } }}>
