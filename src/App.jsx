@@ -176,7 +176,7 @@ export default function App() {
     mp.connect(roomCode, wsBase)
 
     if (!isHost) {
-      setTimeout(() => mpSend({ type: 'HELLO', name: myName }), 600)
+      mpSend({ type: 'HELLO', name: myName })
     }
 
     setScreen('lobby')
@@ -245,6 +245,8 @@ export default function App() {
             players={mpPlayers}
             isHost={mpMode === 'host'}
             myName={mpMyName}
+            connected={mp.connected}
+            error={mp.error}
             onStartGame={handleStartMultiplayerGame}
             onLeave={handleGoHome}
           />

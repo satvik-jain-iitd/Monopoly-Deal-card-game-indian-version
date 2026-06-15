@@ -11,31 +11,63 @@ export function useMultiplayer({ onMessage } = {}) {
   const onMessageRef = useRef(onMessage)
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState(null)
+  const messageQueueRef = useRef([])
+  const retryCountRef = useRef(0)
+  const roomParamsRef = useRef(null)
 
   useEffect(() => { onMessageRef.current = onMessage }, [onMessage])
 
-  // wsBaseOverride: pass 'ws://192.168.x.x:3001' for local; omit for cloud.
-  const connect = useCallback((roomCode, wsBaseOverride) => {
+  const connect = useCallback(function connectFn(roomCode, wsBaseOverride) {
+    roomParamsRef.current = { roomCode, wsBaseOverride }
     wsRef.current?.close()
     const base = wsBaseOverride || CLOUD_WS_BASE
     const ws = new WebSocket(`${base}/${roomCode.toUpperCase()}`)
     wsRef.current = ws
 
-    ws.onopen = () => { setConnected(true); setError(null) }
+    ws.onopen = () => {
+      setConnected(true)
+      setError(null)
+      retryCountRef.current = 0
+      // Flush queued messages
+      while (messageQueueRef.current.length > 0) {
+        const msg = messageQueueRef.current.shift()
+        ws.send(msg)
+      }
+    }
     ws.onmessage = (e) => {
       try { onMessageRef.current?.(JSON.parse(e.data)) } catch (_) {}
     }
-    ws.onclose = () => setConnected(false)
-    ws.onerror = () => { setError('Connection fail hui. Dobara try karo.'); setConnected(false) }
+    ws.onclose = () => {
+      setConnected(false)
+      // Auto-reconnect with exponential backoff
+      if (roomParamsRef.current && retryCountRef.current < 5) {
+        const backoff = Math.min(1000 * Math.pow(2, retryCountRef.current), 8000)
+        retryCountRef.current++
+        setTimeout(() => {
+          if (roomParamsRef.current) {
+            const { roomCode, wsBaseOverride } = roomParamsRef.current
+            connectFn(roomCode, wsBaseOverride)
+          }
+        }, backoff)
+      }
+    }
+    ws.onerror = () => {
+      setError('Connection fail hui. Dobara try karo.')
+      setConnected(false)
+    }
   }, [])
 
   const send = useCallback((msg) => {
+    const data = typeof msg === 'string' ? msg : JSON.stringify(msg)
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(typeof msg === 'string' ? msg : JSON.stringify(msg))
+      wsRef.current.send(data)
+    } else {
+      messageQueueRef.current.push(data)
     }
   }, [])
 
   const disconnect = useCallback(() => {
+    roomParamsRef.current = null
     wsRef.current?.close()
     wsRef.current = null
     setConnected(false)

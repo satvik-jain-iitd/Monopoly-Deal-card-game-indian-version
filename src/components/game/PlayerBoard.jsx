@@ -9,8 +9,9 @@ import HomeIcon from '@mui/icons-material/Home'
 import HotelIcon from '@mui/icons-material/Hotel'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import CloseIcon from '@mui/icons-material/Close'
+import SyncIcon from '@mui/icons-material/Sync'
 import Card from './Card'
-import { COLOR_DISPLAY, PROPERTY_SETS } from '../../game/constants'
+import { COLOR_DISPLAY, PROPERTY_SETS, CARD_TYPES } from '../../game/constants'
 import { isSetComplete, countCompleteSets, getPlayerBankTotal, getRentForColor } from '../../game/gameLogic'
 import { groupedBank, orderPropertyColors } from '../../game/cardSort'
 
@@ -100,7 +101,7 @@ function RentInfoDialog({ info, onClose }) {
   )
 }
 
-export default function PlayerBoard({ player, compact = false }) {
+export default function PlayerBoard({ player, compact = false, onWildAction }) {
   const [rentInfo, setRentInfo] = useState(null)
   const sets = countCompleteSets(player)
   const bankTotal = getPlayerBankTotal(player)
@@ -282,7 +283,26 @@ export default function PlayerBoard({ player, compact = false }) {
                         <InfoOutlinedIcon sx={{ fontSize: 12, color: 'rgba(255,255,255,0.95)' }} />
                       </Box>
                       <Box sx={{ display: 'flex', gap: 0.3, p: 0.4, flexWrap: 'wrap', backgroundColor: '#fff' }}>
-                        {cards.map(c => <Card key={c.id} card={c} mini />)}
+                        {cards.map(c => (
+                          <Box key={c.id} sx={{ position: 'relative' }}>
+                            <Card card={c} mini />
+                            {onWildAction && c.type === CARD_TYPES.WILD_PROPERTY && (
+                              <IconButton
+                                size="small"
+                                onClick={(e) => { e.stopPropagation(); onWildAction(c) }}
+                                sx={{
+                                  position: 'absolute', top: -4, right: -4,
+                                  backgroundColor: 'background.paper',
+                                  boxShadow: 1, p: 0.15,
+                                  '&:hover': { backgroundColor: 'primary.light', color: 'white' },
+                                  zIndex: 1,
+                                }}
+                              >
+                                <SyncIcon sx={{ fontSize: 11 }} />
+                              </IconButton>
+                            )}
+                          </Box>
+                        ))}
                       </Box>
                       {/* Always-visible current rent + remaining */}
                       <Box sx={{ px: 0.5, pb: 0.35, backgroundColor: '#fff' }}>

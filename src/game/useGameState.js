@@ -18,6 +18,36 @@ function nextPhaseAfterPlay(s) {
   return s.players[s.currentPlayerIndex].hand.length > 7 ? PHASE.DISCARD : PHASE.PLAY
 }
 
+function executeDealBreakerSteal(s, fromPlayerId, color) {
+  const thief = s.players[s.currentPlayerIndex]
+  const victim = s.players[fromPlayerId]
+  const set = victim.properties[color]
+  if (!set) return s
+
+  delete victim.properties[color]
+  // Transfer buildings to thief — Deal Breaker takes the whole set including house/hotel.
+  if (victim.buildings?.[color]) {
+    if (!thief.buildings) thief.buildings = {}
+    thief.buildings[color] = victim.buildings[color]
+    delete victim.buildings[color]
+  }
+
+  if (!thief.properties[color]) thief.properties[color] = []
+  thief.properties[color].push(...set)
+  // Also reactivate any of thief's inactive buildings on this color.
+  reactivateBuildings(thief, color)
+
+  s.log.push(`${thief.name} ne ${victim.name} ka poora ${color} set chura liya! Deal Breaker!`)
+  s.pendingAction = null
+  s.phase = nextPhaseAfterPlay(s)
+  const winner = checkWinner(s.players)
+  if (winner) {
+    s.phase = PHASE.GAME_OVER
+    s.winner = winner
+  }
+  return s
+}
+
 // Card-playing actions are capped at maxCardsPerTurn. We keep the phase in PLAY
 // after the 3rd play (to skip an empty discard screen), so this guard is what
 // actually prevents a 4th play from being registered.
@@ -203,13 +233,17 @@ function gameReducer(state, action) {
       const player = s.players[s.currentPlayerIndex]
       const cardIdx = player.hand.findIndex(c => c.id === cardId)
       if (cardIdx === -1) return state
+
+      // Guard — can't rent without matching property
+      const playerProps = player.properties[targetColor] || []
+      if (playerProps.length === 0) return state
+
       const card = player.hand[cardIdx]
 
       player.hand.splice(cardIdx, 1)
       s.discard.push(card)
       s.cardsPlayedThisTurn++
 
-      const playerProps = player.properties[targetColor] || []
       const count = playerProps.length
       const baseAmount = getRentForColor(targetColor, count, player.buildings)
       let rentAmount = baseAmount
@@ -232,6 +266,43 @@ function gameReducer(state, action) {
         baseAmount,
         wasDoubled,
         targetColor,
+      }
+      return s
+    }
+
+    case 'START_WILD_COLOR_CHANGE': {
+      return { ...state, phase: PHASE.WILD_COLOR_SELECT, pendingAction: { cardId: action.cardId, isChange: true } }
+    }
+
+    case 'CHANGE_WILD_COLOR': {
+      const { cardId, newColor } = action
+      const s = deepClone(state)
+      const player = s.players[s.currentPlayerIndex]
+      // Find wild card in player's property area
+      let found = false
+      for (const [color, cards] of Object.entries(player.properties)) {
+        const idx = cards.findIndex(c => c.id === cardId && (c.type === CARD_TYPES.WILD_PROPERTY))
+        if (idx >= 0) {
+          const [card] = cards.splice(idx, 1)
+          // Remove the colour key if now empty
+          if (cards.length === 0) delete player.properties[color]
+          // Assign to new colour
+          if (!player.properties[newColor]) player.properties[newColor] = []
+          card.assignedColor = newColor
+          player.properties[newColor].push(card)
+          // Handle building deactivation/reactivation
+          deactivateBuildings(player, color)
+          reactivateBuildings(player, newColor)
+          s.log.push(`${player.name} ne wild card ${card.name} ka colour ${newColor} kar diya!`)
+          found = true
+          break
+        }
+      }
+      if (!found) return state
+      const winner = checkWinner(s.players)
+      if (winner) {
+        s.phase = PHASE.GAME_OVER
+        s.winner = winner
       }
       return s
     }
@@ -434,26 +505,28 @@ function gameReducer(state, action) {
         return s
       }
 
-      const set = victim.properties[color]
-      delete victim.properties[color]
-      // Transfer buildings to thief — Deal Breaker takes the whole set including house/hotel.
-      if (victim.buildings?.[color]) {
-        if (!thief.buildings) thief.buildings = {}
-        thief.buildings[color] = victim.buildings[color]
-        delete victim.buildings[color]
+      // Check if victim has JSN
+      const hasJsn = victim.hand.some(c => c.actionType === ACTION_TYPES.JUST_SAY_NO)
+      if (hasJsn) {
+        s.pendingAction = {
+          type: ACTION_TYPES.DEAL_BREAKER,
+          actingPlayerId: s.currentPlayerIndex,
+          targetPlayerId: fromPlayerId,
+          color,
+        }
+        s.phase = PHASE.ACTION_RESPONSE
+        s.log.push(`${victim.name} ko Deal Breaker se bachne ka mauka! Just Say No?`)
+        return s
       }
 
-      if (!thief.properties[color]) thief.properties[color] = []
-      thief.properties[color].push(...set)
-      // Also reactivate any of thief's inactive buildings on this color.
-      reactivateBuildings(thief, color)
+      return executeDealBreakerSteal(s, fromPlayerId, color)
+    }
 
-      s.log.push(`${thief.name} ne ${victim.name} ka poora ${color} set chura liya! Deal Breaker!`)
-      s.pendingAction = null
-      s.phase = nextPhaseAfterPlay(s)
-      const winner = checkWinner(s.players)
-      if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }
-      return s
+    case 'DEAL_BREAKER_ACCEPT': {
+      const s = deepClone(state)
+      const pa = s.pendingAction
+      if (!pa || pa.type !== ACTION_TYPES.DEAL_BREAKER) return state
+      return executeDealBreakerSteal(s, pa.targetPlayerId, pa.color)
     }
 
     case 'PLACE_HOUSE': {
@@ -514,8 +587,12 @@ function gameReducer(state, action) {
       const { targetColor } = action
       const s = deepClone(state)
       const pending = s.pendingAction
+      if (!pending) return state
       s.pendingAction = null
       s.phase = PHASE.PLAY
+      if (pending.isChange) {
+        return gameReducer(s, { type: 'CHANGE_WILD_COLOR', cardId: pending.cardId, newColor: targetColor })
+      }
       return gameReducer(s, { type: 'PLAY_PROPERTY', cardId: pending.cardId, targetColor })
     }
 

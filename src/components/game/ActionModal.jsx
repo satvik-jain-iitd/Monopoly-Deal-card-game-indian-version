@@ -47,7 +47,15 @@ export default function ActionModal({ state, dispatch, onDone }) {
 
   // ── WILD COLOR SELECTOR ────────────────────────────────────────────
   if (phase === PHASE.WILD_COLOR_SELECT) {
-    const card = actor.hand.find(c => c.id === pendingAction.cardId)
+    let card = actor.hand.find(c => c.id === pendingAction.cardId)
+    if (!card) {
+      // If not in hand, must be on board (changing colour)
+      for (const cards of Object.values(actor.properties)) {
+        card = cards.find(c => c.id === pendingAction.cardId)
+        if (card) break
+      }
+    }
+
     const isFullWild = card?.colors?.[0] === COLORS.WILD
     const colorOptions = isFullWild ? Object.keys(PROPERTY_SETS) : (card?.colors || [])
 
@@ -74,6 +82,46 @@ export default function ActionModal({ state, dispatch, onDone }) {
           <Button variant="outlined" fullWidth onClick={() => dispatch({ type: '_CANCEL_PENDING' })} sx={{ borderRadius: 3 }}>
             Cancel — wapas haath mein rakho
           </Button>
+        </Box>
+      </BottomSheet>
+    )
+  }
+
+  // ── DEAL BREAKER RESPONSE ──────────────────────────────────────────
+  if (phase === PHASE.ACTION_RESPONSE && pendingAction?.type === ACTION_TYPES.DEAL_BREAKER) {
+    const victim = players[pendingAction.targetPlayerId]
+    const jsnCard = victim.hand.find(c => c.type === CARD_TYPES.ACTION && c.actionType === ACTION_TYPES.JUST_SAY_NO)
+
+    return (
+      <BottomSheet title={`${actor.name} ne Deal Breaker khela!`}>
+        <Box sx={{ px: 2.5, pb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 2, fontWeight: 600 }}>
+            {actor.name} tumhara <Box component="span" sx={{ color: COLOR_DISPLAY[pendingAction.color]?.hex, fontWeight: 800 }}>{COLOR_DISPLAY[pendingAction.color]?.name}</Box> set chura raha hai!
+          </Typography>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {jsnCard ? (
+              <Button
+                variant="contained" color="error" size="large"
+                startIcon={<BlockIcon />}
+                sx={{ borderRadius: 3, fontWeight: 800 }}
+                onClick={() => dispatch({ type: 'JUST_SAY_NO', playerId: victim.id, jsnCardId: jsnCard.id })}>
+                Nahi! (Play Just Say No)
+              </Button>
+            ) : (
+              <Typography variant="caption" sx={{ color: 'text.disabled', textAlign: 'center', mb: 1 }}>
+                Tumhare paas "Nahi!" card nahi hai.
+              </Typography>
+            )}
+
+            <Button
+              variant={jsnCard ? 'outlined' : 'contained'}
+              size="large" fullWidth
+              sx={{ borderRadius: 3, fontWeight: 700 }}
+              onClick={() => dispatch({ type: 'DEAL_BREAKER_ACCEPT' })}>
+              {jsnCard ? 'Theek hai, le jaane do' : 'Theek hai (Accept)'}
+            </Button>
+          </Box>
         </Box>
       </BottomSheet>
     )
@@ -559,6 +607,30 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
         </Box>
 
         <Box sx={{ maxHeight: '34dvh', overflowY: 'auto', pb: 1 }}>
+          {/* Hand section (read-only) */}
+          <Box sx={{ mb: 1.25, p: 1, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.03)' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.5 }}>
+              ✋ Haath mein ({payer.hand.length} cards):
+            </Typography>
+            {payer.hand.length === 0 ? (
+              <Typography variant="caption" sx={{ color: 'text.disabled' }}>Haath khaali</Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {payer.hand.map(card => (
+                  <Box key={card.id} sx={{ 
+                    p: 0.5, borderRadius: '4px', 
+                    border: '1px solid', borderColor: 'divider',
+                    backgroundColor: 'background.paper'
+                  }}>
+                    <Typography sx={{ fontSize: '0.58rem', fontWeight: 600 }}>
+                      {card.name} {card.value ? `(₹${card.value}Cr)` : ''}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Box>
+
           {cashAssets.length > 0 && (
             <>
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.5 }}>

@@ -224,7 +224,7 @@ export function playPropertyCard(state, playerId, cardId, targetColor = null) {
   let color = card.color
   if (card.type === CARD_TYPES.WILD_PROPERTY && targetColor) {
     color = targetColor
-    card.color = targetColor
+    card.assignedColor = targetColor
   }
 
   if (!player.properties[color]) player.properties[color] = []
