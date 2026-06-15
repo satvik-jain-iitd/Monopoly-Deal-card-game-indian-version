@@ -8,27 +8,33 @@ function generateCode() {
   return Math.random().toString(36).slice(2, 6).toUpperCase()
 }
 
-// Cloud (Cloudflare Workers) multiplayer setup.
-// onRoomReady(roomCode, isHost, myName)  — no wsBase needed for cloud path.
+// Cloud multiplayer setup — requires a WebSocket relay server.
+// Set VITE_WS_URL in .env, or manually enter the server URL below.
+// Run the server: cd worker && wrangler deploy (Cloudflare Worker)
 export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
   const [tab, setTab] = useState(0)
   const [name, setName] = useState('')
   const [roomCode] = useState(() => generateCode())
   const [joinCode, setJoinCode] = useState('')
   const [error, setError] = useState('')
+  const [serverUrl, setServerUrl] = useState(import.meta.env.VITE_WS_URL || '')
 
   function handleCreate() {
     const n = name.trim()
+    const url = serverUrl.trim()
     if (!n) { setError('Apna naam likho'); return }
-    onRoomReady(roomCode, true, n)
+    if (!url) { setError('Server URL daalo (wss://...) ya Hotspot mode use karo'); return }
+    onRoomReady(roomCode, true, n, url)
   }
 
   function handleJoin() {
     const n = name.trim()
     const code = joinCode.trim().toUpperCase()
+    const url = serverUrl.trim()
     if (!n) { setError('Apna naam likho'); return }
     if (code.length < 2) { setError('Room code chahiye'); return }
-    onRoomReady(code, false, n)
+    if (!url) { setError('Server URL daalo (wss://...) ya Hotspot mode use karo'); return }
+    onRoomReady(code, false, n, url)
   }
 
   return (
@@ -53,6 +59,20 @@ export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
             </Box>
           )}
         </Alert>
+
+        <Box sx={{ backgroundColor: 'background.paper', borderRadius: 2, p: 2 }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1 }}>
+            SERVER URL {serverUrl ? '✓ ' : '— Cloudflare Worker ya koi WS relay'}
+          </Typography>
+          <TextField
+            fullWidth size="small" variant="outlined"
+            placeholder="wss://dhandha-multiplayer.my-account.workers.dev"
+            value={serverUrl}
+            onChange={e => setServerUrl(e.target.value)}
+            helperText="worker/ folder deploy karo, phir yahan URL daalo"
+            inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }}
+          />
+        </Box>
 
         <TextField
           fullWidth size="small" variant="outlined"

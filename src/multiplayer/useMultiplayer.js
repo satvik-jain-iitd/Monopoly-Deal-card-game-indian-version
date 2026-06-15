@@ -4,7 +4,10 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react'
 
-const CLOUD_WS_BASE = import.meta.env.VITE_WS_URL || 'wss://dhandha-multiplayer.workers.dev'
+// VITE_WS_URL env var must be set for cloud multiplayer to work.
+// Example: VITE_WS_URL=wss://dhandha-multiplayer.<your-account>.workers.dev
+// Run: cd worker && wrangler deploy (then set VITE_WS_URL to the deployed URL)
+const CLOUD_WS_BASE = import.meta.env.VITE_WS_URL || ''
 
 export function useMultiplayer({ onMessage } = {}) {
   const wsRef = useRef(null)
@@ -13,7 +16,9 @@ export function useMultiplayer({ onMessage } = {}) {
   const [error, setError] = useState(null)
   const messageQueueRef = useRef([])
   const retryCountRef = useRef(0)
+  const everConnectedRef = useRef(false)
   const roomParamsRef = useRef(null)
+  const retryTimersRef = useRef([])
 
   useEffect(() => { onMessageRef.current = onMessage }, [onMessage])
 
@@ -21,14 +26,19 @@ export function useMultiplayer({ onMessage } = {}) {
     roomParamsRef.current = { roomCode, wsBaseOverride }
     wsRef.current?.close()
     const base = wsBaseOverride || CLOUD_WS_BASE
+    if (!base) {
+      setError('Server URL set nahi hai. VITE_WS_URL env daalo, MultiplayerSetup mein URL daalo, ya Hotspot/Offline mode use karo.')
+      setConnected(false)
+      return
+    }
     const ws = new WebSocket(`${base}/${roomCode.toUpperCase()}`)
     wsRef.current = ws
 
     ws.onopen = () => {
       setConnected(true)
       setError(null)
+      everConnectedRef.current = true
       retryCountRef.current = 0
-      // Flush queued messages
       while (messageQueueRef.current.length > 0) {
         const msg = messageQueueRef.current.shift()
         ws.send(msg)
@@ -39,21 +49,23 @@ export function useMultiplayer({ onMessage } = {}) {
     }
     ws.onclose = () => {
       setConnected(false)
-      // Auto-reconnect with exponential backoff
-      if (roomParamsRef.current && retryCountRef.current < 5) {
+      // Only retry if we were once connected (avoid retrying broken URLs forever)
+      if (everConnectedRef.current && roomParamsRef.current && retryCountRef.current < 5) {
         const backoff = Math.min(1000 * Math.pow(2, retryCountRef.current), 8000)
         retryCountRef.current++
-        setTimeout(() => {
+        const timer = setTimeout(() => {
+          retryTimersRef.current = retryTimersRef.current.filter(t => t !== timer)
           if (roomParamsRef.current) {
             const { roomCode, wsBaseOverride } = roomParamsRef.current
             connectFn(roomCode, wsBaseOverride)
           }
         }, backoff)
+        retryTimersRef.current.push(timer)
       }
     }
     ws.onerror = () => {
       const base = roomParamsRef.current?.wsBaseOverride || CLOUD_WS_BASE
-      setError(`Server se connect nahi ho paaya (${base}). ${base.includes('workers.dev') ? 'Cloudflare Worker deploy karna bhool gaye? worker/ folder dekho.' : ''} Dobara try karo ya VITE_WS_URL env set karo.`)
+      setError(`Server se connect nahi ho paaya (${base}). Sahi URL hai? Dobara try karo ya VITE_WS_URL check karo.`)
       setConnected(false)
     }
   }, [])
@@ -69,12 +81,19 @@ export function useMultiplayer({ onMessage } = {}) {
 
   const disconnect = useCallback(() => {
     roomParamsRef.current = null
+    everConnectedRef.current = false
+    retryTimersRef.current.forEach(clearTimeout)
+    retryTimersRef.current = []
     wsRef.current?.close()
     wsRef.current = null
     setConnected(false)
+    setError(null)
   }, [])
 
-  useEffect(() => () => wsRef.current?.close(), [])
+  useEffect(() => () => {
+    retryTimersRef.current.forEach(clearTimeout)
+    wsRef.current?.close()
+  }, [])
 
   return { connect, disconnect, send, connected, error }
 }
