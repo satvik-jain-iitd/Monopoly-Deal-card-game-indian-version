@@ -47,6 +47,11 @@ export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
       <Box sx={{ flex: 1, overflowY: 'auto', px: 2, pt: 2, pb: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Alert severity="info" sx={{ borderRadius: 2, fontSize: '0.8rem' }}>
           Koi bhi jagah se khelo — internet chahiye.
+          {!import.meta.env.VITE_WS_URL && (
+            <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.72rem', color: 'warning.main' }}>
+              ⚠ Server deploy nahi hua? worker/ folder mein wrangler deploy karo, ya VITE_WS_URL env set karo.
+            </Box>
+          )}
         </Alert>
 
         <TextField

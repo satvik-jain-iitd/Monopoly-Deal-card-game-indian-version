@@ -52,7 +52,8 @@ export function useMultiplayer({ onMessage } = {}) {
       }
     }
     ws.onerror = () => {
-      setError('Connection fail hui. Dobara try karo.')
+      const base = roomParamsRef.current?.wsBaseOverride || CLOUD_WS_BASE
+      setError(`Server se connect nahi ho paaya (${base}). ${base.includes('workers.dev') ? 'Cloudflare Worker deploy karna bhool gaye? worker/ folder dekho.' : ''} Dobara try karo ya VITE_WS_URL env set karo.`)
       setConnected(false)
     }
   }, [])
