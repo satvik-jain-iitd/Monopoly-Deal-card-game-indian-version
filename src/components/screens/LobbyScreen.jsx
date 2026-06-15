@@ -1,10 +1,12 @@
 import {
   AppBar, Box, Button, Chip, CircularProgress, IconButton, List,
-  ListItem, ListItemText, Toolbar, Typography,
+  ListItem, ListItemText, Toolbar, Typography, Alert,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import WifiIcon from '@mui/icons-material/Wifi'
+import WifiOffIcon from '@mui/icons-material/WifiOff'
 
-export default function LobbyScreen({ roomCode, players, isHost, myName, onStartGame, onLeave }) {
+export default function LobbyScreen({ roomCode, players, isHost, myName, connected, error, onStartGame, onLeave }) {
   const canStart = isHost && players.length >= 2
 
   return (
@@ -17,13 +19,25 @@ export default function LobbyScreen({ roomCode, players, isHost, myName, onStart
           <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'text.primary', flex: 1 }}>
             Lobby
           </Typography>
-          {!isHost && (
-            <CircularProgress size={18} thickness={5} sx={{ color: 'primary.main' }} />
-          )}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {connected ? (
+              <WifiIcon sx={{ fontSize: 18, color: 'success.main' }} />
+            ) : (
+              <WifiOffIcon sx={{ fontSize: 18, color: 'error.main' }} />
+            )}
+            {!isHost && !error && (
+              <CircularProgress size={18} thickness={5} sx={{ color: 'primary.main' }} />
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 2, pt: 3, pb: 4, display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center' }}>
+        {error && (
+          <Alert severity="error" sx={{ width: '100%', borderRadius: 2 }}>
+            {error}
+          </Alert>
+        )}
         {/* Room code display */}
         <Box sx={{ textAlign: 'center' }}>
           <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: '0.08em' }}>

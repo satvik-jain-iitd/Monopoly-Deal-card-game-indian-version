@@ -272,7 +272,10 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
 
       {/* Current player board — scrolls so the hand below stays pinned & fully visible */}
       <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-        <PlayerBoard player={currentPlayer} />
+        <PlayerBoard 
+          player={currentPlayer} 
+          onWildAction={(card) => dispatch({ type: 'START_WILD_COLOR_CHANGE', cardId: card.id })}
+        />
       </Box>
 
       {/* Hand — primary focus, always fully visible at the bottom */}
@@ -298,6 +301,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
         {selectedCard && !selectedAction && (
           <PlayOptions
             card={selectedCard}
+            currentPlayer={currentPlayer}
             onPlayAsProperty={() => { dispatch({ type: 'PLAY_PROPERTY', cardId: selectedCard.id }); setSelectedCard(null) }}
             onPlayAsMoney={() => { dispatch({ type: 'PLAY_AS_MONEY', cardId: selectedCard.id }); setSelectedCard(null) }}
             onPlayAction={() => { dispatch({ type: 'PLAY_ACTION', cardId: selectedCard.id }); setSelectedCard(null) }}
@@ -348,11 +352,15 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
   )
 }
 
-function PlayOptions({ card, onPlayAsProperty, onPlayAsMoney, onPlayAction, onPlayRent, onCancel }) {
+function PlayOptions({ card, currentPlayer, onPlayAsProperty, onPlayAsMoney, onPlayAction, onPlayRent, onCancel }) {
   const isProperty = card.type === CARD_TYPES.PROPERTY || card.type === CARD_TYPES.WILD_PROPERTY
   const isMoney = card.type === CARD_TYPES.MONEY
   const isAction = card.type === CARD_TYPES.ACTION
   const isRent = card.type === CARD_TYPES.RENT
+
+  const hasMatchingProperty = !isRent || card.wild 
+    ? Object.keys(currentPlayer.properties).length > 0
+    : card.colors.some(color => (currentPlayer.properties[color]?.length || 0) > 0)
 
   return (
     <Box>
@@ -366,8 +374,14 @@ function PlayOptions({ card, onPlayAsProperty, onPlayAsMoney, onPlayAction, onPl
           </Button>
         )}
         {isRent && (
-          <Button size="small" variant="contained" onClick={onPlayRent} sx={{ borderRadius: 3, fontWeight: 700, fontSize: '0.72rem' }}>
-            💰 Rent Maango
+          <Button 
+            size="small" 
+            variant={hasMatchingProperty ? "contained" : "outlined"}
+            disabled={!hasMatchingProperty}
+            onClick={onPlayRent} 
+            sx={{ borderRadius: 3, fontWeight: 700, fontSize: '0.72rem' }}
+          >
+            {hasMatchingProperty ? "💰 Rent Maango" : "💰 Rent Maango (pehle property lagao)"}
           </Button>
         )}
         {isAction && (
@@ -402,6 +416,19 @@ function RentSelector({ card, currentPlayer, allPlayers, currentIdx, doubleRentA
     if (!card.wild) return card.colors.includes(color)
     return true
   })
+
+  if (eligibleColors.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Typography variant="caption" sx={{ fontWeight: 700, color: 'error.main' }}>
+          Pehle is rent card ke colour ki property lagao!
+        </Typography>
+        <Button variant="text" color="inherit" onClick={onCancel} sx={{ borderRadius: 3, fontSize: '0.72rem', alignSelf: 'flex-start' }}>
+          Cancel — bank mein daalo ya kuch aur khelo
+        </Button>
+      </Box>
+    )
+  }
 
   const otherPlayers = allPlayers.filter((_, i) => i !== currentIdx)
 

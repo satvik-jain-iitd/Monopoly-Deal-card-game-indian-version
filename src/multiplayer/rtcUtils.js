@@ -44,9 +44,9 @@ export function stripSDP(sdp) {
     if (inOtherMedia) continue
 
     if (line.startsWith('a=candidate:')) {
-      // Only host candidates — srflx/relay need STUN/TURN which we don't use.
-      // Keeping only host candidates limits QR payload to LAN-reachable IPs.
-      if (line.includes(' host ')) result.push(line)
+      // Keep host candidates and srflx (STUN) candidates.
+      // Keeping both allows P2P within LAN and across different networks via STUN.
+      if (line.includes(' host ') || line.includes(' srflx ')) result.push(line)
       continue
     }
 

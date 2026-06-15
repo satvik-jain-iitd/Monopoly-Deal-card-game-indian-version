@@ -1,7 +1,9 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { encodeForQR, decodeFromQR, stripSDP, waitForICE } from './rtcUtils.js'
 
-const RTC_CONFIG = { iceServers: [] }
+const RTC_CONFIG = { 
+  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] 
+}
 const DC_LABEL = 'game'
 const DC_OPTIONS = { ordered: true }
 
