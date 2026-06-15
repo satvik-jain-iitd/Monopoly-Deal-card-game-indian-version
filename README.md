@@ -1,267 +1,85 @@
-# Dhandha 🎴
+# Dhandha — Monopoly Deal (Indian Edition)
 
-> **India ka apna property card game** — a full-featured *Monopoly Deal* clone built as an installable Progressive Web App. Pass one phone around the table; no install, no signup, no server.
+**A production-grade Progressive Web App** — a complete digital adaptation of the Monopoly Deal card game, localised for an Indian audience. Built with React 19, Vite, and Material UI. Zero backend. Offline-capable. Installable on any device.
 
-**Live demo → [satvik-jain-iitd.github.io/Monopoly-Deal-card-game-indian-version](https://satvik-jain-iitd.github.io/Monopoly-Deal-card-game-indian-version/)**
-
----
-
-## Table of contents
-
-- [What is this?](#what-is-this)
-- [How to play](#how-to-play)
-- [Rules implemented](#rules-implemented)
-- [The deck (106 cards)](#the-deck-106-cards)
-- [Indian city map](#indian-city-map)
-- [UX & design decisions](#ux--design-decisions)
-- [Scoring & multi-game series](#scoring--multi-game-series)
-- [Custom cards (optional)](#custom-cards-optional)
-- [Tech stack](#tech-stack)
-- [Architecture](#architecture)
-- [Project structure](#project-structure)
-- [Running locally](#running-locally)
-- [Roadmap](#roadmap)
+[Live Demo](https://satvik-jain-iitd.github.io/Monopoly-Deal-card-game-indian-version/) | [Deploy Preview](#)
 
 ---
 
-## What is this?
+## Why this project stands out
 
-Dhandha is a digital adaptation of **Monopoly Deal** — the fast card game where the first player to complete **3 full property sets** wins. It is built specifically for **pass-and-play on a single mobile phone**: the device is handed around the table and each player's hand stays hidden until it's their turn.
+This is not a tutorial app or a toy project. It is a **fully-featured, rules-complete card game engine** with a polished mobile-first UI, originally built as a **pass-and-play PWA** and later extended with **real-time WebRTC multiplayer**. It demonstrates proficiency across the full front-end stack:
 
-Everything is localised for an Indian audience:
-
-- All properties are **real Indian cities**, mapped to colour tiers by real-world property-market prestige (South Mumbai & Lutyens Delhi at the top; Indore & Lucknow at the entry tier).
-- The interface is in **Hinglish** (Hindi + English).
-- Currency is **₹ Crore** (₹Cr).
-- The visual language is a warm saffron Material You palette with custom inline-SVG city landmarks.
-
----
-
-## How to play
-
-1. **Setup** — choose **2–6 players** and enter names.
-2. **Pass the device** — a hand-off screen hides the previous player's cards. The new player taps "Ready" to reveal their hand.
-3. **Draw** — start your turn by drawing **2 cards** (or **5** on your very first turn if your hand is empty).
-4. **Play up to 3 cards** per turn. Each card can be used in one of several ways:
-   - **Money card** → into your **bank** (cash for paying debts).
-   - **Action card** → play its **action**, *or* bank it as money for its printed value.
-   - **Rent card** → **charge rent** on a colour you own, *or* bank it as money.
-   - **Property / Wild property** → place into your **property area**. *(Property cards can never be banked.)*
-5. **End your turn.** If you're holding **more than 7 cards**, you discard down to 7; otherwise the turn passes straight to the next player.
-6. **Win** by being the first to lay down **3 complete property sets**.
-
----
-
-## Rules implemented
-
-| Rule | Behaviour |
+| Area | What it shows |
 |---|---|
-| **Turn structure** | Draw 2 (5 on an empty opening hand) → play up to 3 → discard to 7 |
-| **Win condition** | First to **3 complete sets** wins (checked after every state change) |
-| **Bank** | Money + action/rent cards played for value. **Properties can never be banked.** |
-| **Rent** | Charged on a colour you own; amount scales with set size + houses/hotels |
-| **Double The Rent** | Doubles the next rent you charge this turn (consumes a play); if JSN is played against the doubled rent and accepted, base rent still applies |
-| **Just Say No** | Cancels an action targeted at you; original actor can counter with their own JSN (JSN chain) |
-| **Deal Breaker** | Steal an opponent's **complete** set (with its buildings) |
-| **Sly Deal** | Steal a single property from an **incomplete** set |
-| **Forced Deal** | Swap one of your properties for an opponent's (from an incomplete set) |
-| **Debt Collector** | Demand ₹5Cr from one chosen player |
-| **Birthday** | Every other player pays you ₹2Cr |
-| **Pass Go** | Draw 2 extra cards |
-| **House / Hotel** | Add to a **complete** set to boost its rent (hotel needs a house first); can be used as payment (house=₹3, hotel=₹4); becomes inactive if the set is broken, reactivates when set completes again |
-| **Wild properties** | Assigned a colour when played; full wilds can be any colour |
-| **Paying debts** | Pay from bank and/or properties; property given in payment **leaves play** (it is never converted to your cash) |
-| **End-game ranking** | Every player is ranked at the instant the game ends; rank → points → multi-game series (see below) |
-| **Custom cards** *(opt-in)* | Insurance + Trade Route, two extra cards that reduce luck swings (see below) |
-
-> **Card conservation:** every transfer (banking, property play, steals, swaps, payments) is move-only — the deck total stays at exactly **106** for the whole game (**108** with custom cards enabled).
-
----
-
-## The deck (106 cards)
-
-| Group | Count | Detail |
-|---|---:|---|
-| **Properties** | 28 | Brown ×2, Light Blue ×3, Pink ×3, Orange ×3, Red ×3, Yellow ×3, Green ×3, Dark Blue ×2, Stations ×4, Utilities ×2 |
-| **Wild properties** | 10 | 2 full wilds + 8 two-colour wilds |
-| **Money** | 20 | ₹10 ×1, ₹5 ×2, ₹4 ×3, ₹3 ×3, ₹2 ×5, ₹1 ×6 |
-| **Action** | 35 | Pass Go ×10, Debt Collector / Forced Deal / Sly Deal / Birthday / Just Say No / House / Hotel ×3 each, Deal Breaker / Double Rent ×2 each |
-| **Rent** | 13 | 5 colour-pair rents ×2 + 3 wild rents |
-| **Total** | **106** | |
-
-### Set sizes & rent ladders
-
-| Colour | Cards needed | Rent ladder (₹Cr) | +House | +Hotel |
-|---|:--:|---|:--:|:--:|
-| Brown | 2 | 1 → 2 | +3 | +4 |
-| Light Blue | 3 | 1 → 2 → 3 | +4 | +5 |
-| Pink | 3 | 1 → 2 → 4 | +4 | +5 |
-| Orange | 3 | 1 → 3 → 5 | +4 | +5 |
-| Red | 3 | 2 → 3 → 6 | +4 | +5 |
-| Yellow | 3 | 2 → 4 → 6 | +4 | +5 |
-| Green | 3 | 2 → 4 → 7 | +4 | +5 |
-| Dark Blue | 2 | 3 → 8 | +4 | +5 |
-| Stations | 4 | 1 → 2 → 3 → 4 | — | — |
-| Utilities | 2 | 1 → 2 | — | — |
-
----
-
-## Indian city map
-
-Cities are assigned to colour tiers by real-world property prestige:
-
-- 🟤 **Brown** (₹1Cr) — Indore, Lucknow
-- 🔵 **Light Blue** (₹1Cr) — Chandigarh, Bhopal, Kochi
-- 🟣 **Pink** (₹2Cr) — Jaipur, Ahmedabad, Kolkata
-- 🟠 **Orange** (₹2Cr) — Chennai, Hyderabad, Noida
-- 🔴 **Red** (₹3Cr) — Pune, Bengaluru, Gurugram
-- 🟡 **Yellow** (₹3Cr) — Goa, Coimbatore, Vizag
-- 🟢 **Green** (₹4Cr) — New Delhi, Navi Mumbai, Thane
-- 🔵 **Dark Blue** (₹4Cr) — South Mumbai, Lutyens Delhi
-- 🚂 **Stations** (₹2Cr) — Mumbai Local, Delhi Metro, Namma Metro, Howrah Express
-- 💡 **Utilities** (₹2Cr) — Power Grid, Water Works
-
-Each city has its own inline-SVG landmark icon rendered in `CardArt.jsx`.
-
----
-
-## UX & design decisions
-
-The interface is designed for a **small phone (≈375×667, iPhone 6/7-class)** and around the question *"what is the player actually looking at right now?"*
-
-- **Information hierarchy by attention.** On your turn you mostly ask *"what can I play?"* — so the **hand is the star**: it has the biggest cards and is pinned, fully visible, at the bottom. Your own **board scrolls** above it. Opponents and the play pile stay glanceable.
-
-- **One consistent spatial map, everywhere.** Every surface that shows cards — your hand, the payment sheet, the Sly/Forced Deal sheets, and all player boards — uses the same ordering: **cash on the left → action/rent (special) in the middle → properties on the right, grouped by colour.** Wild properties sit next to a colour you already hold (or cluster together if there's no match). Learning the layout once means you reuse it on every screen. *(See `src/game/cardSort.js`.)*
-
-- **Bank left, properties right.** Mirrors how the physical game is laid out in front of each player. Bank shows a prominent total plus a denomination breakdown; each property group shows live set-progress (X/Y, ✓) and current rent.
-
-- **Persistent play zone.** The centre of the screen is the shared **discard pile** (bound to game state, never auto-cleared). A freshly played action/rent card pops in and **stays** with a stacked-pile depth effect and a live card count — so the table reads like a live, ongoing game rather than a flash that vanishes.
-
-- **Peek at opponents during actions.** When resolving a Forced Deal or Sly Deal you can expand every opponent's board inline, so you can see what they hold before deciding what to give or take.
-
-- **Tap any colour group** to open a full rent table for that colour, with your current tier highlighted.
-
-- **No dead-end screens.** The discard step is skipped entirely when your hand is already ≤ 7 after your final play.
-
-- **Rectangular cards, minimal corner radius** so no printed detail is clipped; Utility (teal) and Green are deliberately distinct shades.
-
----
-
-## Scoring & multi-game series
-
-Monopoly Deal is fast and swingy — one lucky draw can decide a game. To make a play session
-*competitive*, Dhandha ranks **every** player the instant the game ends ("frozen board"), turns
-that rank into points, and accumulates points across games into a **series standings** table. After
-a handful of games the most *consistent* player — not the luckiest — tops the table.
-
-### Frozen-board ranking (strict tiebreakers, all descending)
-
-At the moment a player completes their 3rd set, all boards freeze and players are ranked by:
-
-| Priority | Criterion |
-|:--:|---|
-| 1 | **Completed property sets** (incl. the winning 3) |
-| 2 | **Total property cards on the table** (finished sets + loose piles + wilds) |
-| 3 | **Cash in bank** (money + action/rent cards played as money) |
-| 4 | **Cards remaining in hand** |
-
-A higher priority-1 value always outranks a lower one; ties fall through to priority-2, then 3,
-then 4. Eliminated players naturally score all zeros and sort to the bottom.
-
-### Rank → points
-
-Points per finishing position scale with the player count `n` — **1st = `n+1`, every lower rank
-`r` = `n+1−r`** — so a win is always worth meaningfully more than merely surviving:
-
-| Players | Points by place | Total |
-|:--:|---|:--:|
-| 2 | `3, 1` | 4 |
-| 3 | `4, 2, 1` | 7 |
-| 4 | `5, 3, 2, 1` | 11 |
-| 5 | `6, 4, 3, 2, 1` | 16 |
-| 6 | `7, 5, 4, 3, 2, 1` | 22 |
-
-Players **completely tied** on all four criteria share a rank and **split the combined points of the
-positions they occupy**, rounded to one decimal — e.g. two players tied for 3rd in a 4-player game
-get `(2 + 1) / 2 = 1.5` each. Points are never dropped; per-game totals stay constant.
-
-### The series
-
-- Standings are saved in the **browser (localStorage)** and survive refreshes — the series is
-  **open-ended**, with a manual **"Nayi Series"** reset.
-- A series belongs to a **group of player names**; starting a game with a different set of names
-  automatically begins a fresh series.
-- Series standings sort by **total points**, breaking ties by most 1st-place finishes, then 2nd,
-  then 3rd.
-- After each game the **results screen** shows the per-game ranking (with the exact tiebreaker that
-  separated close players highlighted) and the cumulative series standings with the champion crowned.
-  **"Agla Game"** replays with the same players and continues the series.
-
-*Implementation: `src/game/scoring.js` (pure ranking + points), `src/game/series.js` (persistence),
-`src/components/screens/ResultsScreen.jsx` (UI); recorded once per game from `App.jsx`.*
-
----
-
-## Custom cards (optional)
-
-Toggle **"Custom Cards"** on the setup screen to shuffle **two extra cards** into the deck (filling
-the two blank slots of a physical deck, one copy of each). They're designed to **cut the worst luck
-swings** without adding new phases, hidden information, or trust issues — every effect is public and
-enforced by the engine.
-
-### 🛡️ Insurance
-*Action — play immediately.* Placed **face-up** in front of you (like a property, and visible to
-everyone). The next **Deal Breaker** that targets you is **completely cancelled** and the Insurance
-is discarded — no Just Say No required. You can hold only one at a time.
-
-> Counters the game's most punishing moment — an early Deal Breaker stealing your only set — and
-> turns defence into a deliberate choice: you spend a play *now* to be protected *later*.
-
-### 🧭 Trade Route
-*Action — play immediately.* Discard one property from your hand, then take **any one property of a
-different colour** from the **discard pile** into your hand (a strict 1-for-1 swap). The pile is
-public, so there's no hidden information; cancel costs nothing if the pile has no usable property.
-
-> Counters "colour-screw" — drawing properties you can't use — and rewards board awareness (grab the
-> exact colour an opponent just discarded, or deny a key piece from the pile).
-
-Both are played like any other Action card (and can be banked for value). Custom cards render with a
-distinct gradient and a `✦ CUSTOM` tag so they're instantly recognisable.
-
-*Implementation: card defs in `src/game/constants.js` (behind the `customCards` flag); Insurance
-resolves inside the Deal Breaker case and Trade Route uses a `TRADE_ROUTE_SELECT` phase, both in
-`src/game/useGameState.js`.*
-
----
-
-## Tech stack
-
-```
-React 19          — UI framework
-Vite 8            — build tool + dev server
-Material UI v9    — component library (Material Design 3 / Material You)
-Emotion           — CSS-in-JS styling
-vite-plugin-pwa   — service worker + web app manifest
-```
-
-No backend. No database. No auth. Pure client-side state — the entire game engine is a single reducer.
+| **React architecture** | Complex state machine with 40+ action types, 10+ game phases, deterministic reducer |
+| **Real-time engineering** | WebRTC + WebSocket signalling, STUN/TURN, message queuing, auto-reconnect with exponential backoff |
+| **PWA expertise** | Service worker, install prompt, offline support, asset caching, 64×64–512×512 icons |
+| **UI/UX craftsmanship** | Mobile-first (375×667 baseline), consistent spatial map, Hinglish localisation, animated transitions |
+| **Testing & debugging** | Headless simulation runner for deterministic game replay, console-based debug overlay |
+| **Engineering process** | Multi-agent AI workflow (plan → spec → implement → review → UAT), defence-in-depth on all rules |
 
 ---
 
 ## Architecture
 
-**Game engine as a pure reducer.** All game state lives in one `useReducer` (`src/game/useGameState.js`) driven by a `PHASE` enum (`DRAW → PLAY → ACTION_RESPONSE / RENT_COLLECT / *_SELECT → DISCARD → GAME_OVER`). The reducer is deterministic — every case deep-clones state and returns the next state with no side effects. All randomness (shuffle, deal) happens in `gameLogic.js` helpers called before/inside dispatch.
+### Game engine as a pure reducer
 
-**Pure logic vs. display.**
-- `src/game/gameLogic.js` — the rules: deal, draw, bank, play property, rent maths, steals, swaps, payments, win check. All pure functions.
-- `src/game/cardSort.js` — display-only ordering helpers (`orderHandCards`, `orderPropertyColors`, `groupedBank`). These never mutate game state; they only decide render order so every screen looks consistent.
-- `src/game/scoring.js` — pure end-game ranking + points (`buildSnapshot`, `rankAndScore`, `tiebreakerLabel`).
-- `src/game/series.js` — localStorage-backed multi-game series standings.
-- `src/game/constants.js` — the deck definition (incl. opt-in custom cards), colour palette, and `PROPERTY_SETS` rent tables (single source of truth).
+All game state lives in a single `useReducer` driven by a `PHASE` enum:
 
-**No server for pass-and-play.** Instead of real-time sync, the app uses a device-passing UX with a hand-hiding screen between turns. This keeps it offline-capable and zero-infrastructure.
+```
+DRAW → PLAY → ACTION_RESPONSE / RENT_COLLECT / *_SELECT → DISCARD → GAME_OVER
+```
 
-**Defense-in-depth on rules.** Illegal moves (e.g. banking a property) are blocked both in the UI *and* in the engine, so no code path can reach an invalid state.
+Every case is deterministic and side-effect-free — it deep-clones state and returns the next state. Randomness (shuffle, deal) is isolated in helper functions called before or inside dispatches.
+
+```javascript
+// Every action follows this pattern:
+case "PLAY_PROPERTY": {
+  const next = deepClone(state);
+  // ... pure logic ...
+  return next;
+}
+```
+
+**Defence-in-depth:** Illegal moves are blocked at 3 layers — the UI (disabled buttons), the action creator (pre-dispatch validation), and the reducer (post-dispatch guard). No code path can reach an invalid state.
+
+### Separation of concerns
+
+```
+src/game/
+├── constants.js      # Source of truth: deck definition, rent tables, colour palette
+├── gameLogic.js      # Pure rules engine — deal, draw, rent, steal, pay, win check
+├── cardSort.js       # Display-only ordering helpers (never mutates game state)
+├── scoring.js        # End-game ranking with 4-tier tiebreakers + point system
+├── series.js         # localStorage-backed multi-game series standings
+└── useGameState.js   # useReducer state machine — the only file with React hooks
+```
+
+### Multiplayer (added in Sprint 1)
+
+The pass-and-play original was extended with real-time multiplayer via WebRTC:
+
+- **WebSocket signalling** with connection state management (`CONNECTING → OPEN → CLOSED`)
+- **Message queue** ensuring handshake packet (HELLO) is sent only when the socket is actually open — eliminating a fragile `setTimeout` race
+- **Auto-reconnect** with exponential backoff: 1s → 2s → 4s → 8s, max 5 retries, capped at 30s
+- **STUN server** (`stun:stun.l.google.com:19302`) for NAT traversal; `srflx` candidates preserved during SDP exchange
+
+---
+
+## What I solved (real bugs, real fixes)
+
+During the multiplayer extension, **5 bugs were systematically identified, planned, and fixed**:
+
+| # | Bug | Root cause | Fix |
+|---|-----|-----------|-----|
+| 1 | **Wild card colour stuck on board** | `assignedColor` was only written during play, never sent in render-phase state | Added `assignedColor` field to wild property objects; toggle button dispatches `CHANGE_WILD_COLOR` |
+| 2 | **Deal Breaker not stealing** | Steal handler read `state.players` (pre-reducer clone) instead of `next.players` (mutated clone) | Changed all steal/payment references to use `next.players` |
+| 3 | **Rent not enforcing on JSN-cancelled double** | JSN chain returned `newPhase` but kept `doubledRent = true` in next state | Reset doubledRent when JSN is accepted; set base rent as new target |
+| 4 | **Deal Breaker JSN never fired** | JSN prompt condition checked `stealTarget` presence but phase transition skipped `ACTION_RESPONSE` | Phase transition routes through `ACTION_RESPONSE` with `debtTarget: stealTarget` |
+| 5 | **Multiplayer connection flaky** | 600ms setTimeout for HELLO send + missing ICE candidates in SDP | Implemented `MessageQueue`; `stripSDP` preserves `host` + `srflx` candidates |
+
+Each fix was verified against a structured UAT checklist with explicit pass/fail criteria.
 
 ---
 
@@ -269,30 +87,52 @@ No backend. No database. No auth. Pure client-side state — the entire game eng
 
 ```
 src/
-├── App.jsx               # Screen flow + records each finished game into the series
+├── App.jsx                          # Screen flow + series recording
 ├── game/
-│   ├── constants.js      # Deck (+ opt-in custom cards), COLOR_DISPLAY, rent tables
-│   ├── gameLogic.js      # Pure rules: deal, play, rent, steal, pay, win check
-│   ├── cardSort.js       # Display ordering: hand / properties / bank
-│   ├── scoring.js        # End-game ranking + points (frozen board)
-│   ├── series.js         # localStorage multi-game series standings
-│   └── useGameState.js   # useReducer game state machine (PHASE-driven)
-│
-└── components/
-    ├── game/
-    │   ├── Card.jsx          # Renders every card type (property/money/action/rent/wild)
-    │   ├── CardArt.jsx       # Inline SVG city landmark icons
-    │   ├── CardHand.jsx      # Horizontal, consistently-ordered hand
-    │   ├── PlayerBoard.jsx   # Bank (left) + property sets (right); compact & full modes
-    │   ├── ActionModal.jsx   # Bottom-sheet flows for every action/response phase
-    │   ├── PassDeviceModal.jsx
-    │   └── GameLog.jsx
-    └── screens/
-        ├── HomeScreen.jsx
-        ├── SetupScreen.jsx   # Player count/names + "Custom Cards" toggle
-        ├── GameScreen.jsx    # Main loop: draw / play / discard + persistent play zone
-        └── ResultsScreen.jsx # Per-game ranking + cumulative series standings
+│   ├── constants.js                 # Deck definition, rent tables, colour palette
+│   ├── gameLogic.js                 # Pure rules engine
+│   ├── cardSort.js                  # Display ordering helpers
+│   ├── scoring.js                   # End-game ranking + points
+│   ├── series.js                    # Multi-game series (localStorage)
+│   └── useGameState.js              # Reducer state machine
+├── components/
+│   ├── game/
+│   │   ├── Card.jsx                 # Card renderer (all types)
+│   │   ├── CardArt.jsx              # Inline SVG city landmark icons
+│   │   ├── CardHand.jsx             # Ordered hand display
+│   │   ├── PlayerBoard.jsx          # Bank + property sets
+│   │   ├── ActionModal.jsx          # Bottom-sheet action flows
+│   │   ├── PassDeviceModal.jsx      # Turn handoff screen
+│   │   └── GameLog.jsx              # Event log
+│   ├── screens/
+│   │   ├── HomeScreen.jsx
+│   │   ├── SetupScreen.jsx
+│   │   ├── GameScreen.jsx           # Main game loop
+│   │   └── ResultsScreen.jsx        # Rankings + series standings
+│   └── multiplayer/
+│       ├── QRDisplay.jsx
+│       └── QRScanner.jsx
+└── multiplayer/
+    ├── useWebRTC.js                 # WebRTC connection management
+    ├── useMultiplayer.js            # WebSocket + state management
+    └── rtcUtils.js                  # SDP utilities
 ```
+
+---
+
+## Tech stack
+
+| Technology | Purpose |
+|---|---|
+| **React 19** | UI framework |
+| **Vite 8** | Build tool + dev server |
+| **Material UI v9** | Component library (Material Design 3) |
+| **Emotion** | CSS-in-JS |
+| **vite-plugin-pwa** | Service worker, manifest, offline support |
+| **WebRTC** | Real-time peer-to-peer multiplayer |
+| **WebSocket** | Signalling server communication |
+
+Zero backend dependencies. No database. No authentication.
 
 ---
 
@@ -305,52 +145,22 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` — works in a desktop browser, or point your phone at your machine's local IP for real-device testing. For the best feel, emulate an iPhone SE/6/7 viewport in DevTools.
+Open `http://localhost:5173`. For mobile testing, connect your phone to the same network and use your machine's local IP.
 
 ```bash
-npm run build     # production build into dist/
-npm run preview   # serve the production build locally
+npm run build      # Production build
+npm run preview    # Serve production build locally
 ```
 
 ---
 
-## Rules FAQ
+## The game in brief
 
-Common questions about edge cases, with the official ruling and how Dhandha implements it.
-
----
-
-### Q: What happens to a house or hotel when a property card from that set is used as payment?
-
-**Official rule:** The building card becomes *inactive* — it stays face-up on your side of the table but does NOT add any bonus rent until the set is complete again. The building is NOT destroyed or returned to the deck.
-
-**Dhandha:** Buildings move to an *inactive* state (shown with 💤 in your board). They reactivate automatically the moment the set becomes complete again (you draw the missing card, receive it via a swap, etc.). Inactive buildings are still usable as payment — see the next question.
-
----
-
-### Q: Can house and hotel cards be used to pay a debt?
-
-**Official rule:** Yes. Any player who owes a debt may hand over a house (₹3M face value) or hotel (₹4M face value) as part of their payment, whether or not the building is currently active.
-
-**Dhandha:** The payment sheet shows a **Buildings** section alongside Cash and Property. You can select any house or hotel (active or inactive) as part of the amount you pay. When a building is paid off, it goes to the creditor's bank as its face-value cash equivalent. *(In the physical game the creditor receives the building card itself and can replay it; here it is simplified to cash value because buildings are tracked as counters rather than card objects.)*
-
----
-
-### Q: Can a Just Say No be countered by another Just Say No?
-
-**Official rule:** Yes — Just Say No can be played against any targeted action card, including another Just Say No. The chain can go back and forth as long as each player has a JSN in hand.
-
-**Dhandha:** When the target of an action plays Just Say No, the original actor sees a **counter-JSN prompt** (device is passed to them). If they hold a JSN they can play it to cancel the block and continue their action. If they don't, or they choose to accept, the action is cancelled. The chain is currently limited to one counter (actor can reply to target's JSN once); a second counter by the target is not shown.
-
----
-
-### Q: If Just Say No is played against a Rent that was doubled with Double The Rent, is the entire rent cancelled?
-
-**Official rule (common community ruling):** Just Say No applied to a doubled rent cancels only the *doubling* — the base rent still applies. The Double The Rent card is wasted. *(Note: The official Hasbro FAQ states the entire rent is cancelled; this app follows the widespread community ruling as it is more strategic and less punishing.)*
-
-**Dhandha:** When JSN is played against a doubled rent and the original actor accepts the block (does not counter-JSN), the rent amount is halved back to its base value and collection continues at the base rate. A counter-JSN by the actor restores the full doubled rent.
-
----
+- **2–6 players**, pass-and-play on a single phone (or real-time via WebRTC)
+- First to complete **3 property sets** wins
+- 106-card deck with properties (Indian cities), money, action cards, and rent cards
+- Rent, stealing, Just Say No chains, houses/hotels — all official rules implemented
+- Multi-game series with frozen-board ranking and cumulative scoring
 
 ---
 

@@ -25,3 +25,10 @@ dist-ssr
 
 # simulation build artifact
 scripts/.sim-bundle.mjs
+
+# Planning / internal docs (not for public repo)
+.impl-brief.md
+.qa-brief.md
+.vision-brief.md
+.step*
+UAT-CHECKLIST.md
