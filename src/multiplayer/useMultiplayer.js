@@ -27,7 +27,7 @@ export function useMultiplayer({ onMessage } = {}) {
     wsRef.current?.close()
     const base = wsBaseOverride || CLOUD_WS_BASE
     if (!base) {
-      setError('Server URL set nahi hai. VITE_WS_URL env daalo, MultiplayerSetup mein URL daalo, ya Hotspot/Offline mode use karo.')
+      setError('Online mode ke liye VITE_WS_URL env variable set karna hoga. Tab tak Hotspot ya Offline mode use karo.')
       setConnected(false)
       return
     }

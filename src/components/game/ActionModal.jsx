@@ -87,16 +87,21 @@ export default function ActionModal({ state, dispatch, onDone }) {
     )
   }
 
-  // ── DEAL BREAKER RESPONSE ──────────────────────────────────────────
-  if (phase === PHASE.ACTION_RESPONSE && pendingAction?.type === ACTION_TYPES.DEAL_BREAKER) {
+  // ── ACTION RESPONSE (JSN chance for SLY_DEAL / FORCED_DEAL / DEAL_BREAKER) ──
+  if (phase === PHASE.ACTION_RESPONSE &&
+    [ACTION_TYPES.SLY_DEAL, ACTION_TYPES.FORCED_DEAL, ACTION_TYPES.DEAL_BREAKER].includes(pendingAction?.type)) {
     const victim = players[pendingAction.targetPlayerId]
     const jsnCard = victim.hand.find(c => c.type === CARD_TYPES.ACTION && c.actionType === ACTION_TYPES.JUST_SAY_NO)
+    const actionName = { slyDeal: 'Sly Deal', forcedDeal: 'Forced Deal', dealBreaker: 'Deal Breaker' }[pendingAction.type] || 'Action'
+    const acceptType = { slyDeal: 'SLY_DEAL_ACCEPT', forcedDeal: 'FORCED_DEAL_ACCEPT', dealBreaker: 'DEAL_BREAKER_ACCEPT' }[pendingAction.type]
 
     return (
-      <BottomSheet title={`${actor.name} ne Deal Breaker khela!`}>
+      <BottomSheet title={`${actor.name} ne ${actionName} khela!`}>
         <Box sx={{ px: 2.5, pb: 2 }}>
           <Typography variant="body2" sx={{ mb: 2, fontWeight: 600 }}>
-            {actor.name} tumhara <Box component="span" sx={{ color: COLOR_DISPLAY[pendingAction.color]?.hex, fontWeight: 800 }}>{COLOR_DISPLAY[pendingAction.color]?.name}</Box> set chura raha hai!
+            {pendingAction.type === ACTION_TYPES.DEAL_BREAKER
+              ? `${actor.name} tumhara ${COLOR_DISPLAY[pendingAction.color]?.name} set chura raha hai!`
+              : `${actor.name} tumhe target kar raha hai!`}
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -118,8 +123,34 @@ export default function ActionModal({ state, dispatch, onDone }) {
               variant={jsnCard ? 'outlined' : 'contained'}
               size="large" fullWidth
               sx={{ borderRadius: 3, fontWeight: 700 }}
-              onClick={() => dispatch({ type: 'DEAL_BREAKER_ACCEPT' })}>
+              onClick={() => dispatch({ type: acceptType })}>
               {jsnCard ? 'Theek hai, le jaane do' : 'Theek hai (Accept)'}
+            </Button>
+          </Box>
+        </Box>
+      </BottomSheet>
+    )
+  }
+
+  // ── INSURANCE RESPONSE ─────────────────────────────────────────────
+  if (phase === PHASE.INSURANCE_RESPONSE && pendingAction?.type === ACTION_TYPES.DEAL_BREAKER) {
+    const victim = players[pendingAction.targetPlayerId]
+    return (
+      <BottomSheet title="Insurance — Use karein?">
+        <Box sx={{ px: 2.5, pb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 2, fontWeight: 600 }}>
+            {actor.name} tumhara set chura raha hai! Insurance hai — kya use karna chahte ho?
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Button variant="contained" color="success" size="large"
+              sx={{ borderRadius: 3, fontWeight: 800 }}
+              onClick={() => dispatch({ type: 'USE_INSURANCE' })}>
+              🛡️ Haan — Insurance use karo!
+            </Button>
+            <Button variant="outlined" size="large"
+              sx={{ borderRadius: 3, fontWeight: 700 }}
+              onClick={() => dispatch({ type: 'DECLINE_INSURANCE' })}>
+              Nahi — Insurance mat use karo
             </Button>
           </Box>
         </Box>
@@ -299,6 +330,9 @@ export default function ActionModal({ state, dispatch, onDone }) {
     }
     return (
       <BottomSheet title="Deal Breaker — Kaunsa complete set churaoge?">
+        <Box sx={{ px: 2.5 }}>
+          <PlayerContextView player={actor} title="Tumhaari Jaankari:" />
+        </Box>
         {targets.length === 0 ? (
           <Typography variant="body2" sx={{ px: 2.5, color: 'text.secondary', pb: 1 }}>
             Kisi ke paas koi complete set nahi!
@@ -340,14 +374,15 @@ export default function ActionModal({ state, dispatch, onDone }) {
     )
   }
 
-  // ── TRADE ROUTE SELECT (custom card) ───────────────────────────────
-  if (phase === PHASE.TRADE_ROUTE_SELECT) {
+  // ── SABOTAGE SELECT (custom card) ──────────────────────────────────
+  if (phase === PHASE.SABOTAGE_SELECT) {
+    const others = players.filter((_, i) => i !== currentPlayerIndex)
     return (
-      <TradeRouteSheet
-        actor={actor}
-        discard={state.discard}
-        onSwap={(discardCardId, takeCardId) =>
-          dispatch({ type: 'TRADE_ROUTE_SWAP', discardCardId, takeCardId })}
+      <SabotageSheet
+        player={actor}
+        others={others}
+        onSwap={({ opponentAId, cardAId, colorA, opponentBId, cardBId, colorB }) =>
+          dispatch({ type: 'SABOTAGE_SWAP', opponentAId, cardAId, colorA, opponentBId, cardBId, colorB })}
         onCancel={() => dispatch({ type: '_CANCEL_PENDING' })}
       />
     )
@@ -396,6 +431,43 @@ function CounterpartyStrip({ player, title, highlightColors = [] }) {
           })}
         </Box>
       )}
+    </Box>
+  )
+}
+
+// ── PLAYER CONTEXT VIEW ──────────────────────────────────────────
+// Shows a player's hand (compact list) + properties (color chips) + bank cards.
+function PlayerContextView({ player, title }) {
+  if (!player) return null
+  const colors = orderPropertyColors(player.properties)
+  return (
+    <Box sx={{ mb: 1.25, p: 1, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.03)' }}>
+      {title && <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.5 }}>{title}</Typography>}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.75 }}>
+        {colors.map(color => {
+          const cards = player.properties[color]
+          const complete = isSetComplete(color, cards)
+          const needed = PROPERTY_SETS[color]?.cardsNeeded || 0
+          const display = COLOR_DISPLAY[color] || {}
+          return (
+            <Box key={color} sx={{ display: 'flex', alignItems: 'center', gap: 0.3, backgroundColor: display.hex, borderRadius: '4px', px: 0.5, py: 0.2, opacity: complete ? 1 : 0.85 }}>
+              <Typography sx={{ color: '#fff', fontSize: '0.5rem', fontWeight: 800, lineHeight: 1, textShadow: '0 1px 1px rgba(0,0,0,0.4)' }}>
+                {COLOR_DISPLAY[color]?.name} {cards.length}/{needed}{complete ? ' ✓' : ''}
+              </Typography>
+            </Box>
+          )
+        })}
+      </Box>
+      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+        {player.bank?.map(c => (
+          <Box key={c.id} sx={{ p: 0.3, borderRadius: '3px', backgroundColor: 'rgba(0,0,0,0.04)', border: '1px solid', borderColor: 'divider' }}>
+            <Typography sx={{ fontSize: '0.5rem', fontWeight: 600, color: 'success.main' }}>₹{c.value}Cr</Typography>
+          </Box>
+        ))}
+        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', ml: 'auto' }}>
+          ✋ {player.hand.length} cards
+        </Typography>
+      </Box>
     </Box>
   )
 }
@@ -595,16 +667,16 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
             color={totalSelected >= amount ? 'success' : 'default'}
             sx={{ fontWeight: 700 }}
           />
+        </Box>
           {jsnCard && (
             <Button
-              variant="contained" color="error" size="small"
+              variant="contained" color="error" size="large" fullWidth
               startIcon={<BlockIcon />}
-              sx={{ borderRadius: 3, fontWeight: 800, ml: 'auto' }}
+              sx={{ borderRadius: 3, fontWeight: 800, mb: 1 }}
               onClick={() => dispatch({ type: 'JUST_SAY_NO', playerId: payer.id, jsnCardId: jsnCard.id })}>
-              Nahi!
+              🚫 Nahi! (Just Say No)
             </Button>
           )}
-        </Box>
 
         <Box sx={{ maxHeight: '34dvh', overflowY: 'auto', pb: 1 }}>
           {/* Hand section (read-only) */}
@@ -704,6 +776,7 @@ function StolenPropertySheet({ title, subtitle, others, thief, canSteal, onSelec
         {subtitle && <Typography variant="caption" sx={{ color: 'text.secondary', px: 2.5, display: 'block', mb: 1 }}>{subtitle}</Typography>}
         {/* Scrollable content */}
         <Box sx={{ px: 2.5, overflowY: 'auto', flex: 1, maxHeight: 'calc(75dvh - 100px)' }}>
+          <PlayerContextView player={thief} title="Tumhaari Jaankari:" />
           <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1 }}>
             {others.map(p => (
               <Chip key={p.id} label={p.name}
@@ -770,6 +843,7 @@ function ForcedDealSheet({ currentPlayer, others, onSwap, onCancel }) {
       <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Scrollable content */}
         <Box sx={{ px: 2.5, overflowY: 'auto', flex: 1, maxHeight: 'calc(75dvh - 120px)' }}>
+          <PlayerContextView player={currentPlayer} title="Tumhaari Jaankari:" />
           <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
             Tumhari property (dogi){theirPlayer ? ` — ⚠️ = ${theirPlayer.name} ka set badhega` : ''}:
           </Typography>
@@ -854,76 +928,153 @@ function ForcedDealSheet({ currentPlayer, others, onSwap, onCancel }) {
   )
 }
 
-// ── TRADE ROUTE SHEET (custom card) ────────────────────────────────
-function TradeRouteSheet({ actor, discard, onSwap, onCancel }) {
-  const [discardId, setDiscardId] = useState(null)
-  const [takeId, setTakeId] = useState(null)
+// ── SABOTAGE SHEET (custom card) ───────────────────────────────────
+function SabotageSheet({ player, others, onSwap, onCancel }) {
+  const [step, setStep] = useState('pickA')
+  const [opponentA, setOpponentA] = useState(null)
+  const [cardA, setCardA] = useState(null)
+  const [colorA, setColorA] = useState(null)
+  const [opponentB, setOpponentB] = useState(null)
+  const [cardB, setCardB] = useState(null)
+  const [colorB, setColorB] = useState(null)
 
-  const isProp = (c) => c.type === CARD_TYPES.PROPERTY || c.type === CARD_TYPES.WILD_PROPERTY
-  const myProps = actor.hand.filter(isProp)
-  const discarded = myProps.find(c => c.id === discardId)
-  const pileProps = discard.filter(isProp)
-  // Eligible pile cards = a *different* colour than the one being discarded.
-  const eligible = discarded ? pileProps.filter(c => c.color !== discarded.color) : []
+  const incompleteProps = (p) =>
+    orderPropertyColors(p.properties)
+      .filter(color => !isSetComplete(color, p.properties[color] || []))
+      .flatMap(color => p.properties[color].map(c => ({ card: c, color })))
+
+  const aProps = opponentA ? incompleteProps(opponentA) : []
+  const bProps = opponentB ? incompleteProps(opponentB) : []
+  const remaining = others.filter(p => p.id !== opponentA?.id)
+  const validOpponents = others.filter(p => incompleteProps(p).length > 0)
 
   return (
-    <BottomSheet title="Trade Route — Card Swap">
+    <BottomSheet title="Sabotage — Do Logo Mein Trade Karwao">
       <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Box sx={{ px: 2.5, overflowY: 'auto', flex: 1, maxHeight: 'calc(75dvh - 120px)' }}>
-          {/* Step 1 — discard one of your properties */}
-          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-            1. Haath se ek property discard karo:
-          </Typography>
-          {myProps.length === 0 ? (
+          <PlayerContextView player={player} title="Tumhaari Jaankari:" />
+
+          {/* No valid targets — dead-end guard */}
+          {validOpponents.length < 2 ? (
             <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
-              Haath mein koi property nahi — Trade Route nahi khel sakte.
+              Kam se kam 2 opponents ke paas incomplete property honi chahiye. Cancel karo.
             </Typography>
           ) : (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
-              {myProps.map(card => (
-                <Box key={card.id}
-                  onClick={() => { setDiscardId(card.id); setTakeId(null) }}
-                  sx={{
-                    cursor: 'pointer', borderRadius: '6px',
-                    outline: discardId === card.id ? '2px solid #E65100' : '2px solid transparent',
-                    outlineOffset: '2px',
-                    transform: discardId === card.id ? 'translateY(-4px)' : 'none',
-                    transition: 'all 150ms ease',
-                  }}>
-                  <Card card={card} mini showValue />
-                </Box>
-              ))}
-            </Box>
-          )}
-
-          {/* Step 2 — take a different-colour property from the discard pile */}
-          {discarded && (
             <>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
-                2. Discard pile se alag colour ki property lo:
-              </Typography>
-              {eligible.length === 0 ? (
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
-                  Discard pile mein alag colour ki koi property nahi. (Cancel karke card bacha lo.)
-                </Typography>
-              ) : (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
-                  {eligible.map(card => (
-                    <Box key={card.id}
-                      onClick={() => setTakeId(card.id)}
-                      sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-                      <Box sx={{
-                        borderRadius: '6px',
-                        outline: takeId === card.id ? '2px solid #2E7D32' : '2px solid transparent',
-                        outlineOffset: '2px',
-                        transform: takeId === card.id ? 'translateY(-4px)' : 'none',
-                        transition: 'all 150ms ease',
-                      }}>
-                        <Card card={card} mini showValue />
-                      </Box>
-                      <ImpactBadge impact={setImpact(actor, card.color)} mode="take" color={card.color} />
+              {/* STEP 1 — Pick opponent A */}
+              {step === 'pickA' && (
+                <>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+                    1. Pehla opponent chuno:
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1 }}>
+                    {validOpponents.map(p => (
+                      <Chip key={p.id} label={p.name}
+                        onClick={() => { setOpponentA(p); setStep('pickCardA') }}
+                        sx={{ fontWeight: 700 }}
+                      />
+                    ))}
+                  </Box>
+                </>
+              )}
+
+              {/* STEP 2 — Pick card from opponent A */}
+              {step === 'pickCardA' && opponentA && (
+                <>
+                  <CounterpartyStrip player={opponentA} title={`${opponentA.name} ke paas:`} />
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75, mt: 1 }}>
+                    {opponentA.name} se kaunsi property nikaaloge? (yeh {opponentB ? opponentB.name : 'doosre'} ko milegi)
+                  </Typography>
+                  {aProps.length === 0 ? (
+                    <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
+                      Koi incomplete property nahi. Doosra opponent chuno.
+                    </Typography>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
+                      {aProps.map(({ card, color }) => (
+                        <Box key={card.id}
+                          onClick={() => { setCardA(card); setColorA(color); setStep('pickB') }}
+                          sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                          <Box sx={{
+                            borderRadius: '6px',
+                            outline: cardA?.id === card.id ? '2px solid #E65100' : '2px solid transparent',
+                            outlineOffset: '2px',
+                            transform: cardA?.id === card.id ? 'translateY(-4px)' : 'none',
+                            transition: 'all 150ms ease',
+                          }}>
+                            <Card card={card} />
+                          </Box>
+                          <ImpactBadge impact={setImpact(opponentB, color)} mode="take" color={color} />
+                        </Box>
+                      ))}
                     </Box>
-                  ))}
+                  )}
+                  <Button variant="outlined" size="small" onClick={() => { setOpponentA(null); setStep('pickA') }} sx={{ borderRadius: 3 }}>
+                    Wapas — doosra opponent chuno
+                  </Button>
+                </>
+              )}
+
+              {/* STEP 3 — Pick opponent B */}
+              {step === 'pickB' && (
+                <>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75 }}>
+                    2. Doosra opponent chuno:
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1 }}>
+                    {remaining.filter(p => incompleteProps(p).length > 0).map(p => (
+                      <Chip key={p.id} label={p.name}
+                        onClick={() => { setOpponentB(p); setStep('pickCardB') }}
+                        sx={{ fontWeight: 700 }}
+                      />
+                    ))}
+                  </Box>
+                </>
+              )}
+
+              {/* STEP 4 — Pick card from opponent B */}
+              {step === 'pickCardB' && opponentB && (
+                <>
+                  <CounterpartyStrip player={opponentB} title={`${opponentB.name} ke paas:`} />
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.75, mt: 1 }}>
+                    {opponentB.name} se kaunsi property nikaaloge? (yeh {opponentA.name} ko milegi)
+                  </Typography>
+                  {bProps.length === 0 ? (
+                    <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 1 }}>
+                      Koi incomplete property nahi. Doosra opponent chuno.
+                    </Typography>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
+                      {bProps.map(({ card, color }) => (
+                        <Box key={card.id}
+                          onClick={() => { setCardB(card); setColorB(color) }}
+                          sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                          <Box sx={{
+                            borderRadius: '6px',
+                            outline: cardB?.id === card.id ? '2px solid #E65100' : '2px solid transparent',
+                            outlineOffset: '2px',
+                            transform: cardB?.id === card.id ? 'translateY(-4px)' : 'none',
+                            transition: 'all 150ms ease',
+                          }}>
+                            <Card card={card} />
+                          </Box>
+                          <ImpactBadge impact={setImpact(opponentA, color)} mode="take" color={color} />
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                  <Button variant="outlined" size="small" onClick={() => { setOpponentB(null); setStep('pickB') }} sx={{ borderRadius: 3 }}>
+                    Wapas — doosra opponent chuno
+                  </Button>
+                </>
+              )}
+
+              {/* Summary once both selected */}
+              {cardA && cardB && step === 'pickCardB' && (
+                <Box sx={{ mt: 1, p: 1, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.04)' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
+                    Saari — {opponentA.name} ka <b>{cardA.name}</b> ↔ {opponentB.name} ka <b>{cardB.name}</b>
+                  </Typography>
                 </Box>
               )}
             </>
@@ -933,10 +1084,10 @@ function TradeRouteSheet({ actor, discard, onSwap, onCancel }) {
         {/* Sticky CTAs */}
         <Box sx={{ px: 2.5, pt: 1, pb: 1.5, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider', display: 'flex', gap: 1 }}>
           <Button variant="contained" size="large"
-            disabled={!discardId || !takeId}
+            disabled={!cardA || !cardB}
             sx={{ borderRadius: 3, fontWeight: 800, flex: 1 }}
-            onClick={() => onSwap(discardId, takeId)}>
-            Swap Karo!
+            onClick={() => onSwap({ opponentAId: opponentA.id, cardAId: cardA.id, colorA, opponentBId: opponentB.id, cardBId: cardB.id, colorB })}>
+            Sabotage Karo!
           </Button>
           <Button variant="outlined" onClick={onCancel} sx={{ borderRadius: 3 }}>
             Cancel

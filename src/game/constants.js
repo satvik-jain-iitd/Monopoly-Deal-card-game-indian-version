@@ -62,7 +62,7 @@ export const ACTION_TYPES = {
   HOTEL: 'hotel',
   // Custom cards (opt-in via "Enable Custom Cards") — fill the 2 blank slots
   INSURANCE: 'insurance',
-  TRADE_ROUTE: 'tradeRoute',
+  SABOTAGE: 'sabotage',
 }
 
 let _cardId = 1
@@ -85,7 +85,7 @@ function makeRent(colors, value, wild = false) {
   return { id: id(), type: CARD_TYPES.RENT, colors, value, wild, name }
 }
 
-export function createDeck(customCards = false) {
+export function createDeck(customCards = false, playerCount = 2) {
   const cards = [
     // --- PROPERTIES (Indian Cities — cheap → premium) ---
 
@@ -219,11 +219,13 @@ export function createDeck(customCards = false) {
     makeRent([], 3, true),
   ]
 
-  // Custom cards occupy the 2 blank slots of a physical deck (1 of each).
-  if (customCards) {
+  // Custom cards — only in 3+ player games.
+  if (customCards && playerCount > 2) {
     cards.push(
       makeAction(ACTION_TYPES.INSURANCE, 2, 'Insurance'),
-      makeAction(ACTION_TYPES.TRADE_ROUTE, 1, 'Trade Route'),
+      makeAction(ACTION_TYPES.INSURANCE, 2, 'Insurance'),
+      makeAction(ACTION_TYPES.SABOTAGE, 1, 'Sabotage'),
+      makeAction(ACTION_TYPES.SABOTAGE, 1, 'Sabotage'),
     )
   }
 

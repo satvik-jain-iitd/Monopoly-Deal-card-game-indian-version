@@ -11,7 +11,7 @@ import HomeIcon from '@mui/icons-material/Home'
 import HotelIcon from '@mui/icons-material/Hotel'
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee'
 import ShieldIcon from '@mui/icons-material/Shield'
-import RouteIcon from '@mui/icons-material/Route'
+import GroupRemoveIcon from '@mui/icons-material/GroupRemove'
 import { CARD_TYPES, ACTION_TYPES, COLOR_DISPLAY, COLORS, PROPERTY_SETS } from '../../game/constants'
 import { CityLandmark } from './CardArt'
 
@@ -27,7 +27,7 @@ const ACTION_ICONS = {
   [ACTION_TYPES.HOUSE]: HomeIcon,
   [ACTION_TYPES.HOTEL]: HotelIcon,
   [ACTION_TYPES.INSURANCE]: ShieldIcon,
-  [ACTION_TYPES.TRADE_ROUTE]: RouteIcon,
+  [ACTION_TYPES.SABOTAGE]: GroupRemoveIcon,
 }
 
 const ACTION_DESC = {
@@ -42,7 +42,7 @@ const ACTION_DESC = {
   [ACTION_TYPES.HOUSE]: 'Complete set pe ghar',
   [ACTION_TYPES.HOTEL]: 'Ghar ke upar hotel',
   [ACTION_TYPES.INSURANCE]: 'Deal Breaker se bachao',
-  [ACTION_TYPES.TRADE_ROUTE]: 'Discard se swap karo',
+  [ACTION_TYPES.SABOTAGE]: 'Do logo mein trade karwao',
 }
 
 function getTextColor(hexBg) {
@@ -263,10 +263,12 @@ function CardFace({ card, mini = false }) {
     // Custom cards get a distinct gradient so they read as "special".
     const actionBg = card.actionType === ACTION_TYPES.INSURANCE
       ? 'linear-gradient(145deg, #00695C, #00897B)'
-      : card.actionType === ACTION_TYPES.TRADE_ROUTE
+      : card.actionType === ACTION_TYPES.SABOTAGE
         ? 'linear-gradient(145deg, #6A1B9A, #8E24AA)'
-        : 'linear-gradient(145deg, #1A237E, #283593)'
-    const isCustom = card.actionType === ACTION_TYPES.INSURANCE || card.actionType === ACTION_TYPES.TRADE_ROUTE
+        : card.actionType === ACTION_TYPES.INSURANCE
+          ? 'linear-gradient(145deg, #00695C, #00897B)'
+          : 'linear-gradient(145deg, #1A237E, #283593)'
+    const isCustom = card.actionType === ACTION_TYPES.INSURANCE || card.actionType === ACTION_TYPES.SABOTAGE
     return (
       <Paper elevation={1} sx={{
         width: w, height: h, borderRadius: `${r}px`,

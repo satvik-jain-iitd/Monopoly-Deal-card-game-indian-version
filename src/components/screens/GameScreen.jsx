@@ -27,6 +27,14 @@ function getActiveInteractorIdx(state) {
     if (pa.type === ACTION_TYPES.BIRTHDAY || pa.type === ACTION_TYPES.DEBT_COLLECTOR) {
       return pa.targetIds?.[pa.currentTargetIdx] ?? state.currentPlayerIndex
     }
+    // Sly Deal, Forced Deal, Deal Breaker target a specific player
+    if ([ACTION_TYPES.SLY_DEAL, ACTION_TYPES.FORCED_DEAL, ACTION_TYPES.DEAL_BREAKER].includes(pa.type)) {
+      return pa.targetPlayerId ?? state.currentPlayerIndex
+    }
+  }
+  // Insurance response targets the victim
+  if (state.phase === PHASE.INSURANCE_RESPONSE && pa?.targetPlayerId != null) {
+    return pa.targetPlayerId
   }
   return state.currentPlayerIndex
 }
@@ -152,7 +160,8 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
   // ── ACTION RESPONSE PHASES ─────────────────────────────────────────
   if ([PHASE.ACTION_RESPONSE, PHASE.RENT_COLLECT, PHASE.BIRTHDAY_COLLECT,
     PHASE.SLY_DEAL_SELECT, PHASE.FORCED_DEAL_SELECT, PHASE.DEAL_BREAKER_SELECT,
-    PHASE.TRADE_ROUTE_SELECT, PHASE.WILD_COLOR_SELECT].includes(state.phase)) {
+    PHASE.SABOTAGE_SELECT, PHASE.WILD_COLOR_SELECT,
+    PHASE.INSURANCE_RESPONSE].includes(state.phase)) {
     return (
       <ActionModal
         state={state}
