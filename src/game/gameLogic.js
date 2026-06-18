@@ -9,7 +9,8 @@ export const PHASE = {
   FORCED_DEAL_SELECT: 'forcedDealSelect',
   SLY_DEAL_SELECT: 'slyDealSelect',
   DEAL_BREAKER_SELECT: 'dealBreakerSelect',
-  TRADE_ROUTE_SELECT: 'tradeRouteSelect',  // custom card: pick hand prop + discard-pile prop
+  SABOTAGE_SELECT: 'sabotageSelect',
+  INSURANCE_RESPONSE: 'insuranceResponse',
   WILD_COLOR_SELECT: 'wildColorSelect',
   DISCARD: 'discard',
   GAME_OVER: 'gameOver',
@@ -17,7 +18,7 @@ export const PHASE = {
 }
 
 export function initGame(playerNames, { customCards = false } = {}) {
-  const deck = createDeck(customCards)
+  const deck = createDeck(customCards, playerNames.length)
   const players = playerNames.map((name, i) => ({
     id: i,
     name,

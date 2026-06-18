@@ -9,32 +9,27 @@ function generateCode() {
 }
 
 // Cloud multiplayer setup — requires a WebSocket relay server.
-// Set VITE_WS_URL in .env, or manually enter the server URL below.
-// Run the server: cd worker && wrangler deploy (Cloudflare Worker)
+// Set VITE_WS_URL in .env. Falls back to Hotspot (LAN) mode.
 export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
   const [tab, setTab] = useState(0)
   const [name, setName] = useState('')
   const [roomCode] = useState(() => generateCode())
   const [joinCode, setJoinCode] = useState('')
   const [error, setError] = useState('')
-  const [serverUrl, setServerUrl] = useState(import.meta.env.VITE_WS_URL || '')
+  const serverUrl = import.meta.env.VITE_WS_URL || ''
 
   function handleCreate() {
     const n = name.trim()
-    const url = serverUrl.trim()
     if (!n) { setError('Apna naam likho'); return }
-    if (!url) { setError('Server URL daalo (wss://...) ya Hotspot mode use karo'); return }
-    onRoomReady(roomCode, true, n, url)
+    onRoomReady(roomCode, true, n, serverUrl)
   }
 
   function handleJoin() {
     const n = name.trim()
     const code = joinCode.trim().toUpperCase()
-    const url = serverUrl.trim()
     if (!n) { setError('Apna naam likho'); return }
     if (code.length < 2) { setError('Room code chahiye'); return }
-    if (!url) { setError('Server URL daalo (wss://...) ya Hotspot mode use karo'); return }
-    onRoomReady(code, false, n, url)
+    onRoomReady(code, false, n, serverUrl)
   }
 
   return (
@@ -52,27 +47,13 @@ export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 2, pt: 2, pb: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Alert severity="info" sx={{ borderRadius: 2, fontSize: '0.8rem' }}>
-          Koi bhi jagah se khelo — internet chahiye.
-          {!import.meta.env.VITE_WS_URL && (
+          {serverUrl ? 'Cloud se khelo — koi bhi jagah!' : 'Hotspot (LAN) mode — same WiFi pe khelo. Internet nahi chahiye.'}
+          {!serverUrl && (
             <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.72rem', color: 'warning.main' }}>
-              ⚠ Server deploy nahi hua? worker/ folder mein wrangler deploy karo, ya VITE_WS_URL env set karo.
+              ⚠ Server URL set nahi hai. VITE_WS_URL env mein daalo for cloud play.
             </Box>
           )}
         </Alert>
-
-        <Box sx={{ backgroundColor: 'background.paper', borderRadius: 2, p: 2 }}>
-          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 1 }}>
-            SERVER URL {serverUrl ? '✓ ' : '— Cloudflare Worker ya koi WS relay'}
-          </Typography>
-          <TextField
-            fullWidth size="small" variant="outlined"
-            placeholder="wss://dhandha-multiplayer.my-account.workers.dev"
-            value={serverUrl}
-            onChange={e => setServerUrl(e.target.value)}
-            helperText="worker/ folder deploy karo, phir yahan URL daalo"
-            inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.85rem' } }}
-          />
-        </Box>
 
         <TextField
           fullWidth size="small" variant="outlined"

@@ -45,7 +45,7 @@ export default function ResultsScreen({
         </Box>
 
         {/* ── This game's result ──────────────────────────────────── */}
-        <Paper elevation={3} sx={{ width: '100%', borderRadius: 3, overflow: 'hidden', mt: 0.5 }}>
+        <Paper elevation={3} sx={{ width: '100%', borderRadius: 3, mt: 0.5 }}>
           <Box sx={{ backgroundColor: '#E65100', px: 2, py: 0.85 }}>
             <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.78rem' }}>
               Is Game Ka Result
@@ -93,7 +93,7 @@ export default function ResultsScreen({
         </Paper>
 
         {/* ── Series standings ────────────────────────────────────── */}
-        <Paper elevation={3} sx={{ width: '100%', borderRadius: 3, overflow: 'hidden' }}>
+        <Paper elevation={3} sx={{ width: '100%', borderRadius: 3 }}>
           <Box sx={{ backgroundColor: '#1B5E20', px: 2, py: 0.85, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.78rem' }}>
               Series Standings

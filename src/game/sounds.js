@@ -152,7 +152,7 @@ export const ACTION_SOUND_MAP = {
   DEAL_BREAKER_STEAL:'dealBreaker',
   SLY_DEAL_STEAL:    'steal',
   FORCED_DEAL_SWAP:  'steal',
-  TRADE_ROUTE_SWAP:  'cardPlay',
+  SABOTAGE_SWAP:     'cardPlay',
   PAY_DEBT:          'paymentSent',
 }
 
@@ -170,5 +170,5 @@ export const ACTION_TYPE_SOUND = {
   house:          'cardPlay',
   hotel:          'cardPlay',
   insurance:      'cardPlay',
-  tradeRoute:     'cardPlay',
+  sabotage:       'cardPlay',
 }

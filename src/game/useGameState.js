@@ -48,6 +48,50 @@ function executeDealBreakerSteal(s, fromPlayerId, color) {
   return s
 }
 
+function executeSlyDeal(s, fromPlayerId, cardId, color) {
+  const thief = s.players[s.currentPlayerIndex]
+  const victim = s.players[fromPlayerId]
+  const cardIdx = victim.properties[color].findIndex(c => c.id === cardId)
+  if (cardIdx === -1) return s
+  const [stolen] = victim.properties[color].splice(cardIdx, 1)
+  if (victim.properties[color].length === 0) delete victim.properties[color]
+  deactivateBuildings(victim, color)
+  if (!thief.properties[color]) thief.properties[color] = []
+  stolen.color = color
+  thief.properties[color].push(stolen)
+  reactivateBuildings(thief, color)
+  s.log.push(`${thief.name} ne ${victim.name} se ${stolen.name} chura liya!`)
+  s.pendingAction = null
+  s.phase = nextPhaseAfterPlay(s)
+  return s
+}
+
+function executeForcedDealSwap(s, fromPlayerId, theirCardId, theirColor, myCardId, myColor) {
+  const player = s.players[s.currentPlayerIndex]
+  const other = s.players[fromPlayerId]
+  const theirIdx = (other.properties[theirColor] || []).findIndex(c => c.id === theirCardId)
+  const myIdx = (player.properties[myColor] || []).findIndex(c => c.id === myCardId)
+  if (theirIdx === -1 || myIdx === -1) return s
+  const [theirCard] = other.properties[theirColor].splice(theirIdx, 1)
+  const [myCard] = player.properties[myColor].splice(myIdx, 1)
+  if (other.properties[theirColor].length === 0) delete other.properties[theirColor]
+  if (player.properties[myColor].length === 0) delete player.properties[myColor]
+  deactivateBuildings(other, theirColor)
+  deactivateBuildings(player, myColor)
+  theirCard.color = theirColor
+  myCard.color = myColor
+  if (!player.properties[theirColor]) player.properties[theirColor] = []
+  player.properties[theirColor].push(theirCard)
+  reactivateBuildings(player, theirColor)
+  if (!other.properties[myColor]) other.properties[myColor] = []
+  other.properties[myColor].push(myCard)
+  reactivateBuildings(other, myColor)
+  s.log.push(`${player.name} ne ${other.name} ke saath deal force ki!`)
+  s.pendingAction = null
+  s.phase = nextPhaseAfterPlay(s)
+  return s
+}
+
 // Card-playing actions are capped at maxCardsPerTurn. We keep the phase in PLAY
 // after the 3rd play (to skip an empty discard screen), so this guard is what
 // actually prevents a 4th play from being registered.
@@ -219,11 +263,9 @@ function gameReducer(state, action) {
           s.phase = nextPhaseAfterPlay(s)
           return s
         }
-        case ACTION_TYPES.TRADE_ROUTE: {
-          // Two-step selection — the card is only committed on swap, so a
-          // cancel costs nothing (the discard pile may have no usable property).
-          s.phase = PHASE.TRADE_ROUTE_SELECT
-          s.pendingAction = { type: ACTION_TYPES.TRADE_ROUTE, actingPlayerId: s.currentPlayerIndex, cardId }
+        case ACTION_TYPES.SABOTAGE: {
+          s.phase = PHASE.SABOTAGE_SELECT
+          s.pendingAction = { type: ACTION_TYPES.SABOTAGE, actingPlayerId: s.currentPlayerIndex, cardId }
           return s
         }
         default: return state
@@ -419,7 +461,7 @@ function gameReducer(state, action) {
 
     case 'SLY_DEAL_STEAL': {
       const { fromPlayerId, cardId, color } = action
-      const s = deepClone(state)
+      let s = deepClone(state)
       const thief = s.players[s.currentPlayerIndex]
       const victim = s.players[fromPlayerId]
 
@@ -430,19 +472,22 @@ function gameReducer(state, action) {
       // Can't steal from a complete set
       if (isSetComplete(color, victim.properties[color])) return state
 
-      const [stolen] = victim.properties[color].splice(cardIdx, 1)
-      if (victim.properties[color].length === 0) delete victim.properties[color]
-      // Stolen card broke victim's set — deactivate their buildings on it.
-      deactivateBuildings(victim, color)
-      if (!thief.properties[color]) thief.properties[color] = []
-      stolen.color = color
-      thief.properties[color].push(stolen)
-      // If this completes thief's set, reactivate their inactive buildings.
-      reactivateBuildings(thief, color)
+      // Check if victim has Just Say No
+      const hasJsn = victim.hand.some(c => c.actionType === ACTION_TYPES.JUST_SAY_NO)
+      if (hasJsn) {
+        s.pendingAction = {
+          type: ACTION_TYPES.SLY_DEAL,
+          actingPlayerId: s.currentPlayerIndex,
+          targetPlayerId: fromPlayerId,
+          cardId,
+          color,
+        }
+        s.phase = PHASE.ACTION_RESPONSE
+        s.log.push(`${victim.name} ko Sly Deal se bachne ka mauka! Just Say No?`)
+        return s
+      }
 
-      s.log.push(`${thief.name} ne ${victim.name} se ${stolen.name} chura liya!`)
-      s.pendingAction = null
-      s.phase = nextPhaseAfterPlay(s)
+      s = executeSlyDeal(s, fromPlayerId, cardId, color)
       const winner = checkWinner(s.players)
       if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }
       return s
@@ -450,7 +495,7 @@ function gameReducer(state, action) {
 
     case 'FORCED_DEAL_SWAP': {
       const { fromPlayerId, theirCardId, theirColor, myCardId, myColor } = action
-      const s = deepClone(state)
+      let s = deepClone(state)
       const player = s.players[s.currentPlayerIndex]
       const other = s.players[fromPlayerId]
 
@@ -461,30 +506,24 @@ function gameReducer(state, action) {
       const myIdx = (player.properties[myColor] || []).findIndex(c => c.id === myCardId)
       if (theirIdx === -1 || myIdx === -1) return state
 
-      const [theirCard] = other.properties[theirColor].splice(theirIdx, 1)
-      const [myCard] = player.properties[myColor].splice(myIdx, 1)
+      // Check if target has Just Say No
+      const hasJsn = other.hand.some(c => c.actionType === ACTION_TYPES.JUST_SAY_NO)
+      if (hasJsn) {
+        s.pendingAction = {
+          type: ACTION_TYPES.FORCED_DEAL,
+          actingPlayerId: s.currentPlayerIndex,
+          targetPlayerId: fromPlayerId,
+          theirCardId,
+          theirColor,
+          myCardId,
+          myColor,
+        }
+        s.phase = PHASE.ACTION_RESPONSE
+        s.log.push(`${other.name} ko Forced Deal se bachne ka mauka! Just Say No?`)
+        return s
+      }
 
-      if (other.properties[theirColor].length === 0) delete other.properties[theirColor]
-      if (player.properties[myColor].length === 0) delete player.properties[myColor]
-
-      // Sets may have just broken — deactivate buildings on broken sets.
-      deactivateBuildings(other, theirColor)
-      deactivateBuildings(player, myColor)
-
-      theirCard.color = theirColor
-      myCard.color = myColor
-
-      if (!player.properties[theirColor]) player.properties[theirColor] = []
-      player.properties[theirColor].push(theirCard)
-      reactivateBuildings(player, theirColor)
-
-      if (!other.properties[myColor]) other.properties[myColor] = []
-      other.properties[myColor].push(myCard)
-      reactivateBuildings(other, myColor)
-
-      s.log.push(`${player.name} ne ${other.name} ke saath deal force ki!`)
-      s.pendingAction = null
-      s.phase = nextPhaseAfterPlay(s)
+      s = executeForcedDealSwap(s, fromPlayerId, theirCardId, theirColor, myCardId, myColor)
       const winner = checkWinner(s.players)
       if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }
       return s
@@ -498,13 +537,16 @@ function gameReducer(state, action) {
 
       if (!isSetComplete(color, victim.properties[color] || [])) return state
 
-      // Insurance auto-cancels a Deal Breaker (no Just Say No needed).
+      // Insurance optional — victim decides whether to use it.
       if (victim.insurance) {
-        s.discard.push(victim.insurance)
-        victim.insurance = null
-        s.log.push(`${victim.name} ke Insurance ne ${thief.name} ka Deal Breaker rok diya! 🛡️`)
-        s.pendingAction = null
-        s.phase = nextPhaseAfterPlay(s)
+        s.pendingAction = {
+          type: ACTION_TYPES.DEAL_BREAKER,
+          actingPlayerId: s.currentPlayerIndex,
+          targetPlayerId: fromPlayerId,
+          color,
+        }
+        s.phase = PHASE.INSURANCE_RESPONSE
+        s.log.push(`${victim.name} ke paas Insurance hai! Kya use karega?`)
         return s
       }
 
@@ -530,6 +572,55 @@ function gameReducer(state, action) {
       const pa = s.pendingAction
       if (!pa || pa.type !== ACTION_TYPES.DEAL_BREAKER) return state
       return executeDealBreakerSteal(s, pa.targetPlayerId, pa.color)
+    }
+
+    case 'USE_INSURANCE': {
+      const s = deepClone(state)
+      const pa = s.pendingAction
+      if (!pa || pa.type !== ACTION_TYPES.DEAL_BREAKER) return state
+      const victim = s.players[pa.targetPlayerId]
+      if (!victim.insurance) return state
+      s.discard.push(victim.insurance)
+      victim.insurance = null
+      s.log.push(`${victim.name} ne Insurance use kiya — ${s.players[pa.actingPlayerId].name} ka Deal Breaker rok diya! 🛡️`)
+      s.pendingAction = null
+      s.phase = nextPhaseAfterPlay(s)
+      return s
+    }
+
+    case 'DECLINE_INSURANCE': {
+      const s = deepClone(state)
+      const pa = s.pendingAction
+      if (!pa || pa.type !== ACTION_TYPES.DEAL_BREAKER) return state
+      // Insurance nahi use kiya — proceed to JSN check
+      const victim = s.players[pa.targetPlayerId]
+      const hasJsn = victim.hand.some(c => c.actionType === ACTION_TYPES.JUST_SAY_NO)
+      if (hasJsn) {
+        s.phase = PHASE.ACTION_RESPONSE
+        s.log.push(`${victim.name} ne Insurance nahi use kiya. Just Say No?`)
+        return s
+      }
+      return executeDealBreakerSteal(s, pa.targetPlayerId, pa.color)
+    }
+
+    case 'SLY_DEAL_ACCEPT': {
+      let s = deepClone(state)
+      const pa = s.pendingAction
+      if (!pa || pa.type !== ACTION_TYPES.SLY_DEAL) return state
+      s = executeSlyDeal(s, pa.targetPlayerId, pa.cardId, pa.color)
+      const winner = checkWinner(s.players)
+      if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }
+      return s
+    }
+
+    case 'FORCED_DEAL_ACCEPT': {
+      let s = deepClone(state)
+      const pa = s.pendingAction
+      if (!pa || pa.type !== ACTION_TYPES.FORCED_DEAL) return state
+      s = executeForcedDealSwap(s, pa.targetPlayerId, pa.theirCardId, pa.theirColor, pa.myCardId, pa.myColor)
+      const winner = checkWinner(s.players)
+      if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }
+      return s
     }
 
     case 'PLACE_HOUSE': {
@@ -558,31 +649,56 @@ function gameReducer(state, action) {
       return s
     }
 
-    case 'TRADE_ROUTE_SWAP': {
-      const { discardCardId, takeCardId } = action
+    case 'SABOTAGE_SWAP': {
+      const { opponentAId, cardAId, colorA, opponentBId, cardBId, colorB } = action
       const s = deepClone(state)
       const pa = s.pendingAction
-      if (!pa || pa.type !== ACTION_TYPES.TRADE_ROUTE) return state
-      const player = s.players[s.currentPlayerIndex]
+      if (!pa || pa.type !== ACTION_TYPES.SABOTAGE) return state
 
-      const trCard = player.hand.find(c => c.id === pa.cardId)
-      const handProp = player.hand.find(c => c.id === discardCardId)
-      const takeCard = s.discard.find(c => c.id === takeCardId)
-      if (!trCard || !handProp || !takeCard) return state
-      // Must take a property of a *different* colour than the one discarded.
-      if (takeCard.color === handProp.color) return state
-
-      // Trade Route action card + the chosen hand property leave the hand → discard.
-      player.hand = player.hand.filter(c => c.id !== pa.cardId && c.id !== discardCardId)
-      s.discard = s.discard.filter(c => c.id !== takeCardId)
-      s.discard.push(trCard, handProp)
-      delete takeCard._from
-      player.hand.push(takeCard)
-
+      // Commit the Sabotage card to discard now.
+      const player = s.players[pa.actingPlayerId]
+      const cardIdx = player.hand.findIndex(c => c.id === pa.cardId)
+      if (cardIdx === -1) return state
+      const [sabotageCard] = player.hand.splice(cardIdx, 1)
+      s.discard.push(sabotageCard)
       s.cardsPlayedThisTurn++
-      s.log.push(`${player.name} ne Trade Route khela — ${handProp.name} di, ${takeCard.name} li.`)
+
+      const opponentA = s.players[opponentAId]
+      const opponentB = s.players[opponentBId]
+
+      // Can't take from complete sets
+      if (isSetComplete(colorA, opponentA.properties[colorA] || [])) return state
+      if (isSetComplete(colorB, opponentB.properties[colorB] || [])) return state
+
+      const idxA = (opponentA.properties[colorA] || []).findIndex(c => c.id === cardAId)
+      const idxB = (opponentB.properties[colorB] || []).findIndex(c => c.id === cardBId)
+      if (idxA === -1 || idxB === -1) return state
+
+      const [cardA] = opponentA.properties[colorA].splice(idxA, 1)
+      const [cardB] = opponentB.properties[colorB].splice(idxB, 1)
+
+      if (opponentA.properties[colorA].length === 0) delete opponentA.properties[colorA]
+      if (opponentB.properties[colorB].length === 0) delete opponentB.properties[colorB]
+
+      deactivateBuildings(opponentA, colorA)
+      deactivateBuildings(opponentB, colorB)
+
+      cardA.color = colorA
+      cardB.color = colorB
+
+      if (!opponentA.properties[colorB]) opponentA.properties[colorB] = []
+      opponentA.properties[colorB].push(cardB)
+      reactivateBuildings(opponentA, colorB)
+
+      if (!opponentB.properties[colorA]) opponentB.properties[colorA] = []
+      opponentB.properties[colorA].push(cardA)
+      reactivateBuildings(opponentB, colorA)
+
+      s.log.push(`${s.players[pa.actingPlayerId].name} ne Sabotage khela — ${opponentA.name} aur ${opponentB.name} ke beech swap!`)
       s.pendingAction = null
       s.phase = nextPhaseAfterPlay(s)
+      const winner = checkWinner(s.players)
+      if (winner) return { ...s, phase: PHASE.GAME_OVER, winner }
       return s
     }
 
