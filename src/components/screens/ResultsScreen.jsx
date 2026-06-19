@@ -45,13 +45,13 @@ export default function ResultsScreen({
         </Box>
 
         {/* ── This game's result ──────────────────────────────────── */}
-        <Paper elevation={3} sx={{ width: '100%', borderRadius: 3, mt: 0.5 }}>
-          <Box sx={{ backgroundColor: '#E65100', px: 2, py: 0.85, borderTopLeftRadius: 3, borderTopRightRadius: 3 }}>
+        <Paper elevation={3} sx={{ width: '100%', borderRadius: '16px', mt: 0.5 }}>
+          <Box sx={{ backgroundColor: '#E65100', px: 2, py: 0.85, borderTopLeftRadius: '16px', borderTopRightRadius: '16px' }}>
             <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.78rem' }}>
               Is Game Ka Result
             </Typography>
           </Box>
-          <Box sx={{ overflowX: 'auto' }}>
+          <Box sx={{ overflowX: 'auto', pb: 2 }}>
             <Table size="small">
             <TableHead>
               <TableRow sx={{ '& th': { fontWeight: 800, fontSize: '0.6rem', py: 0.6, px: 1, color: 'text.secondary' } }}>
@@ -67,13 +67,12 @@ export default function ResultsScreen({
             <TableBody>
               {ranked.map((r, i) => {
                 const note = i > 0 ? tiebreakerLabel(ranked[i - 1], r) : null
-                const isLast = i === ranked.length - 1
                 return (
                   <TableRow key={r.name} sx={{
                     backgroundColor: r.rank === 1 ? 'rgba(230,81,0,0.08)' : 'transparent',
                     '& td': { fontSize: '0.66rem', py: 0.5, px: 1, borderBottom: note ? 'none' : undefined },
                   }}>
-                    <TableCell sx={{ fontWeight: 800, borderBottomLeftRadius: isLast ? 3 : 0 }}>{RANK_MEDAL[r.rank] || r.rank}</TableCell>
+                    <TableCell sx={{ fontWeight: 800 }}>{RANK_MEDAL[r.rank] || r.rank}</TableCell>
                     <TableCell sx={{ fontWeight: r.rank === 1 ? 800 : 500, color: r.rank === 1 ? 'primary.main' : 'text.primary' }}>
                       {r.name}
                       {note && (
@@ -86,7 +85,7 @@ export default function ResultsScreen({
                     <TableCell align="center">{r.propertyCardsOnTable}</TableCell>
                     <TableCell align="right" sx={{ color: 'success.main', fontWeight: 700 }}>₹{r.bankCash}</TableCell>
                     <TableCell align="center">{r.handCards}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 900, color: '#E65100', borderBottomRightRadius: isLast ? 3 : 0 }}>+{r.pointsThisGame}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 900, color: '#E65100' }}>+{r.pointsThisGame}</TableCell>
                   </TableRow>
                 )
               })}
@@ -96,8 +95,8 @@ export default function ResultsScreen({
         </Paper>
 
         {/* ── Series standings ────────────────────────────────────── */}
-        <Paper elevation={3} sx={{ width: '100%', borderRadius: 3 }}>
-          <Box sx={{ backgroundColor: '#1B5E20', px: 2, py: 0.85, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 3, borderTopRightRadius: 3 }}>
+        <Paper elevation={3} sx={{ width: '100%', borderRadius: '16px' }}>
+          <Box sx={{ backgroundColor: '#1B5E20', px: 2, py: 0.85, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: '16px', borderTopRightRadius: '16px' }}>
             <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.78rem' }}>
               Series Standings
             </Typography>
@@ -105,7 +104,7 @@ export default function ResultsScreen({
               sx={{ height: 18, fontSize: '0.58rem', fontWeight: 700, backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }} />
           </Box>
           {standings.length > 0 ? (
-            <Box sx={{ overflowX: 'auto' }}>
+            <Box sx={{ overflowX: 'auto', pb: 2 }}>
               <Table size="small">
               <TableHead>
                 <TableRow sx={{ '& th': { fontWeight: 800, fontSize: '0.6rem', py: 0.6, px: 1, color: 'text.secondary' } }}>
@@ -119,19 +118,18 @@ export default function ResultsScreen({
               <TableBody>
                 {standings.map((s, i) => {
                   const isChamp = i === 0
-                  const isLast = i === standings.length - 1
                   return (
                     <TableRow key={s.name} sx={{
                       backgroundColor: isChamp ? 'rgba(27,94,32,0.08)' : 'transparent',
                       '& td': { fontSize: '0.66rem', py: 0.55, px: 1 },
                     }}>
-                      <TableCell sx={{ fontWeight: 800, borderBottomLeftRadius: isLast ? 3 : 0 }}>{isChamp ? '👑' : i + 1}</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>{isChamp ? '👑' : i + 1}</TableCell>
                       <TableCell sx={{ fontWeight: isChamp ? 800 : 500, color: isChamp ? 'success.dark' : 'text.primary' }}>
                         {s.name}
                       </TableCell>
                       <TableCell align="center">{s.gamesPlayed}</TableCell>
                       <TableCell align="center" sx={{ fontWeight: 700 }}>{s.wins}</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 900, color: 'success.dark', borderBottomRightRadius: isLast ? 3 : 0 }}>{s.totalPoints}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 900, color: 'success.dark' }}>{s.totalPoints}</TableCell>
                     </TableRow>
                   )
                 })}
@@ -139,7 +137,7 @@ export default function ResultsScreen({
             </Table>
             </Box>
           ) : (
-            <Box sx={{ px: 2, py: 3, textAlign: 'center', borderBottomLeftRadius: 3, borderBottomRightRadius: 3 }}>
+            <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 Series stats sirf host ke paas save hote hain
               </Typography>
