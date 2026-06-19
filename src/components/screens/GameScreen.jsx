@@ -62,13 +62,20 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
     ) {
       setPassConfirmed(false)
     }
-  }, [state.phase]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.phase, isMultiplayer])
+
+  // Reset pass screen when the active interactor changes
+  useEffect(() => {
+    if (!isMultiplayer) {
+      setPassConfirmed(false)
+    }
+  }, [activeInteractorIdx, isMultiplayer])
 
   // ── PASS DEVICE (pass-and-play only) ──────────────────────────────
   if (!isMultiplayer && !passConfirmed) {
     return (
       <PassDeviceModal
-        playerName={currentPlayer.name}
+        playerName={state.players[activeInteractorIdx].name}
         onConfirm={() => setPassConfirmed(true)}
       />
     )
@@ -161,7 +168,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
   if ([PHASE.ACTION_RESPONSE, PHASE.RENT_COLLECT, PHASE.BIRTHDAY_COLLECT,
     PHASE.SLY_DEAL_SELECT, PHASE.FORCED_DEAL_SELECT, PHASE.DEAL_BREAKER_SELECT,
     PHASE.SABOTAGE_SELECT, PHASE.WILD_COLOR_SELECT,
-    PHASE.INSURANCE_RESPONSE].includes(state.phase)) {
+    PHASE.INSURANCE_RESPONSE, PHASE.JSN_RESPONSE].includes(state.phase)) {
     return (
       <ActionModal
         state={state}

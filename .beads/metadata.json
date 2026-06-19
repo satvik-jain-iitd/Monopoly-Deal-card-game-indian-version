@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "monopoly_deal_fix",
+  "project_id": "90a4aded-fa11-4dbc-b279-4d2ad674d392"
+}
