@@ -8,6 +8,8 @@ function generateCode() {
   return Math.random().toString(36).slice(2, 6).toUpperCase()
 }
 
+const DEFAULT_WS_URL = 'wss://dhandha-multiplayer.klickbae8yt.workers.dev'
+
 // Cloud multiplayer setup — requires a WebSocket relay server.
 // Set VITE_WS_URL in .env. Falls back to Hotspot (LAN) mode.
 export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
@@ -16,12 +18,12 @@ export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
   const [roomCode] = useState(() => generateCode())
   const [joinCode, setJoinCode] = useState('')
   const [error, setError] = useState('')
-  const serverUrl = import.meta.env.VITE_WS_URL || ''
+  const [serverUrlInput, setServerUrlInput] = useState(import.meta.env.VITE_WS_URL || DEFAULT_WS_URL)
 
   function handleCreate() {
     const n = name.trim()
     if (!n) { setError('Apna naam likho'); return }
-    onRoomReady(roomCode, true, n, serverUrl)
+    onRoomReady(roomCode, true, n, serverUrlInput)
   }
 
   function handleJoin() {
@@ -29,7 +31,7 @@ export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
     const code = joinCode.trim().toUpperCase()
     if (!n) { setError('Apna naam likho'); return }
     if (code.length < 2) { setError('Room code chahiye'); return }
-    onRoomReady(code, false, n, serverUrl)
+    onRoomReady(code, false, n, serverUrlInput)
   }
 
   return (
@@ -47,13 +49,16 @@ export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 2, pt: 2, pb: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Alert severity="info" sx={{ borderRadius: 2, fontSize: '0.8rem' }}>
-          {serverUrl ? 'Cloud se khelo — koi bhi jagah!' : 'Hotspot (LAN) mode — same WiFi pe khelo. Internet nahi chahiye.'}
-          {!serverUrl && (
-            <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.72rem', color: 'warning.main' }}>
-              ⚠ Server URL set nahi hai. VITE_WS_URL env mein daalo for cloud play.
-            </Box>
-          )}
+          {serverUrlInput ? 'Cloud se khelo — koi bhi jagah!' : 'Hotspot (LAN) mode — same WiFi pe khelo. Internet nahi chahiye.'}
         </Alert>
+
+        <TextField
+          fullWidth size="small" variant="outlined"
+          label="Server URL (optional)"
+          value={serverUrlInput}
+          onChange={e => setServerUrlInput(e.target.value)}
+          placeholder="ws://your-server-url"
+        />
 
         <TextField
           fullWidth size="small" variant="outlined"

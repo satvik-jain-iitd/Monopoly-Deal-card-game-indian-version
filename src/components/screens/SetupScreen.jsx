@@ -6,7 +6,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import PersonIcon from '@mui/icons-material/Person'
 import ShieldIcon from '@mui/icons-material/Shield'
-import RouteIcon from '@mui/icons-material/Route'
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 
 const DEFAULT_NAMES = ['Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6']
 
@@ -137,9 +137,9 @@ export default function SetupScreen({ onStart, onBack }) {
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                  <RouteIcon sx={{ fontSize: 18, color: '#8E24AA', mt: 0.2, flexShrink: 0 }} />
+                  <SwapHorizIcon sx={{ fontSize: 18, color: '#E65100', mt: 0.2, flexShrink: 0 }} />
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    <b>Trade Route</b> — haath se ek property discard karke, discard pile se alag colour ki property utha lo.
+                    <b>Sabotage</b> — Kisi do opponents ki ek-ek property aapas mein swap karwa do (sirf incomplete sets se).
                   </Typography>
                 </Box>
               </Box>

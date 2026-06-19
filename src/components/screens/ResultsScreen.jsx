@@ -45,13 +45,14 @@ export default function ResultsScreen({
         </Box>
 
         {/* ── This game's result ──────────────────────────────────── */}
-        <Paper elevation={3} sx={{ width: '100%', borderRadius: 3, mt: 0.5 }}>
+        <Paper elevation={3} sx={{ width: '100%', borderRadius: 3, mt: 0.5, overflow: 'hidden' }}>
           <Box sx={{ backgroundColor: '#E65100', px: 2, py: 0.85 }}>
             <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.78rem' }}>
               Is Game Ka Result
             </Typography>
           </Box>
-          <Table size="small">
+          <Box sx={{ overflowX: 'auto' }}>
+            <Table size="small">
             <TableHead>
               <TableRow sx={{ '& th': { fontWeight: 800, fontSize: '0.6rem', py: 0.6, px: 1, color: 'text.secondary' } }}>
                 <TableCell>#</TableCell>
@@ -89,11 +90,12 @@ export default function ResultsScreen({
                 )
               })}
             </TableBody>
-          </Table>
+            </Table>
+          </Box>
         </Paper>
 
         {/* ── Series standings ────────────────────────────────────── */}
-        <Paper elevation={3} sx={{ width: '100%', borderRadius: 3 }}>
+        <Paper elevation={3} sx={{ width: '100%', borderRadius: 3, overflow: 'hidden' }}>
           <Box sx={{ backgroundColor: '#1B5E20', px: 2, py: 0.85, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.78rem' }}>
               Series Standings
@@ -102,7 +104,8 @@ export default function ResultsScreen({
               sx={{ height: 18, fontSize: '0.58rem', fontWeight: 700, backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }} />
           </Box>
           {standings.length > 0 ? (
-            <Table size="small">
+            <Box sx={{ overflowX: 'auto' }}>
+              <Table size="small">
               <TableHead>
                 <TableRow sx={{ '& th': { fontWeight: 800, fontSize: '0.6rem', py: 0.6, px: 1, color: 'text.secondary' } }}>
                   <TableCell>#</TableCell>
@@ -132,6 +135,7 @@ export default function ResultsScreen({
                 })}
               </TableBody>
             </Table>
+            </Box>
           ) : (
             <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
