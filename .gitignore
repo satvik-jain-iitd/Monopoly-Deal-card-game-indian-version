@@ -42,3 +42,8 @@ CLAUDE.md
 .env
 .env.local
 .env.production
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
