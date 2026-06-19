@@ -18,12 +18,12 @@ export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
   const [roomCode] = useState(() => generateCode())
   const [joinCode, setJoinCode] = useState('')
   const [error, setError] = useState('')
-  const [serverUrlInput, setServerUrlInput] = useState(import.meta.env.VITE_WS_URL || DEFAULT_WS_URL)
+  const serverUrl = import.meta.env.VITE_WS_URL || DEFAULT_WS_URL
 
   function handleCreate() {
     const n = name.trim()
     if (!n) { setError('Apna naam likho'); return }
-    onRoomReady(roomCode, true, n, serverUrlInput)
+    onRoomReady(roomCode, true, n, serverUrl)
   }
 
   function handleJoin() {
@@ -31,7 +31,7 @@ export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
     const code = joinCode.trim().toUpperCase()
     if (!n) { setError('Apna naam likho'); return }
     if (code.length < 2) { setError('Room code chahiye'); return }
-    onRoomReady(code, false, n, serverUrlInput)
+    onRoomReady(code, false, n, serverUrl)
   }
 
   return (
@@ -49,16 +49,8 @@ export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 2, pt: 2, pb: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Alert severity="info" sx={{ borderRadius: 2, fontSize: '0.8rem' }}>
-          {serverUrlInput ? 'Cloud se khelo — koi bhi jagah!' : 'Hotspot (LAN) mode — same WiFi pe khelo. Internet nahi chahiye.'}
+          {serverUrl ? 'Cloud se khelo — koi bhi jagah!' : 'Hotspot (LAN) mode — same WiFi pe khelo. Internet nahi chahiye.'}
         </Alert>
-
-        <TextField
-          fullWidth size="small" variant="outlined"
-          label="Server URL (optional)"
-          value={serverUrlInput}
-          onChange={e => setServerUrlInput(e.target.value)}
-          placeholder="ws://your-server-url"
-        />
 
         <TextField
           fullWidth size="small" variant="outlined"

@@ -1,60 +1,45 @@
-// Cloudflare Worker — WebSocket signalling relay for Dhandha multiplayer.
-// PWA connects to wss://dhandha-multiplayer.<your-subdomain>.workers.dev/<ROOM_CODE>
-//
-// Deploy:
-//   cd worker
-//   npm install -g wrangler
-//   wrangler deploy
-//
-// Then update the WS URL in:
-//   src/multiplayer/useMultiplayer.js → CLOUD_WS_BASE
-//   Or set env: VITE_WS_URL=wss://dhandha-multiplayer.<your-subdomain>.workers.dev
+// Cloudflare Worker -- WebSocket signalling relay for Dhandha multiplayer.
+// One RoomDO instance per room code (Hibernatable WebSockets -- the
+// runtime tracks attached sockets and survives DO eviction, no storage
+// needed for a pure relay).
 
-export default {
-  async fetch(req) {
-    const url = new URL(req.url)
+export class RoomDO {
+  constructor(ctx, env) {
+    this.ctx = ctx
+  }
 
-    if (req.headers.get('Upgrade') === 'websocket') {
-      const pair = new WebSocketPair()
-      const [client, server] = Object.values(pair)
-
-      server.accept()
-      handleSession(server, url.pathname)
-
-      return new Response(null, { status: 101, webSocket: client })
+  async fetch(request) {
+    if (request.headers.get('Upgrade') !== 'websocket') {
+      return new Response('Dhandha multiplayer relay', { status: 200 })
     }
+    const pair = new WebSocketPair()
+    this.ctx.acceptWebSocket(pair[1])
+    return new Response(null, { status: 101, webSocket: pair[0] })
+  }
 
-    return new Response('Dhandha multiplayer relay', { status: 200 })
-  },
+  async webSocketMessage(ws, message) {
+    const text = typeof message === 'string' ? message : ''
+    for (const client of this.ctx.getWebSockets()) {
+      if (client !== ws) client.send(text)
+    }
+  }
+
+  async webSocketClose(ws) {
+    const msg = JSON.stringify({ type: 'PLAYER_LEFT' })
+    for (const client of this.ctx.getWebSockets()) {
+      client.send(msg)
+    }
+  }
 }
 
-const rooms = new Map()
-
-function handleSession(ws, path) {
-  const roomCode = path.replace(/^\//, '').toUpperCase()
-  if (!rooms.has(roomCode)) rooms.set(roomCode, new Set())
-  const room = rooms.get(roomCode)
-  room.add(ws)
-
-  ws.addEventListener('message', (e) => {
-    const text = typeof e.data === 'string' ? e.data : ''
-    for (const client of room) {
-      if (client !== ws && client.readyState === 1) {
-        client.send(text)
-      }
-    }
-  })
-
-  ws.addEventListener('close', () => {
-    room.delete(ws)
-    const msg = JSON.stringify({ type: 'PLAYER_LEFT' })
-    for (const client of room) {
-      if (client.readyState === 1) {
-        client.send(msg)
-      }
-    }
-    if (room.size === 0) rooms.delete(roomCode)
-  })
-
-  ws.addEventListener('error', () => ws.close())
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url)
+    const roomCode = url.pathname.replace(/^\//, '').toUpperCase()
+    if (!roomCode) return new Response('Dhandha multiplayer relay', { status: 200 })
+    const stub = env.ROOM.getByName(roomCode)
+    // fetch() not RPC -- WebSocket upgrade needs the raw Request/Response
+    // pair, RPC methods can't carry the `webSocket` field
+    return stub.fetch(request)
+  },
 }
