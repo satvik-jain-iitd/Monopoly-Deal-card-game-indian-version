@@ -81,8 +81,9 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
     )
   }
 
-  // ── MULTIPLAYER WAITING SCREEN ─────────────────────────────────────
-  if (isMultiplayer && activeInteractorIdx !== myPlayerIndex) {
+  // ── MULTIPLAYER WAITING SCREEN (non-turn-flow phases only) ─────────
+  if (isMultiplayer && activeInteractorIdx !== myPlayerIndex &&
+    ![PHASE.DRAW, PHASE.DISCARD, PHASE.PLAY].includes(state.phase)) {
     const activePlayer = state.players[activeInteractorIdx]
     return (
       <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default', gap: 2, px: 3, textAlign: 'center' }}>
@@ -96,6 +97,91 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
         <Button size="small" variant="text" onClick={onHome} sx={{ color: 'text.disabled', mt: 2 }}>
           Quit
         </Button>
+      </Box>
+    )
+  }
+
+  // ── SPECTATOR VIEW (multiplayer, not my turn, normal turn-flow) ────
+  if (isMultiplayer && myPlayerIndex !== state.currentPlayerIndex &&
+    [PHASE.DRAW, PHASE.DISCARD, PHASE.PLAY].includes(state.phase)) {
+    const viewerPlayer = state.players[myPlayerIndex]
+    const otherPlayers = state.players.filter((_, i) => i !== myPlayerIndex)
+    const topDiscard = state.discard[state.discard.length - 1]
+    const phaseLabel = state.phase === PHASE.DRAW
+      ? `${currentPlayer.name} cards draw kar rahe hain...`
+      : state.phase === PHASE.DISCARD
+        ? `${currentPlayer.name} discard kar rahe hain...`
+        : `${currentPlayer.name} ki baari hai...`
+
+    return (
+      <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', backgroundColor: 'background.default', overflow: 'hidden' }}>
+        <AppBar position="static" elevation={1} sx={{ backgroundColor: 'background.paper' }}>
+          <Toolbar sx={{ minHeight: '48px !important', gap: 1 }}>
+            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
+              <Chip label={currentPlayer.name} color="primary" size="small" sx={{ fontWeight: 700, maxWidth: 100, overflow: 'hidden' }} />
+              <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                ki baari
+              </Typography>
+            </Box>
+            <IconButton size="small" onClick={() => setShowLog(!showLog)} sx={{ color: 'text.secondary' }}>
+              <ListAltIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small" onClick={onHome} sx={{ color: 'text.secondary' }}>
+              <HomeIcon fontSize="small" />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+
+        {showLog && <GameLog logs={state.log} onClose={() => setShowLog(false)} />}
+
+        <Box sx={{
+          display: 'flex', gap: 0.75, px: 1, pt: 0.5, pb: 0.25, flexShrink: 0,
+          overflowX: 'auto', '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none',
+        }}>
+          {otherPlayers.map(p => <PlayerBoard key={p.id} player={p} compact />)}
+        </Box>
+
+        <Box sx={{
+          flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5,
+          borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider',
+          background: 'radial-gradient(ellipse at center, rgba(230,81,0,0.07), transparent 72%)',
+          px: 1, py: 0.75, minHeight: 36,
+        }}>
+          {topDiscard ? (
+            <Box sx={{ position: 'relative', boxShadow: '0 4px 14px rgba(0,0,0,0.18)', borderRadius: '4px' }}>
+              <Card card={topDiscard} />
+            </Box>
+          ) : (
+            <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', letterSpacing: '0.04em' }}>
+              — Mez khaali · koi card abhi nahi khela —
+            </Typography>
+          )}
+        </Box>
+
+        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <PlayerBoard player={viewerPlayer} />
+        </Box>
+
+        <Box sx={{ flexShrink: 0, pb: 0.5 }}>
+          <CardHand
+            cards={viewerPlayer.hand}
+            selectable={false}
+            label={`Tumhare ${viewerPlayer.hand.length} cards`}
+          />
+        </Box>
+
+        <Paper elevation={4} sx={{
+          borderTopLeftRadius: 16, borderTopRightRadius: 16,
+          px: 1.5, py: 1.5,
+          pb: 'max(12px, env(safe-area-inset-bottom))',
+          flexShrink: 0, minHeight: 72,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
+        }}>
+          <CircularProgress size={20} thickness={5} sx={{ color: 'primary.main' }} />
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+            {phaseLabel}
+          </Typography>
+        </Paper>
       </Box>
     )
   }
