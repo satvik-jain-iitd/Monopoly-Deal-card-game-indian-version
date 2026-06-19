@@ -32,6 +32,7 @@ export default function App() {
   const [mpMyName, setMpMyName] = useState('')
   const [mpMyIndex, setMpMyIndex] = useState(null)
   const [mpPlayers, setMpPlayers] = useState([])
+  const [mpReadyPlayers, setMpReadyPlayers] = useState([])
   const [mpGuestState, setMpGuestState] = useState(null)
   const [mpError, setMpError] = useState(null)
   const mpModeRef = useRef(null)
@@ -54,6 +55,17 @@ export default function App() {
     } else if (msg.type === 'PLAYER_LEFT') {
       setMpPlayers(prev => prev.length > 0 ? [prev[0]] : prev)
       setMpError('Koi player disconnect ho gaya!')
+    } else if (msg.type === 'READY') {
+      if (mpModeRef.current === 'host') {
+        setMpReadyPlayers(prev => {
+          const name = msg.name
+          const next = prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+          setTimeout(() => activeSendRef.current?.({ type: 'READY', readyPlayers: next }), 0)
+          return next
+        })
+      } else if (Array.isArray(msg.readyPlayers)) {
+        setMpReadyPlayers(msg.readyPlayers)
+      }
     } else if (msg.type === 'GAME_STATE') {
       setMpGuestState(msg.state)
       setMpMyIndex(prev => {
@@ -139,8 +151,12 @@ export default function App() {
     mpTransportRef.current = 'cloud'
     activeSendRef.current = mpSend
     setMpMode(null); setMpRoom(''); setMpMyName(''); setMpMyIndex(null)
-    setMpPlayers([]); setMpGuestState(null); setMpError(null)
+    setMpPlayers([]); setMpReadyPlayers([]); setMpGuestState(null); setMpError(null)
   }
+
+  const handleToggleReady = useCallback(() => {
+    mpSend({ type: 'READY', name: mpMyName })
+  }, [mpSend, mpMyName])
 
   function handleGoHome() {
     resetMpState()
@@ -253,6 +269,9 @@ export default function App() {
             error={mpError || mp.error}
             onStartGame={handleStartMultiplayerGame}
             onLeave={handleGoHome}
+            readyPlayers={mpReadyPlayers}
+            onToggleReady={mpMode === 'guest' ? handleToggleReady : undefined}
+            showReadyGate={mpTransportRef.current === 'cloud'}
           />
         )}
         {screen === 'game' && effectiveState && !isGameOver && (

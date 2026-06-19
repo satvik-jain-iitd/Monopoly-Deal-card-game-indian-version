@@ -49,8 +49,8 @@ export function useMultiplayer({ onMessage } = {}) {
     }
     ws.onclose = () => {
       setConnected(false)
-      // Only retry if we were once connected (avoid retrying broken URLs forever)
-      if (everConnectedRef.current && roomParamsRef.current && retryCountRef.current < 5) {
+      const maxRetries = everConnectedRef.current ? 5 : 3
+      if (roomParamsRef.current && retryCountRef.current < maxRetries) {
         const backoff = Math.min(1000 * Math.pow(2, retryCountRef.current), 8000)
         retryCountRef.current++
         const timer = setTimeout(() => {
@@ -64,8 +64,7 @@ export function useMultiplayer({ onMessage } = {}) {
       }
     }
     ws.onerror = () => {
-      const base = roomParamsRef.current?.wsBaseOverride || CLOUD_WS_BASE
-      setError(`Server se connect nahi ho paaya (${base}). Sahi URL hai? Dobara try karo ya VITE_WS_URL check karo.`)
+      setError('Server se connect nahi ho paaya. Dobara try karo.')
       setConnected(false)
     }
   }, [])
