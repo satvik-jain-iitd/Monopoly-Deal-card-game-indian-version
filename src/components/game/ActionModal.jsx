@@ -41,7 +41,7 @@ function BottomSheet({ children, title }) {
   )
 }
 
-export default function ActionModal({ state, dispatch, onDone }) {
+export default function ActionModal({ state, dispatch, onDone, isMultiplayer }) {
   const { phase, pendingAction, players, currentPlayerIndex } = state
   const actor = players[pendingAction?.actingPlayerId ?? currentPlayerIndex]
 
@@ -170,6 +170,7 @@ export default function ActionModal({ state, dispatch, onDone }) {
         payer={payer} creditor={actor} amount={amount} dispatch={dispatch}
         label={`${actor.name} ne rent maanga — ₹${amount}Cr do!`}
         actionType="PAY_DEBT" extraData={{ payerId }}
+        isMultiplayer={isMultiplayer}
       />
     )
   }
@@ -186,6 +187,7 @@ export default function ActionModal({ state, dispatch, onDone }) {
         payer={payer} creditor={actor} amount={amountPerPlayer} dispatch={dispatch}
         label={`${actor.name} ka birthday! Tumhe ₹${amountPerPlayer}Cr dena hai!`}
         actionType="PAY_DEBT" extraData={{ payerId }}
+        isMultiplayer={isMultiplayer}
       />
     )
   }
@@ -219,6 +221,7 @@ export default function ActionModal({ state, dispatch, onDone }) {
         payer={payer} creditor={actor} amount={pendingAction.amount} dispatch={dispatch}
         label={`${actor.name} collector ban gaya — ₹${pendingAction.amount}Cr do!`}
         actionType="PAY_DEBT" extraData={{ payerId }}
+        isMultiplayer={isMultiplayer}
       />
     )
   }
@@ -370,6 +373,7 @@ export default function ActionModal({ state, dispatch, onDone }) {
         originalActor={originalActor}
         blocker={blocker}
         dispatch={dispatch}
+        isMultiplayer={isMultiplayer}
       />
     )
   }
@@ -508,11 +512,11 @@ function ImpactBadge({ impact, mode, color }) {
 }
 
 // ── JSN RESPONSE SHEET ────────────────────────────────────────────
-function JsnResponseSheet({ originalActor, blocker, dispatch }) {
+function JsnResponseSheet({ originalActor, blocker, dispatch, isMultiplayer }) {
   const [passConfirmed, setPassConfirmed] = useState(false)
   const jsnCard = originalActor.hand?.find(c => c.actionType === ACTION_TYPES.JUST_SAY_NO)
 
-  if (!passConfirmed) {
+  if (!isMultiplayer && !passConfirmed) {
     return (
       <BottomSheet>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, px: 2.5, pb: 1, textAlign: 'center' }}>
@@ -561,7 +565,7 @@ function JsnResponseSheet({ originalActor, blocker, dispatch }) {
 }
 
 // ── PAYMENT SHEET ──────────────────────────────────────────────────
-function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, extraData }) {
+function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, extraData, isMultiplayer }) {
   const [selectedAssets, setSelectedAssets] = useState([])
   const [passConfirmed, setPassConfirmed] = useState(false)
 
@@ -593,7 +597,7 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
 
   const jsnCard = payer.hand?.find(c => c.type === CARD_TYPES.ACTION && c.actionType === ACTION_TYPES.JUST_SAY_NO)
 
-  if (!passConfirmed) {
+  if (!isMultiplayer && !passConfirmed) {
     return (
       <BottomSheet>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, px: 2.5, pb: 1, textAlign: 'center' }}>

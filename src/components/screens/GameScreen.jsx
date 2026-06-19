@@ -174,6 +174,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
         state={state}
         dispatch={dispatch}
         onDone={() => { setSelectedCard(null); setSelectedAction(null) }}
+        isMultiplayer={isMultiplayer}
       />
     )
   }
