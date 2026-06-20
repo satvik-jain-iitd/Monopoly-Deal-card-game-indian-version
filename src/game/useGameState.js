@@ -285,6 +285,14 @@ function gameReducer(state, action) {
 
       const card = player.hand[cardIdx]
 
+      // Determine who pays — compute BEFORE mutating so we never discard the
+      // card without a valid target (e.g. a wild rent with no opponent picked,
+      // which would otherwise waste the card and collect no rent).
+      const payerIds = card.wild
+        ? (targetPlayerId !== undefined && targetPlayerId !== null ? [targetPlayerId] : [])
+        : s.players.map((_, i) => i).filter(i => i !== s.currentPlayerIndex)
+      if (payerIds.length === 0) return state
+
       player.hand.splice(cardIdx, 1)
       s.discard.push(card)
       s.cardsPlayedThisTurn++
@@ -294,11 +302,6 @@ function gameReducer(state, action) {
       let rentAmount = baseAmount
       let wasDoubled = false
       if (s.doubleRentActive) { rentAmount = baseAmount * 2; s.doubleRentActive = false; wasDoubled = true }
-
-      // Determine who pays
-      const payerIds = card.wild
-        ? (targetPlayerId !== undefined ? [targetPlayerId] : [])
-        : s.players.map((_, i) => i).filter(i => i !== s.currentPlayerIndex)
 
       s.log.push(`${player.name} ne ${targetColor} ka rent maanga — ₹${rentAmount}Cr${wasDoubled ? ' (doubled!)' : ''}!`)
       s.phase = PHASE.RENT_COLLECT
