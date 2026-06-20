@@ -19,6 +19,7 @@ import lightBlueImg from '/images/cards/light-blue-property-card.png'
 import redImg from '/images/cards/red-property-card.png'
 import greenImg from '/images/cards/green-property-card.png'
 import darkBlueImg from '/images/cards/dark-blue-property-card.png'
+import logoImg from '/images/monopoly-deal-indian-logo.png'
 
 const CARD_IMAGES = [
   { img: brownImg, rot: -16, y: 4, z: 1 },
@@ -161,14 +162,14 @@ function HeroSection({ onPlay }) {
     }}>
       <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.75 }}>
         <Box sx={{
-          width: 64, height: 64, borderRadius: '12px',
-          background: 'linear-gradient(145deg, #E65100, #FF8A50)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 6px 20px rgba(230,81,0,0.35)',
+          width: 130, height: 130, borderRadius: '24px',
+          overflow: 'hidden',
+          boxShadow: '0 10px 35px rgba(230,81,0,0.4), 0 0 0 3px rgba(255,255,255,0.7)',
+          transition: 'transform 0.2s ease',
+          '&:hover': { transform: 'scale(1.04)' },
         }}>
-          <Typography sx={{ color: '#fff', fontSize: '1.75rem', fontWeight: 900, lineHeight: 1 }}>
-            ₹
-          </Typography>
+          <img src={logoImg} alt="Dhandha Logo"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         </Box>
         <Typography variant="h3" sx={{ fontWeight: 900, letterSpacing: '-0.5px', color: '#3E2723', textAlign: 'center' }}>
           Dhandha
