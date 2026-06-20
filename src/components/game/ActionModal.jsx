@@ -588,6 +588,10 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
   const allAssets = [...cashAssets, ...propAssets, ...buildingAssets]
   const totalSelected = selectedAssets.reduce((s, c) => s + c.value, 0)
   const selectedColors = selectedAssets.filter(a => a._from === 'property').map(a => a._color)
+  // Most the payer can possibly give. If this is less than the amount owed,
+  // they're going bankrupt and must hand over everything they have.
+  const maxPayable = allAssets.reduce((s, c) => s + c.value, 0)
+  const payThreshold = Math.min(amount, maxPayable)
 
   function toggleAsset(asset) {
     const exists = selectedAssets.find(a => a.id === asset.id)
@@ -746,7 +750,7 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
 
         <Button
           variant="contained" fullWidth size="large"
-          disabled={totalSelected < amount && allAssets.length > 0}
+          disabled={totalSelected < payThreshold}
           sx={{ borderRadius: 3, fontWeight: 800, mt: 0.5 }}
           onClick={() => {
             dispatch({
@@ -757,7 +761,11 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
               ...extraData,
             })
           }}>
-          {allAssets.length === 0 ? 'Pass (kuch nahi hai)' : `Pay ₹${Math.min(totalSelected, amount)}Cr`}
+          {allAssets.length === 0
+            ? 'Pass (kuch nahi hai)'
+            : maxPayable < amount
+              ? `Sab kuch do — ₹${totalSelected}Cr / ₹${maxPayable}Cr`
+              : `Pay ₹${Math.min(totalSelected, amount)}Cr`}
         </Button>
       </Box>
     </BottomSheet>
