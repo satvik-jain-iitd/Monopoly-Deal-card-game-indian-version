@@ -678,7 +678,7 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
               startIcon={<BlockIcon />}
               sx={{ borderRadius: 3, fontWeight: 800, mb: 1 }}
               onClick={() => dispatch({ type: 'JUST_SAY_NO', playerId: payer.id, jsnCardId: jsnCard.id })}>
-              🚫 Nahi! (Just Say No)
+              Nahi! (Just Say No)
             </Button>
           )}
 
