@@ -14,14 +14,19 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 import PeopleIcon from '@mui/icons-material/People'
 import CasinoIcon from '@mui/icons-material/Casino'
 
-const CARD_IMAGES = {
-  brown: '/images/cards/brown-property-card.png',
-  lightBlue: '/images/cards/light-blue-property-card.png',
-  red: '/images/cards/red-property-card.png',
-  green: '/images/cards/green-property-card.png',
-  darkBlue: '/images/cards/dark-blue-property-card.png',
-  quickRules: '/images/cards/quick-start-rules-cards.png',
-}
+import brownImg from '/images/cards/brown-property-card.png'
+import lightBlueImg from '/images/cards/light-blue-property-card.png'
+import redImg from '/images/cards/red-property-card.png'
+import greenImg from '/images/cards/green-property-card.png'
+import darkBlueImg from '/images/cards/dark-blue-property-card.png'
+
+const CARD_IMAGES = [
+  { img: brownImg, rot: -16, y: 4, z: 1 },
+  { img: lightBlueImg, rot: -8, y: 0, z: 2 },
+  { img: redImg, rot: 0, y: -6, z: 3 },
+  { img: greenImg, rot: 8, y: 0, z: 2 },
+  { img: darkBlueImg, rot: 16, y: 4, z: 1 },
+]
 
 const FEATURES = [
   { icon: <AccountBalanceIcon />, title: 'Indian Cities', desc: 'Properties from Indore to South Mumbai' },
@@ -151,12 +156,12 @@ function HeroSection({ onPlay }) {
     <Box sx={{
       background: 'linear-gradient(170deg, #E65100 0%, #F57C00 35%, #FFF3E0 85%, #FFF8F0 100%)',
       pt: 5, pb: 3, px: 2.5,
-      borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
+      borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px',
       position: 'relative', overflow: 'hidden',
     }}>
       <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.75 }}>
         <Box sx={{
-          width: 64, height: 64, borderRadius: 3,
+          width: 64, height: 64, borderRadius: '12px',
           background: 'linear-gradient(145deg, #E65100, #FF8A50)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 6px 20px rgba(230,81,0,0.35)',
@@ -174,19 +179,13 @@ function HeroSection({ onPlay }) {
 
         <Box sx={{ position: 'relative', width: '100%', height: 150, my: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Box sx={{ position: 'relative', width: 300, height: 148 }}>
-            {[
-              { img: CARD_IMAGES.brown, rot: -16, y: 4, z: 1 },
-              { img: CARD_IMAGES.lightBlue, rot: -8, y: 0, z: 2 },
-              { img: CARD_IMAGES.red, rot: 0, y: -6, z: 3 },
-              { img: CARD_IMAGES.green, rot: 8, y: 0, z: 2 },
-              { img: CARD_IMAGES.darkBlue, rot: 16, y: 4, z: 1 },
-            ].map((card, i) => (
+            {CARD_IMAGES.map((card, i) => (
               <Box key={i} sx={{
                 position: 'absolute', left: '50%', top: '50%',
                 transform: `translate(-50%, -50%) translateX(${(i - 2) * 44}px) translateY(${card.y}px) rotate(${card.rot}deg)`,
                 zIndex: card.z,
                 width: 82, height: 114,
-                borderRadius: 1.5, overflow: 'hidden',
+                borderRadius: '6px', overflow: 'hidden',
                 boxShadow: card.z === 3
                   ? '0 12px 28px rgba(0,0,0,0.3), 0 0 0 2px rgba(255,255,255,0.6)'
                   : '0 4px 12px rgba(0,0,0,0.18)',
@@ -215,7 +214,7 @@ function HeroSection({ onPlay }) {
           onClick={onPlay}
           fullWidth
           sx={{
-            borderRadius: 3, py: 1.5, fontSize: '1.05rem', fontWeight: 800,
+            borderRadius: '10px', py: 1.5, fontSize: '1.05rem', fontWeight: 800,
             boxShadow: '0 6px 18px rgba(230,81,0,0.4)',
             maxWidth: 320,
             backgroundColor: '#E65100',
@@ -248,7 +247,7 @@ function GameModesSection({ onPlay, onMultiplayer, onLocalMultiplayer, onOffline
             key={mode.key}
             onClick={modeHandlers[mode.key]}
             sx={{
-              backgroundColor: '#fff', borderRadius: 3, p: 1.5,
+              backgroundColor: '#fff', borderRadius: '12px', p: 1.5,
               display: 'flex', flexDirection: 'column', gap: 0.5,
               boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
               border: '1.5px solid',
@@ -263,7 +262,7 @@ function GameModesSection({ onPlay, onMultiplayer, onLocalMultiplayer, onOffline
             }}
           >
             <Box sx={{
-              width: 36, height: 36, borderRadius: 2,
+              width: 36, height: 36, borderRadius: '8px',
               backgroundColor: `${mode.color}12`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: mode.color,
@@ -288,7 +287,7 @@ function AboutSection() {
   return (
     <Box sx={{ px: 2.5 }}>
       <Box sx={{
-        backgroundColor: '#fff', borderRadius: 4, p: 2.5,
+        backgroundColor: '#fff', borderRadius: '14px', p: 2.5,
         boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
       }}>
         <Typography variant="h6" sx={{ fontWeight: 900, mb: 1, color: 'text.primary' }}>
@@ -311,7 +310,7 @@ function AboutSection() {
           {FEATURES.map((f, i) => (
             <Box key={i} sx={{
               display: 'flex', gap: 1.25, alignItems: 'flex-start',
-              p: 1.25, borderRadius: 2.5,
+              p: 1.25, borderRadius: '10px',
               backgroundColor: 'rgba(230,81,0,0.04)',
               border: '1px solid rgba(230,81,0,0.1)',
             }}>
@@ -341,7 +340,7 @@ function HowToPlaySection() {
   return (
     <Box sx={{ px: 2.5 }}>
       <Box sx={{
-        borderRadius: 4, overflow: 'hidden',
+        borderRadius: '14px', overflow: 'hidden',
         boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
       }}>
         <Box sx={{
@@ -380,7 +379,7 @@ function HowToPlaySection() {
           </Box>
 
           <Box sx={{
-            mt: 2.5, p: 1.5, borderRadius: 2.5,
+            mt: 2.5, p: 1.5, borderRadius: '10px',
             backgroundColor: 'rgba(230,81,0,0.05)',
             border: '1px solid rgba(230,81,0,0.12)',
             textAlign: 'center',
@@ -398,7 +397,7 @@ function HowToPlaySection() {
 function AccordionSection({ title, sections, defaultExpanded }) {
   return (
     <Box sx={{ px: 2.5 }}>
-      <Box sx={{ backgroundColor: '#fff', borderRadius: 4, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
+      <Box sx={{ backgroundColor: '#fff', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.05)' }}>
         <Box sx={{
           px: 2.5, py: 2, borderBottom: '1px solid',
           borderColor: 'divider',
@@ -445,7 +444,7 @@ function AccordionSection({ title, sections, defaultExpanded }) {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                   {section.tips.map((tip, j) => (
                     <Box key={j} sx={{
-                      p: 1.25, borderRadius: 2, backgroundColor: 'rgba(230,81,0,0.04)',
+                      p: 1.25, borderRadius: '8px', backgroundColor: 'rgba(230,81,0,0.04)',
                       borderLeft: '3px solid #E65100',
                     }}>
                       <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.4 }}>
@@ -468,7 +467,7 @@ function CTASection({ onPlay, onMultiplayer, onLocalMultiplayer, onOfflineMultip
     <Box sx={{ px: 2.5, pb: 'max(24px, env(safe-area-inset-bottom))' }}>
       <Box sx={{
         background: 'linear-gradient(135deg, #E65100 0%, #BF360C 100%)',
-        borderRadius: 4, p: 2.5,
+        borderRadius: '14px', p: 2.5,
         textAlign: 'center',
       }}>
         <Typography variant="h6" sx={{ fontWeight: 900, color: '#fff', mb: 0.5 }}>
@@ -483,7 +482,7 @@ function CTASection({ onPlay, onMultiplayer, onLocalMultiplayer, onOfflineMultip
           fullWidth
           onClick={onPlay}
           sx={{
-            borderRadius: 3, py: 1.5, fontSize: '1.05rem', fontWeight: 800,
+            borderRadius: '10px', py: 1.5, fontSize: '1.05rem', fontWeight: 800,
             backgroundColor: '#fff', color: '#E65100',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             '&:hover': { backgroundColor: 'rgba(255,255,255,0.95)', boxShadow: '0 6px 20px rgba(0,0,0,0.2)' },
@@ -500,7 +499,7 @@ function CTASection({ onPlay, onMultiplayer, onLocalMultiplayer, onOfflineMultip
               fullWidth
               onClick={onMultiplayer}
               startIcon={<LanguageIcon />}
-              sx={{ borderRadius: 3, py: 1, borderColor: 'rgba(255,255,255,0.5)', color: '#fff', fontWeight: 700, '&:hover': { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.1)' } }}
+              sx={{ borderRadius: '10px', py: 1, borderColor: 'rgba(255,255,255,0.5)', color: '#fff', fontWeight: 700, '&:hover': { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.1)' } }}
             >
               Online Khelo (Internet)
             </Button>
@@ -512,7 +511,7 @@ function CTASection({ onPlay, onMultiplayer, onLocalMultiplayer, onOfflineMultip
               fullWidth
               onClick={onLocalMultiplayer}
               startIcon={<WifiIcon />}
-              sx={{ borderRadius: 3, py: 1, borderColor: 'rgba(255,255,255,0.5)', color: '#fff', fontWeight: 700, '&:hover': { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.1)' } }}
+              sx={{ borderRadius: '10px', py: 1, borderColor: 'rgba(255,255,255,0.5)', color: '#fff', fontWeight: 700, '&:hover': { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.1)' } }}
             >
               Hotspot Khelo (No Internet)
             </Button>
@@ -524,7 +523,7 @@ function CTASection({ onPlay, onMultiplayer, onLocalMultiplayer, onOfflineMultip
               fullWidth
               onClick={onOfflineMultiplayer}
               startIcon={<PhoneIphoneIcon />}
-              sx={{ borderRadius: 3, py: 1, borderColor: 'rgba(255,255,255,0.5)', color: '#fff', fontWeight: 700, '&:hover': { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.1)' } }}
+              sx={{ borderRadius: '10px', py: 1, borderColor: 'rgba(255,255,255,0.5)', color: '#fff', fontWeight: 700, '&:hover': { borderColor: '#fff', backgroundColor: 'rgba(255,255,255,0.1)' } }}
             >
               Offline Khelo (Bus / No Internet)
             </Button>
