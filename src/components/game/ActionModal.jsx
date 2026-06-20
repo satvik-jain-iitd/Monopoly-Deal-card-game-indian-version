@@ -441,37 +441,33 @@ function CounterpartyStrip({ player, title, highlightColors = [] }) {
 
 // ── PLAYER CONTEXT VIEW ──────────────────────────────────────────
 // Shows a player's hand (compact list) + properties (color chips) + bank cards.
-function PlayerContextView({ player, title }) {
+// The acting player's own hand, shown as real cards (name + value) so they
+// can see exactly what they're holding while deciding an action — not just a
+// summary or count.
+function PlayerContextView({ player }) {
   if (!player) return null
-  const colors = orderPropertyColors(player.properties)
   return (
     <Box sx={{ mb: 1.25, p: 1, borderRadius: 2, backgroundColor: 'rgba(0,0,0,0.03)' }}>
-      {title && <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.5 }}>{title}</Typography>}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 0.75 }}>
-        {colors.map(color => {
-          const cards = player.properties[color]
-          const complete = isSetComplete(color, cards)
-          const needed = PROPERTY_SETS[color]?.cardsNeeded || 0
-          const display = COLOR_DISPLAY[color] || {}
-          return (
-            <Box key={color} sx={{ display: 'flex', alignItems: 'center', gap: 0.3, backgroundColor: display.hex, borderRadius: '4px', px: 0.5, py: 0.2, opacity: complete ? 1 : 0.85 }}>
-              <Typography sx={{ color: '#fff', fontSize: '0.5rem', fontWeight: 800, lineHeight: 1, textShadow: '0 1px 1px rgba(0,0,0,0.4)' }}>
-                {COLOR_DISPLAY[color]?.name} {cards.length}/{needed}{complete ? ' ✓' : ''}
+      <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', display: 'block', mb: 0.5 }}>
+        ✋ Tumhare haath ke cards ({player.hand.length}):
+      </Typography>
+      {player.hand.length === 0 ? (
+        <Typography variant="caption" sx={{ color: 'text.disabled' }}>Haath khaali</Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          {player.hand.map(card => (
+            <Box key={card.id} sx={{
+              p: 0.5, borderRadius: '4px',
+              border: '1px solid', borderColor: 'divider',
+              backgroundColor: 'background.paper',
+            }}>
+              <Typography sx={{ fontSize: '0.58rem', fontWeight: 600 }}>
+                {card.name}{card.value ? ` (₹${card.value}Cr)` : ''}
               </Typography>
             </Box>
-          )
-        })}
-      </Box>
-      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
-        {player.bank?.map(c => (
-          <Box key={c.id} sx={{ p: 0.3, borderRadius: '3px', backgroundColor: 'rgba(0,0,0,0.04)', border: '1px solid', borderColor: 'divider' }}>
-            <Typography sx={{ fontSize: '0.5rem', fontWeight: 600, color: 'success.main' }}>₹{c.value}Cr</Typography>
-          </Box>
-        ))}
-        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', ml: 'auto' }}>
-          ✋ {player.hand.length} cards
-        </Typography>
-      </Box>
+          ))}
+        </Box>
+      )}
     </Box>
   )
 }
