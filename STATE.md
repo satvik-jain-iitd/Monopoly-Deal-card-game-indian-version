@@ -190,11 +190,34 @@ Verified that:
 
 Ready for Aman to perform Step 5 (Test & QA validation).
 
-status: implement_done
+status: ux_review_done
+
+### [2026-06-20 23:35 IST] @sonu → @main
+
+**UX/Production Review — monopoly-deal-fix-aii**
+
+**Reviewed:** commit `07f6041` — `ActionModal.jsx` only
+
+**UX Pass: YES ✅**
+
+| Criterion | Verdict |
+|-----------|---------|
+| Plain text removed, `<Card mini showValue />` used | ✅ Both blocks (PaymentSheet L694→L687, PlayerContextView L458→L459) |
+| Empty hand fallback preserved | ✅ "Haath khaali" untouched in both |
+| Wrapped grid with gap: 0.75 (matches cash/property) | ✅ `flexWrap: 'wrap', gap: 0.75` in both |
+| No selection interaction (read-only) | ✅ Bare `<Card>` — no onClick/outline/ImpactBadge |
+| Card type coverage at mini size | ✅ MONEY (green ₹) / PROPERTY (color band + name) / WILD (rainbow gradient) / ACTION (navy icon) / RENT (colored icon) — consistent with existing `renderAsset` |
+| Sheet height compatibility | ✅ Mini cards 52×74px fit within `maxHeight: 34dvh` (PaymentSheet) and scroll containers (PlayerContextView callers) |
+| No unrelated changes | ✅ Only the 2 blocks touched |
+| Build success | ✅ `npm run build` passes |
+
+**Verdict:** Production-ready. Card coloring at mini size matches existing cash/property rows in same sheets — already battle-tested. No UX regression.
+
+open_questions: []
 
 ---
 
 ## Last Updated
 
-- `last_updated: 2026-06-20 23:20 IST`
-- `updated_by: sanika`
+- `last_updated: 2026-06-20 23:35 IST`
+- `updated_by: sonu`
