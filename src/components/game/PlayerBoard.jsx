@@ -187,7 +187,7 @@ export default function PlayerBoard({ player, compact = false, onWildAction }) {
   return (
     <>
       <RentInfoDialog info={rentInfo} onClose={() => setRentInfo(null)} />
-      <MuiCard elevation={2} sx={{ borderRadius: 2, mx: 1, my: 0.5, overflow: 'hidden' }}>
+      <MuiCard elevation={2} sx={{ borderRadius: '6px', mx: 1, my: 0.5, overflow: 'hidden' }}>
         <CardContent sx={{ py: '8px !important', px: '12px !important' }}>
           {/* Header row */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
