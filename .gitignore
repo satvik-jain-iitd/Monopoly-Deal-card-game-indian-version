@@ -32,11 +32,15 @@ scripts/.sim-bundle.mjs
 .vision-brief.md
 .step*
 UAT-CHECKLIST.md
+plan.md
+slack.md
+TASK.md
 
 # GitNexus generated files
 .claude/
 AGENTS.md
 CLAUDE.md
+ARCHITECTURE.md
 
 # Environment files
 .env

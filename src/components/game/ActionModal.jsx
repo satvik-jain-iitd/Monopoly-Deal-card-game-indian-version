@@ -454,17 +454,9 @@ function PlayerContextView({ player }) {
       {player.hand.length === 0 ? (
         <Typography variant="caption" sx={{ color: 'text.disabled' }}>Haath khaali</Typography>
       ) : (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
           {player.hand.map(card => (
-            <Box key={card.id} sx={{
-              p: 0.5, borderRadius: '4px',
-              border: '1px solid', borderColor: 'divider',
-              backgroundColor: 'background.paper',
-            }}>
-              <Typography sx={{ fontSize: '0.58rem', fontWeight: 600 }}>
-                {card.name}{card.value ? ` (₹${card.value}Cr)` : ''}
-              </Typography>
-            </Box>
+            <Card key={card.id} card={card} mini showValue />
           ))}
         </Box>
       )}
@@ -691,17 +683,9 @@ function PaymentSheet({ payer, creditor, amount, dispatch, label, actionType, ex
             {payer.hand.length === 0 ? (
               <Typography variant="caption" sx={{ color: 'text.disabled' }}>Haath khaali</Typography>
             ) : (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                 {payer.hand.map(card => (
-                  <Box key={card.id} sx={{ 
-                    p: 0.5, borderRadius: '4px', 
-                    border: '1px solid', borderColor: 'divider',
-                    backgroundColor: 'background.paper'
-                  }}>
-                    <Typography sx={{ fontSize: '0.58rem', fontWeight: 600 }}>
-                      {card.name} {card.value ? `(₹${card.value}Cr)` : ''}
-                    </Typography>
-                  </Box>
+                  <Card key={card.id} card={card} mini showValue />
                 ))}
               </Box>
             )}
