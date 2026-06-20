@@ -16,6 +16,18 @@ import PassDeviceModal from '../game/PassDeviceModal'
 
 const PAYMENT_PHASES = [PHASE.RENT_COLLECT, PHASE.ACTION_RESPONSE, PHASE.BIRTHDAY_COLLECT]
 
+// Phases where the acting player is making a PRIVATE decision (drawing,
+// discarding, playing, rearranging a wild, or picking what to steal/swap).
+// Spectators should keep seeing their own board during these — never the
+// full-screen "X ki baari hai" block. The phases that actually need the
+// other player to respond (rent/JSN/insurance/payment) are intentionally
+// NOT here, so those still surface the waiting/response UI.
+const SPECTATOR_PHASES = [
+  PHASE.DRAW, PHASE.DISCARD, PHASE.PLAY,
+  PHASE.WILD_COLOR_SELECT, PHASE.SLY_DEAL_SELECT, PHASE.FORCED_DEAL_SELECT,
+  PHASE.DEAL_BREAKER_SELECT, PHASE.SABOTAGE_SELECT,
+]
+
 // Returns the index of the player who needs to interact RIGHT NOW
 // (differs from currentPlayerIndex during rent/debt collection).
 function getActiveInteractorIdx(state) {
@@ -83,7 +95,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
 
   // ── MULTIPLAYER WAITING SCREEN (non-turn-flow phases only) ─────────
   if (isMultiplayer && activeInteractorIdx !== myPlayerIndex &&
-    ![PHASE.DRAW, PHASE.DISCARD, PHASE.PLAY].includes(state.phase)) {
+    !SPECTATOR_PHASES.includes(state.phase)) {
     const activePlayer = state.players[activeInteractorIdx]
     return (
       <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default', gap: 2, px: 3, textAlign: 'center' }}>
@@ -103,7 +115,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
 
   // ── SPECTATOR VIEW (multiplayer, not my turn, normal turn-flow) ────
   if (isMultiplayer && myPlayerIndex !== state.currentPlayerIndex &&
-    [PHASE.DRAW, PHASE.DISCARD, PHASE.PLAY].includes(state.phase)) {
+    SPECTATOR_PHASES.includes(state.phase)) {
     const viewerPlayer = state.players[myPlayerIndex]
     const otherPlayers = state.players.filter((_, i) => i !== myPlayerIndex)
     const topDiscard = state.discard[state.discard.length - 1]
