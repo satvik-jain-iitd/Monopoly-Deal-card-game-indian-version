@@ -13,6 +13,7 @@ import CardHand from '../game/CardHand'
 import ActionModal from '../game/ActionModal'
 import GameLog from '../game/GameLog'
 import PassDeviceModal from '../game/PassDeviceModal'
+import logoImg from '/images/monopoly-deal-indian-logo.png'
 
 const PAYMENT_PHASES = [PHASE.RENT_COLLECT, PHASE.ACTION_RESPONSE, PHASE.BIRTHDAY_COLLECT]
 
@@ -160,31 +161,103 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
 
         {showLog && <GameLog logs={state.log} onClose={() => setShowLog(false)} />}
 
-        <Box sx={{
-          display: 'flex', gap: 0.75, px: 1, pt: 0.5, pb: 0.25, flexShrink: 0,
-          overflowX: 'auto', '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none',
-        }}>
-          {otherPlayers.map(p => <PlayerBoard key={p.id} player={p} compact />)}
-        </Box>
-
-        <Box sx={{
-          flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider',
-          px: 1, py: 0.5, minHeight: 28,
-        }}>
-          {topDiscard ? (
-            <Box sx={{ position: 'relative', boxShadow: '0 2px 10px rgba(0,0,0,0.15)', borderRadius: '3px' }}>
-              <Card card={topDiscard} mini />
+        {/* Main Scrollable Table Area */}
+        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {/* Opponent boards Grid (scales 2–6 players, symmetrically arranged) */}
+          {otherPlayers.length > 0 && (
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: otherPlayers.length === 1 ? '1fr' : '1fr 1fr',
+              gap: 1.25,
+              px: 1.5,
+              pt: 1.5,
+              flexShrink: 0,
+            }}>
+              {otherPlayers.map(p => (
+                <PlayerBoard key={p.id} player={p} compact />
+              ))}
             </Box>
-          ) : (
-            <Typography sx={{ fontSize: '0.55rem', color: 'text.disabled', letterSpacing: '0.04em' }}>
-              — Mez khaali —
-            </Typography>
           )}
-        </Box>
 
-        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-          <PlayerBoard player={viewerPlayer} />
+          {/* Center Zone: Draw Pile (Left) and Action Pile (Right) */}
+          <Box sx={{
+            display: 'flex',
+            borderTop: '1px solid',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            py: 2,
+            backgroundColor: 'background.paper',
+            flexShrink: 0,
+          }}>
+            {/* Draw Pile */}
+            <Box sx={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRight: '1px solid',
+              borderColor: 'divider',
+              gap: 0.75,
+            }}>
+              <Typography sx={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.08em', color: 'text.secondary' }}>
+                DRAW PILE
+              </Typography>
+              <Paper elevation={2} sx={{
+                width: 52, height: 74, borderRadius: '4px',
+                overflow: 'hidden', backgroundColor: '#0d47a1',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '2px solid #fff',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                p: 0.5,
+              }}>
+                <img src={logoImg} alt="Dhandha Logo" style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
+              </Paper>
+              <Typography sx={{ fontSize: '0.6rem', color: 'text.secondary', fontWeight: 700 }}>
+                Face down · {state.deck.length}
+              </Typography>
+            </Box>
+
+            {/* Action Pile */}
+            <Box sx={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 0.75,
+            }}>
+              <Typography sx={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.08em', color: 'text.secondary' }}>
+                ACTION PILE
+              </Typography>
+              {topDiscard ? (
+                <Box sx={{ boxShadow: '0 2px 5px rgba(0,0,0,0.2)', borderRadius: '4px' }}>
+                  <Card card={topDiscard} mini />
+                </Box>
+              ) : (
+                <Box sx={{
+                  width: 52,
+                  height: 74,
+                  borderRadius: '4px',
+                  border: '1.5px dashed rgba(0,0,0,0.15)',
+                  backgroundColor: 'rgba(0,0,0,0.02)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Typography sx={{ fontSize: '0.55rem', color: 'text.disabled' }}>Khaali</Typography>
+                </Box>
+              )}
+              <Typography sx={{ fontSize: '0.6rem', color: 'primary.main', fontWeight: 800 }}>
+                {topDiscard ? `Last: ${topDiscard.name}!` : 'No action yet'}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Current player board */}
+          <Box sx={{ pb: 1.5 }}>
+            <PlayerBoard player={viewerPlayer} />
+          </Box>
         </Box>
 
         <Box sx={{ flexShrink: 0, pb: 0.5 }}>
@@ -332,77 +405,114 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
 
       {showLog && <GameLog logs={state.log} onClose={() => setShowLog(false)} />}
 
-      {/* Opponent boards — horizontal swipe strip (scales 2–6 players) */}
-      <Box sx={{
-        display: 'flex', gap: 0.75, px: 1, pt: 0.5, pb: 0.25, flexShrink: 0,
-        overflowX: 'auto',
-        '&::-webkit-scrollbar': { display: 'none' },
-        scrollbarWidth: 'none',
-      }}>
-        {otherPlayers.map(p => (
-          <PlayerBoard key={p.id} player={p} compact />
-        ))}
-      </Box>
+      {/* Main Scrollable Table Area */}
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        {/* Opponent boards Grid (scales 2–6 players, symmetrically arranged) */}
+        {otherPlayers.length > 0 && (
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: otherPlayers.length === 1 ? '1fr' : '1fr 1fr',
+            gap: 1.25,
+            px: 1.5,
+            pt: 1.5,
+            flexShrink: 0,
+          }}>
+            {otherPlayers.map(p => (
+              <PlayerBoard key={p.id} player={p} compact />
+            ))}
+          </Box>
+        )}
 
-      {/* Play zone — mini card pile (reduced height, same position) */}
-      <Box sx={{
-        flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
-        borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider',
-        px: 1, py: 0.5, minHeight: 28,
-      }}>
-        {topDiscard ? (
-          <>
-            <Box sx={{ textAlign: 'right', minWidth: 40 }}>
-              <Typography sx={{ fontSize: '0.42rem', fontWeight: 800, letterSpacing: '0.06em', color: 'text.secondary', lineHeight: 1.1 }}>
-                MEZ
-              </Typography>
-              <Typography sx={{ fontSize: '0.5rem', fontWeight: 700, color: 'text.disabled', lineHeight: 1.2 }}>
-                {state.discard.length}
-              </Typography>
-            </Box>
-
-            <Box key={state.discard.length} sx={{
-              position: 'relative',
-              animation: 'playIn 250ms cubic-bezier(0.175,0.885,0.32,1.275)',
-              '@keyframes playIn': {
-                from: { transform: 'translateY(-12px) scale(0.95) rotate(-3deg)', opacity: 0 },
-                to: { transform: 'translateY(0) scale(1) rotate(0)', opacity: 1 },
-              },
+        {/* Center Zone: Draw Pile (Left) and Action Pile (Right) */}
+        <Box sx={{
+          display: 'flex',
+          borderTop: '1px solid',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          py: 2,
+          backgroundColor: 'background.paper',
+          flexShrink: 0,
+        }}>
+          {/* Draw Pile */}
+          <Box sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRight: '1px solid',
+            borderColor: 'divider',
+            gap: 0.75,
+          }}>
+            <Typography sx={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.08em', color: 'text.secondary' }}>
+              DRAW PILE
+            </Typography>
+            <Paper elevation={2} sx={{
+              width: 52, height: 74, borderRadius: '4px',
+              overflow: 'hidden', backgroundColor: '#0d47a1',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '2px solid #fff',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+              p: 0.5,
             }}>
-              {state.discard.length > 1 && (
-                <>
-                  <Box sx={{ position: 'absolute', inset: 0, transform: 'rotate(-5deg)', borderRadius: '3px', backgroundColor: 'rgba(0,0,0,0.08)' }} />
-                  <Box sx={{ position: 'absolute', inset: 0, transform: 'rotate(3deg)', borderRadius: '3px', backgroundColor: 'rgba(0,0,0,0.05)' }} />
-                </>
-              )}
-              <Box sx={{ position: 'relative', boxShadow: '0 2px 10px rgba(0,0,0,0.15)', borderRadius: '3px' }}>
+              <img src={logoImg} alt="Dhandha Logo" style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
+            </Paper>
+            <Typography sx={{ fontSize: '0.6rem', color: 'text.secondary', fontWeight: 700 }}>
+              Face down · {state.deck.length}
+            </Typography>
+          </Box>
+
+          {/* Action Pile */}
+          <Box sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 0.75,
+          }}>
+            <Typography sx={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.08em', color: 'text.secondary' }}>
+              ACTION PILE
+            </Typography>
+            {topDiscard ? (
+              <Box key={state.discard.length} sx={{
+                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                borderRadius: '4px',
+                animation: 'playIn 250ms cubic-bezier(0.175,0.885,0.32,1.275)',
+                '@keyframes playIn': {
+                  from: { transform: 'translateY(-12px) scale(0.95)', opacity: 0 },
+                  to: { transform: 'translateY(0) scale(1)', opacity: 1 },
+                },
+              }}>
                 <Card card={topDiscard} mini />
               </Box>
-            </Box>
+            ) : (
+              <Box sx={{
+                width: 52,
+                height: 74,
+                borderRadius: '4px',
+                border: '1.5px dashed rgba(0,0,0,0.15)',
+                backgroundColor: 'rgba(0,0,0,0.02)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Typography sx={{ fontSize: '0.55rem', color: 'text.disabled' }}>Khaali</Typography>
+              </Box>
+            )}
+            <Typography sx={{ fontSize: '0.6rem', color: 'primary.main', fontWeight: 800 }}>
+              {topDiscard ? `Last: ${topDiscard.name}!` : 'No action yet'}
+            </Typography>
+          </Box>
+        </Box>
 
-            <Box sx={{ minWidth: 40 }}>
-              <Typography sx={{ fontSize: '0.42rem', fontWeight: 800, letterSpacing: '0.06em', color: 'text.secondary', lineHeight: 1.1 }}>
-                LAST
-              </Typography>
-              <Typography sx={{ fontSize: '0.5rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.2 }}>
-                {topDiscard.name}
-              </Typography>
-            </Box>
-          </>
-        ) : (
-          <Typography sx={{ fontSize: '0.55rem', color: 'text.disabled', letterSpacing: '0.04em' }}>
-            — Mez khaali —
-          </Typography>
-        )}
-      </Box>
-
-      {/* Current player board — scrolls so the hand below stays pinned & fully visible */}
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-        <PlayerBoard 
-          player={currentPlayer} 
-          onWildAction={(card) => dispatch({ type: 'START_WILD_COLOR_CHANGE', cardId: card.id })}
-        />
+        {/* Current player board */}
+        <Box sx={{ pb: 1.5 }}>
+          <PlayerBoard 
+            player={currentPlayer} 
+            onWildAction={(card) => dispatch({ type: 'START_WILD_COLOR_CHANGE', cardId: card.id })}
+          />
+        </Box>
       </Box>
 
       {/* Hand — primary focus, always fully visible at the bottom */}

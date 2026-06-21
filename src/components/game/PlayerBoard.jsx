@@ -120,7 +120,7 @@ export default function PlayerBoard({ player, compact = false, onWildAction }) {
         <RentInfoDialog info={rentInfo} onClose={() => setRentInfo(null)} />
         <MuiCard variant="outlined" sx={{
           borderRadius: '6px', overflow: 'hidden',
-          width: 120, flexShrink: 0,
+          width: '100%', minWidth: 110, flexShrink: 1,
         }}>
           <CardContent sx={{ py: '6px !important', px: '6px !important' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.4 }}>
