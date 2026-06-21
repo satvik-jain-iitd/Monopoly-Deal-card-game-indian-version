@@ -15,17 +15,6 @@ Append-only. One entry per mistake discovered during work. Build over time; neve
 
 ---
 
-## Example Entry (DELETE once first real entry exists)
-
-```yaml
-- mistake: Assumed bd command syntax from memory without reading help first
-  root_cause: Skipped `bd --help` on first use, trusted prior knowledge
-  prevention_rule: Always run help_command before first tool usage in session; check tools.yaml
-  added_on: 2026-06-20
-```
-
----
-
 ## Lessons Logged
 
 - mistake: Hand cards in ActionModal payment/selection sheets rendered as plain Typography boxes instead of colorful <Card> component, breaking strategic decision-making
