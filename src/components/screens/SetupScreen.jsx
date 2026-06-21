@@ -53,7 +53,7 @@ export default function SetupScreen({ onStart, onBack }) {
             onChange={(_, val) => val && setPlayerCount(val)}
             sx={{ gap: 0.75, flexWrap: 'wrap' }}
           >
-            {[2, 3, 4, 5, 6].map(n => (
+            {[2, 3, 4, 5].map(n => (
               <ToggleButton
                 key={n}
                 value={n}

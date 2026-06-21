@@ -27,7 +27,7 @@ So I built my own.
 
 ### What is Dhandha?
 
-A fast-paced property card game for **2–6 players**. Buy properties from Indian cities (Indore, Bengaluru, South Mumbai, Lutyens Delhi), charge rent, steal complete sets, and be the first to complete 3 full property sets.
+A fast-paced property card game for **2–5 players**. Buy properties from Indian cities (Indore, Bengaluru, South Mumbai, Lutyens Delhi), charge rent, steal complete sets, and be the first to complete 3 full property sets.
 
 The UI speaks Hinglish, the cards feature Indian landmarks, and two custom cards — **Sabotage** (force a trade between opponents) and **Insurance** (block a Deal Breaker) — add twists you won't find in the original game.
 
