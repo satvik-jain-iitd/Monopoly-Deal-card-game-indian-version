@@ -164,6 +164,8 @@ function gameReducer(state, action) {
           return s
         }
         case ACTION_TYPES.DOUBLE_RENT: {
+          if (!player.hand.some(c => c.type === CARD_TYPES.RENT)) return state
+          if (s.cardsPlayedThisTurn >= s.maxCardsPerTurn - 1) return state
           player.hand.splice(cardIdx, 1)
           s.discard.push(card)
           s.cardsPlayedThisTurn++

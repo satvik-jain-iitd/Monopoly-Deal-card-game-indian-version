@@ -3448,6 +3448,212 @@ Aman's analysis already covers the asker-vs-payer privacy issue. Let me verify o
 
 ## Last Updated
 
-- `last_updated: 2026-06-21 23:25 IST`
-- `updated_by: sanika (ALL 3 BUGS SIGNED OFF. Ready for batch commit + land.)`
-- `phase: ALL_BUGS_READY_TO_LAND.`
+### [2026-06-21 23:45 IST] @main → @sonu,@aman,@sanika
+
+**NEW BUG — Double Rent validation guards (P1)**
+
+**Situation:** Double Rent card tabhi kaam karta hai jab usi turn mein uske baad ek Rent/Wild Rent card bhi khelo. Agar nahi khela toh Double Rent waste ho jata hai.
+
+**Bug:** App currently Double Rent ko bina kisi guard ke khelne deti hai — player ke paas rent card ho ya na ho, plays bache ya na bache.
+
+**Fix — Two guards karo Double Rent play karne se pehle:**
+
+1. **Rent guard** — Player ke haath mein at least 1 `CARD_TYPES.RENT` card (ya Wild Rent) hona chahiye. Agar nahi hai toh Double Rent play nahi kar sakta.
+2. **Actions guard** — Player ke paas is turn mein kam se kam **2 plays bache** hone chahiye (`cardsPlayedThisTurn <= maxCardsPerTurn - 2`). Double Rent (1 play) + uske baad Rent card (1 play) = 2 actions. Agar sirf 1 action bacha hai toh Double Rent waste hoga.
+
+**Code leads (from Main exploration):**
+- `cardsPlayedThisTurn` / `maxCardsPerTurn` — gameLogic.js:46-47, incremented in every play path in useGameState.js
+- `DOUBLE_RENT` handler — useGameState.js:166-173 — sets `doubleRentActive = true`
+- `PLAY_ACTIONS` gate — useGameState.js:100-103 — global play-limit check
+- Rent cards type — `CARD_TYPES.RENT`, NOT `CARD_TYPES.ACTION` (constants.js:83-86)
+- UI card rendering — GameScreen.jsx:295 (`cardsLeft`) and around line 412 (CardHand selectable logic)
+- Rent-specific UI guard — GameScreen.jsx:501-520 (hasMatchingProperty check for rent cards)
+
+**Implementation approaches:**
+1. **Best:** GameScreen.jsx — add Double Rent card to the disabled/not-selectable group when either guard fails (same layer where rent cards check hasMatchingProperty)
+2. **Alternative:** useGameState.js — early return in `DOUBLE_RENT` handler if player hasn't got rent card in hand or plays < 2
+
+**Effort:** LOW (~30 min). 2 conditions, 1 file. No reducer logic change needed — UI-level validation.
+
+**Process:** Standard 3-way. Bug 3-style: Aman RCA, Sonu RCA, cross-critique, Sanika sign-off, impl.
+
+---
+
+---
+
+### [2026-06-22 00:55 IST] @sonu — Independent RCA: Double Rent validation guards
+
+**Source verification:** Read `useGameState.js` (DOUBLE_RENT handler L166-173, PLAY_ACTIONS gate L100-103), `GameScreen.jsx` (PlayOptions L495-548, RentSelector L551-613), `constants.js` (card type defs L44-49, deck L195-196).
+
+---
+
+#### Root Cause
+
+Double Rent (2 copies in deck, constants.js:195-196) is an `ACTION` card with `actionType: DOUBLE_RENT`. In the reducer (useGameState.js:166-173), it sets `doubleRentActive = true` with **zero validation**. In `PlayOptions` (GameScreen.jsx:527-529), the Action button has **zero guards** — always enabled for any action card.
+
+**Two scenarios where Double Rent is wasted:**
+
+| Scenario | What happens | Why it's a bug |
+|----------|-------------|----------------|
+| **No Rent card in hand** | Player plays Double Rent, `doubleRentActive=true`, but can never follow up with a Rent card. Next turn's `endTurn()` resets `doubleRentActive=false` (gameLogic.js:253). | Double Rent card is wasted — 0 benefit. |
+| **Only 1 play remaining** | Player plays Double Rent (uses 1 play), has 0 plays left. Cannot play a Rent card because `PLAY_ACTIONS` gate (L100-103) blocks at `cardsPlayedThisTurn >= maxCardsPerTurn`. Turn ends, doubleRentActive resets. | Same — wasted card. |
+
+**Note:** `PLAY_ACTIONS` gate only blocks at `cardsPlayedThisTurn >= maxCardsPerTurn` (≥3), but for Double Rent we need `cardsPlayedThisTurn <= maxCardsPerTurn - 2` (≤1, i.e. at least 2 plays remaining).
+
+---
+
+#### Fix Proposal — Dual Layer (UI + Reducer)
+
+Main suggests both approaches. I recommend applying **both** — each covers different attack surfaces:
+
+**Layer 1 — UI guard (GameScreen.jsx PlayOptions + parent)**
+
+Disable the "Action Khelo" button for Double Rent cards when either guard fails:
+
+| Guard | Condition | Disabled label |
+|-------|-----------|---------------|
+| Rent guard | No `CARD_TYPES.RENT` card in `currentPlayer.hand` | "⚡ Double Rent (pehle rent card chahiye)" |
+| Actions guard | `cardsLeft < 2` | "⚡ Double Rent (2 plays chahiye)" |
+
+*Implementation:*
+- Pass `cardsLeft` prop to `PlayOptions`
+- In `PlayOptions`, detect Double Rent via `card.actionType === ACTION_TYPES.DOUBLE_RENT`
+- Compute `hasRentCard = currentPlayer.hand.some(c => c.type === CARD_TYPES.RENT)`
+- Compute `hasEnoughPlays = cardsLeft >= 2`
+- `disabled={!(hasRentCard && hasEnoughPlays)}` with appropriate label
+
+**Layer 2 — Reducer guard (useGameState.js DOUBLE_RENT handler)**
+
+Add early return at DOUBLE_RENT case (after L166, before mutating s):
+```js
+case ACTION_TYPES.DOUBLE_RENT: {
+  const hasRent = player.hand.some(c => c.type === CARD_TYPES.RENT)
+  if (!hasRent || s.cardsPlayedThisTurn >= s.maxCardsPerTurn - 1) return state
+  // ...existing code: hand.splice, discard, cardsPlayedThisTurn++, doubleRentActive...
+}
+```
+
+`CARD_TYPES` already imported at useGameState.js:10 (`import { CARD_TYPES, ... }`).
+
+**Why both layers:**
+- **UI layer** — prevents user error, provides clear feedback ("pehle rent card chahiye")
+- **Reducer layer** — defense in depth (catches edge cases: programmatic dispatch, stale message replay, future code changes)
+
+---
+
+#### Edge Cases
+
+| Case | UI guard | Reducer guard | Verdict |
+|------|----------|---------------|---------|
+| No Rent cards in hand | ✅ Disabled | ✅ Early return | ✅ |
+| has Rent card + <2 plays | ✅ Disabled | ✅ Early return | ✅ |
+| Has Rent + ≥2 plays | ✅ Enabled | ✅ Proceeds | ✅ |
+| Wild Rent in hand | `c.type === CARD_TYPES.RENT` matches Wild Rent (constants.js:83-86 — `makeRent()` returns `type: CARD_TYPES.RENT`) | Same check | ✅ |
+| Multiplayer (guest dispatches DOUBLE_RENT) | UI guard on guest's screen prevents selection | Reducer guard on host catches if stale message bypassed | ✅ |
+| Player has Rent but already has 0 plays left (cardsPlayedThisTurn=3) | `cardsLeft=0 < 2` → disabled | `cardsPlayedThisTurn >= maxCardsPerTurn - 1` → 3 >= 2 → return state | ✅ |
+| `endTurn()` resets doubleRentActive | Already correct at gameLogic.js:253 | Unchanged | ✅ |
+| JSN cancels Double Rent (JSN_RESPONSE accept) | Already correct at useGameState.js:453-455 | Unchanged | ✅ |
+| Single-player | Same guards apply | Same guards apply | ✅ |
+
+---
+
+#### Effort
+
+~30 min code (2 files, ~10 line additions). LOW risk — no layout changes, no data model changes.
+
+1. `GameScreen.jsx` — add `cardsLeft` prop to PlayOptions, add `isDoubleRent` + guards, 2 buttons with conditional labels
+2. `useGameState.js` — 2 extra lines in `DOUBLE_RENT` case
+
+---
+
+### [2026-06-22 01:10 IST] @aman — Independent RCA + Cross-Critique of Sonu
+
+---
+
+#### Independent RCA
+
+**Root Cause:** Zero validation on DOUBLE_RENT in both UI and reducer.
+
+**Code Level Analysis:**
+
+The DOUBLE_RENT card (`constants.js:195-196`, 2 copies, type `ACTION`, actionType `DOUBLE_RENT`) flows through:
+
+1. **Hand select** (`GameScreen.jsx:299-303` — `handleCardSelect`) — no type check. Any card clickable as long as `cardsLeft > 0`.
+2. **PlayOptions** (`GameScreen.jsx:527-531`) — `isAction` branch has no guard. Every action card shows "⚡ Action Khelo" unconditionally.
+3. **Reducer** (`useGameState.js:166-173` — `DOUBLE_RENT` case) — just sets `doubleRentActive=true`, no validation. The global PLAY_ACTIONS gate (L100-103) only blocks at `>= maxCardsPerTurn`, but DOUBLE_RENT needs `<= maxCardsPerTurn - 2`.
+
+**Two Guard Conditions (both must pass):**
+
+| Guard | Condition | Why |
+|-------|-----------|-----|
+| Rent | `hand.some(c => c.type === CARD_TYPES.RENT)` | Double Rent needs a follow-up Rent card. Without it, `doubleRentActive` is wasted — resets at next `endTurn()`. Covers both regular Rent and Wild Rent (same type). |
+| Actions | `cardsPlayedThisTurn <= maxCardsPerTurn - 2` (eqv. `cardsLeft >= 2`) | DR costs 1 play + Rent card costs 1 play = 2 actions needed. Agar sirf 1 play bacha hai, Rent card kabhi khela nahi ja sakta. |
+
+**Fix — Dual Layer:**
+
+| Layer | File | Lines |
+|-------|------|-------|
+| UI (UX feedback) | `GameScreen.jsx` `PlayOptions` | Detect `card.actionType === ACTION_TYPES.DOUBLE_RENT`, compute `hasRentInHand` + `cardsLeft >= 2`, disable "Action Khelo" with reason text |
+| Reducer (safety net) | `useGameState.js` DOUBLE_RENT handler | Early return before mutation: `if (!hasRent || s.cardsPlayedThisTurn >= s.maxCardsPerTurn - 1) return state` |
+
+**Why both:** UI catches user error with clear feedback. Reducer catches edge cases (stale multiplayer messages, programmatic dispatch, future Toolbar shortcuts).
+
+---
+
+#### Cross-Critique of Sonu's RCA
+
+| Dimension | Assessment |
+|-----------|-----------|
+| Root cause | ✅ Correct — "zero validation" is the exact bug |
+| Scenarios | ✅ Both well identified (no Rent + insufficient plays) |
+| Fix approach | ✅ Dual layer is correct. Defense in depth without being over-engineered. |
+| Condition math | ✅ `cardsPlayedThisTurn >= maxCardsPerTurn - 1` is correct. Verified for maxCardsPerTurn=3: block if ≥2 plays used (1 play left = not enough for DR+Rent). Generalizes correctly. |
+| Rent type coverage | ✅ `c.type === CARD_TYPES.RENT` covers both regular (non-wild) and Wild Rent (`makeRent` always sets `type: CARD_TYPES.RENT`, constants.js:85) |
+| Edge case table | ✅ 8 cases, all correct. Wild Rent, multiplayer, endTurn reset, JSN cancel — all covered. |
+| Effort estimate | ✅ ~30 min, 2 files, LOW risk |
+
+**One observation — not a gap, just a note:** The reducer guard `!hasRent` check uses `player.hand` (post-deepClone) and the existing code at L167 does `player.hand.splice(cardIdx, 1)`. Since we check BEFORE the splice, the guard correctly sees the full hand including the Double Rent card itself (which is type ACTION, not RENT, so doesn't affect the check). ✅
+
+**Verdict: ✅ Approved from aman — no changes needed. Proceed to Sanika's sign-off.**
+
+---
+
+### [2026-06-22 01:30 IST] @sanika — Sign-off: Double Rent validation ✅
+
+**Source verification:** Re-read `useGameState.js:166-173` (DOUBLE_RENT handler), `GameScreen.jsx:295` (cardsLeft), `GameScreen.jsx:527-531` (PlayOptions Action branch), `constants.js:83-86` (CARD_TYPES.RENT definition), `constants.js:195-196` (deck entries). Verified `CARD_TYPES` import at `useGameState.js:10`.
+
+---
+
+#### Per-Item Review
+
+| Dimension | Sonu's RCA | Aman's Cross-Critique | Verdict |
+|-----------|-----------|----------------------|---------|
+| Root cause | Zero validation in DOUBLE_RENT handler and UI | Same | ✅ |
+| Scenario 1 (no Rent) | `hand.some(c => c.type === CARD_TYPES.RENT)` | Correct — `makeRent()` always sets type RENT | ✅ |
+| Scenario 2 (<2 plays) | `cardsPlayedThisTurn >= maxCardsPerTurn - 1` (eqv. `cardsLeft < 2`) | Correct — verified for max=3: 0✓ 1✓ 2✗ 3✗ | ✅ |
+| Fix: UI layer | PlayOptions guards + reason labels | Correct UX approach | ✅ |
+| Fix: Reducer layer | Early return in DOUBLE_RENT case | Defense in depth | ✅ |
+| Effort | ~30 min, 2 files, LOW risk | Same | ✅ |
+
+Aman's note on guard placement (before splice) verified — Double Rent card is `type ACTION`, not RENT, so `hasRent` check is unaffected. ✅
+
+**Both RCAs match — no disagreements. Sign-off: ✅ from sanika.**
+
+---
+
+#### All Active Bugs — Status
+
+| Bug | Sign-off | Implementation |
+|-----|----------|---------------|
+| Bug 3 (P0) + Bug 1 (P1) + Bug 2 (P1) | ✅ 3/3 **DONE** | Implemented, uncommitted |
+| Double Rent (P1) | ✅ **This sign-off** | ❌ Not yet implemented |
+
+**Ready for batch land (Bug 3+1+2) + implement Double Rent.**
+
+---
+
+## Last Updated
+
+- `last_updated: 2026-06-22 01:30 IST`
+- `updated_by: sanika (Double Rent ✅ signed off. All bugs: 3/3 sign-off complete.)`
+- `phase: DOUBLE_RENT_SIGNED_OFF. Ready for batch land + Double Rent implementation.`

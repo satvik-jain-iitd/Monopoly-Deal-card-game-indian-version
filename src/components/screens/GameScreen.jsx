@@ -429,6 +429,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
           <PlayOptions
             card={selectedCard}
             currentPlayer={currentPlayer}
+            cardsLeft={cardsLeft}
             onPlayAsProperty={() => { dispatch({ type: 'PLAY_PROPERTY', cardId: selectedCard.id }); setSelectedCard(null) }}
             onPlayAsMoney={() => { dispatch({ type: 'PLAY_AS_MONEY', cardId: selectedCard.id }); setSelectedCard(null) }}
             onPlayAction={() => { dispatch({ type: 'PLAY_ACTION', cardId: selectedCard.id }); setSelectedCard(null) }}
@@ -492,7 +493,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
   )
 }
 
-function PlayOptions({ card, currentPlayer, onPlayAsProperty, onPlayAsMoney, onPlayAction, onPlayRent, onCancel }) {
+function PlayOptions({ card, currentPlayer, onPlayAsProperty, onPlayAsMoney, onPlayAction, onPlayRent, onCancel, cardsLeft }) {
   const isProperty = card.type === CARD_TYPES.PROPERTY || card.type === CARD_TYPES.WILD_PROPERTY
   const isMoney = card.type === CARD_TYPES.MONEY
   const isAction = card.type === CARD_TYPES.ACTION
@@ -501,6 +502,14 @@ function PlayOptions({ card, currentPlayer, onPlayAsProperty, onPlayAsMoney, onP
   const hasMatchingProperty = !isRent || card.wild 
     ? Object.keys(currentPlayer.properties).length > 0
     : card.colors.some(color => (currentPlayer.properties[color]?.length || 0) > 0)
+
+  const isDoubleRent = isAction && card.actionType === ACTION_TYPES.DOUBLE_RENT
+  const hasRentCard = currentPlayer.hand.some(c => c.type === CARD_TYPES.RENT)
+  const hasTwoPlaysLeft = cardsLeft >= 2
+  const canPlayDoubleRent = !isDoubleRent || (hasRentCard && hasTwoPlaysLeft)
+  const doubleRentBlockReason = isDoubleRent && !hasRentCard ? 'Rent card nahi hai haath mein'
+    : isDoubleRent && !hasTwoPlaysLeft ? '2 plays nahi bache hain'
+    : ''
 
   return (
     <Box>
@@ -525,8 +534,8 @@ function PlayOptions({ card, currentPlayer, onPlayAsProperty, onPlayAsMoney, onP
           </Button>
         )}
         {isAction && (
-          <Button size="small" variant="contained" onClick={onPlayAction} sx={{ borderRadius: 3, fontWeight: 700, fontSize: '0.72rem' }}>
-            ⚡ Action Khelo
+          <Button size="small" variant={canPlayDoubleRent ? "contained" : "outlined"} disabled={!canPlayDoubleRent} onClick={onPlayAction} sx={{ borderRadius: 3, fontWeight: 700, fontSize: '0.72rem' }}>
+            {doubleRentBlockReason || '⚡ Action Khelo'}
           </Button>
         )}
         {/* Property cards can NEVER be banked — only action/rent (as an alternative) and money. */}
