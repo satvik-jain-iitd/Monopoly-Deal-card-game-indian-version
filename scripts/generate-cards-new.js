@@ -251,18 +251,18 @@ const LANDMARK_PATHS = {
 };
 
 const ACTION_DESCRIPTIONS = {
-  [ACTION_TYPES.DEAL_BREAKER]: 'Kisi player ka complete set chura lo (Ghar/Hotel ke saath)',
-  [ACTION_TYPES.DEBT_COLLECTOR]: 'Kisi bhi ek player se ₹5Cr collect karo',
-  [ACTION_TYPES.FORCED_DEAL]: 'Apni ek property dekar kisi ki property swap karo',
-  [ACTION_TYPES.SLY_DEAL]: 'Kisi player ki ek property chura lo (set se nahi)',
-  [ACTION_TYPES.PASS_GO]: 'Deck se 2 extra cards draw karo',
-  [ACTION_TYPES.BIRTHDAY]: 'Sabhi players se ₹2Cr birthday gift collect karo',
-  [ACTION_TYPES.JUST_SAY_NO]: 'Kisi bhi player ke action card ko cancel karo',
-  [ACTION_TYPES.DOUBLE_RENT]: 'Apne isi turn mein khele rent card ka value double karo',
-  [ACTION_TYPES.HOUSE]: 'Apne kisi bhi complete property set par rent badhane ke liye lagao',
-  [ACTION_TYPES.HOTEL]: 'Ghar lage hue complete set par lagakar rent maximum karo',
-  [ACTION_TYPES.INSURANCE]: 'Deal Breaker action se apne set ko secure karo',
-  [ACTION_TYPES.SABOTAGE]: 'Do players ke beech force trade karwao',
+  [ACTION_TYPES.DEAL_BREAKER]: 'Steal a complete set of properties from any player. (Includes any buildings.) Play into center to use.',
+  [ACTION_TYPES.DEBT_COLLECTOR]: 'Force any player to pay you ₹5Cr. Play into center to use.',
+  [ACTION_TYPES.FORCED_DEAL]: 'Swap any property with another player. (Cannot be part of a full set.) Play into center to use.',
+  [ACTION_TYPES.SLY_DEAL]: 'Steal a property from the player of your choice. (Cannot be part of a full set.) Play into center to use.',
+  [ACTION_TYPES.PASS_GO]: 'Draw 2 extra cards. Play into center to use.',
+  [ACTION_TYPES.BIRTHDAY]: "All players give you ₹2Cr as a 'gift'. Play into center to use.",
+  [ACTION_TYPES.JUST_SAY_NO]: 'Use any time when an action card is played against you. Play into center to use.',
+  [ACTION_TYPES.DOUBLE_RENT]: 'Must be played with a Rent card. Play into center to use.',
+  [ACTION_TYPES.HOUSE]: 'Add onto any full set you own to add ₹3Cr to the rent value. (Except railroads and utilities.)',
+  [ACTION_TYPES.HOTEL]: 'Add onto any full set you own to add ₹4Cr to the rent value. (Except railroads and utilities. Must be played on a set with a Ghar.)',
+  [ACTION_TYPES.INSURANCE]: 'Lay this card face-up on your table. Discard to cancel a Deal Breaker played against any of your complete sets.',
+  [ACTION_TYPES.SABOTAGE]: 'Force any two other players to swap one property card of your choice with each other. (Cannot be part of a full set.) Play into center to use.',
 };
 
 function getDefs(base64Font) {
