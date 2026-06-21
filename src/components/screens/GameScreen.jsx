@@ -103,9 +103,10 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
     )
   }
 
-  // ── MULTIPLAYER WAITING SCREEN (non-turn-flow phases only) ─────────
+  // ── MULTIPLAYER WAITING SCREEN (non-turn-flow + non-payment phases only) ─────────
   if (isMultiplayer && activeInteractorIdx !== myPlayerIndex &&
-    !SPECTATOR_PHASES.includes(state.phase)) {
+    !SPECTATOR_PHASES.includes(state.phase) &&
+    !PAYMENT_PHASES.includes(state.phase)) {
     const activePlayer = state.players[activeInteractorIdx]
     return (
       <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'background.default', gap: 2, px: 3, textAlign: 'center' }}>
@@ -121,26 +122,31 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
     )
   }
 
-  // ── SPECTATOR VIEW (multiplayer, not my turn, normal turn-flow) ────
-  if (isMultiplayer && myPlayerIndex !== state.currentPlayerIndex &&
-    SPECTATOR_PHASES.includes(state.phase)) {
+  // ── SPECTATOR VIEW (multiplayer, not my turn, normal turn-flow + payment phases) ────
+  if (isMultiplayer && (
+    (myPlayerIndex !== state.currentPlayerIndex && SPECTATOR_PHASES.includes(state.phase)) ||
+    (PAYMENT_PHASES.includes(state.phase) && activeInteractorIdx !== myPlayerIndex)
+  )) {
     const viewerPlayer = state.players[myPlayerIndex]
     const otherPlayers = state.players.filter((_, i) => i !== myPlayerIndex)
     const topDiscard = state.discard[state.discard.length - 1]
+    const activePlayer = state.players[activeInteractorIdx]
     const phaseLabel = state.phase === PHASE.DRAW
       ? `${currentPlayer.name} cards draw kar rahe hain...`
       : state.phase === PHASE.DISCARD
         ? `${currentPlayer.name} discard kar rahe hain...`
-        : `${currentPlayer.name} ki baari hai...`
+        : PAYMENT_PHASES.includes(state.phase)
+          ? `${activePlayer.name} action kar rahe hain...`
+          : `${currentPlayer.name} ki baari hai...`
 
     return (
       <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', backgroundColor: 'background.default', overflow: 'hidden' }}>
         <AppBar position="static" elevation={1} sx={{ backgroundColor: 'background.paper' }}>
           <Toolbar sx={{ minHeight: '48px !important', gap: 1 }}>
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
-              <Chip label={currentPlayer.name} color="primary" size="small" sx={{ fontWeight: 700, maxWidth: 100, overflow: 'hidden' }} />
+              <Chip label={PAYMENT_PHASES.includes(state.phase) ? activePlayer.name : currentPlayer.name} color="primary" size="small" sx={{ fontWeight: 700, maxWidth: 100, overflow: 'hidden' }} />
               <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
-                ki baari
+                {PAYMENT_PHASES.includes(state.phase) ? 'action kar rahe hain...' : 'ki baari'}
               </Typography>
             </Box>
             <IconButton size="small" onClick={() => setShowLog(!showLog)} sx={{ color: 'text.secondary' }}>
@@ -162,18 +168,17 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
         </Box>
 
         <Box sx={{
-          flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5,
+          flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
           borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider',
-          background: 'radial-gradient(ellipse at center, rgba(230,81,0,0.07), transparent 72%)',
-          px: 1, py: 0.75, minHeight: 36,
+          px: 1, py: 0.5, minHeight: 28,
         }}>
           {topDiscard ? (
-            <Box sx={{ position: 'relative', boxShadow: '0 4px 14px rgba(0,0,0,0.18)', borderRadius: '4px' }}>
-              <Card card={topDiscard} />
+            <Box sx={{ position: 'relative', boxShadow: '0 2px 10px rgba(0,0,0,0.15)', borderRadius: '3px' }}>
+              <Card card={topDiscard} mini />
             </Box>
           ) : (
-            <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', letterSpacing: '0.04em' }}>
-              — Mez khaali · koi card abhi nahi khela —
+            <Typography sx={{ fontSize: '0.55rem', color: 'text.disabled', letterSpacing: '0.04em' }}>
+              — Mez khaali —
             </Typography>
           )}
         </Box>
@@ -339,57 +344,55 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
         ))}
       </Box>
 
-      {/* Play zone — persistent shared pile (top of discard, never auto-clears) */}
+      {/* Play zone — mini card pile (reduced height, same position) */}
       <Box sx={{
         flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
         borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider',
-        background: 'radial-gradient(ellipse at center, rgba(230,81,0,0.07), transparent 72%)',
-        px: 1, py: 0.75, minHeight: 36,
+        px: 1, py: 0.5, minHeight: 28,
       }}>
         {topDiscard ? (
           <>
-            <Box sx={{ textAlign: 'right', minWidth: 50 }}>
-              <Typography sx={{ fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.08em', color: 'text.secondary' }}>
-                MEZ PAR
+            <Box sx={{ textAlign: 'right', minWidth: 40 }}>
+              <Typography sx={{ fontSize: '0.42rem', fontWeight: 800, letterSpacing: '0.06em', color: 'text.secondary', lineHeight: 1.1 }}>
+                MEZ
               </Typography>
-              <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'text.disabled' }}>
-                {state.discard.length} card{state.discard.length !== 1 ? 's' : ''}
+              <Typography sx={{ fontSize: '0.5rem', fontWeight: 700, color: 'text.disabled', lineHeight: 1.2 }}>
+                {state.discard.length}
               </Typography>
             </Box>
 
-            {/* Pile with depth — a fresh card pops in, then stays */}
             <Box key={state.discard.length} sx={{
               position: 'relative',
-              animation: 'playIn 300ms cubic-bezier(0.175,0.885,0.32,1.275)',
+              animation: 'playIn 250ms cubic-bezier(0.175,0.885,0.32,1.275)',
               '@keyframes playIn': {
-                from: { transform: 'translateY(-16px) scale(0.82) rotate(-5deg)', opacity: 0 },
+                from: { transform: 'translateY(-12px) scale(0.95) rotate(-3deg)', opacity: 0 },
                 to: { transform: 'translateY(0) scale(1) rotate(0)', opacity: 1 },
               },
             }}>
               {state.discard.length > 1 && (
                 <>
-                  <Box sx={{ position: 'absolute', inset: 0, transform: 'rotate(-6deg)', borderRadius: '4px', backgroundColor: 'rgba(0,0,0,0.10)' }} />
-                  <Box sx={{ position: 'absolute', inset: 0, transform: 'rotate(4deg)', borderRadius: '4px', backgroundColor: 'rgba(0,0,0,0.07)' }} />
+                  <Box sx={{ position: 'absolute', inset: 0, transform: 'rotate(-5deg)', borderRadius: '3px', backgroundColor: 'rgba(0,0,0,0.08)' }} />
+                  <Box sx={{ position: 'absolute', inset: 0, transform: 'rotate(3deg)', borderRadius: '3px', backgroundColor: 'rgba(0,0,0,0.05)' }} />
                 </>
               )}
-              <Box sx={{ position: 'relative', boxShadow: '0 4px 14px rgba(0,0,0,0.18)', borderRadius: '4px' }}>
-                <Card card={topDiscard} />
+              <Box sx={{ position: 'relative', boxShadow: '0 2px 10px rgba(0,0,0,0.15)', borderRadius: '3px' }}>
+                <Card card={topDiscard} mini />
               </Box>
             </Box>
 
-            <Box sx={{ minWidth: 50 }}>
-              <Typography sx={{ fontSize: '0.5rem', fontWeight: 800, letterSpacing: '0.08em', color: 'text.secondary' }}>
-                LAST PLAY
+            <Box sx={{ minWidth: 40 }}>
+              <Typography sx={{ fontSize: '0.42rem', fontWeight: 800, letterSpacing: '0.06em', color: 'text.secondary', lineHeight: 1.1 }}>
+                LAST
               </Typography>
-              <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.2 }}>
+              <Typography sx={{ fontSize: '0.5rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.2 }}>
                 {topDiscard.name}
               </Typography>
             </Box>
           </>
         ) : (
-          <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', letterSpacing: '0.04em' }}>
-            — Mez khaali · koi card abhi nahi khela —
+          <Typography sx={{ fontSize: '0.55rem', color: 'text.disabled', letterSpacing: '0.04em' }}>
+            — Mez khaali —
           </Typography>
         )}
       </Box>

@@ -11,7 +11,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import CloseIcon from '@mui/icons-material/Close'
 import SyncIcon from '@mui/icons-material/Sync'
 import Card from './Card'
-import { COLOR_DISPLAY, PROPERTY_SETS, CARD_TYPES } from '../../game/constants'
+import { COLOR_DISPLAY, PROPERTY_SETS, CARD_TYPES, COLORS } from '../../game/constants'
 import { isSetComplete, countCompleteSets, getPlayerBankTotal, getRentForColor } from '../../game/gameLogic'
 import { groupedBank, orderPropertyColors } from '../../game/cardSort'
 
@@ -120,55 +120,56 @@ export default function PlayerBoard({ player, compact = false, onWildAction }) {
         <RentInfoDialog info={rentInfo} onClose={() => setRentInfo(null)} />
         <MuiCard variant="outlined" sx={{
           borderRadius: '6px', overflow: 'hidden',
-          width: 158, flexShrink: 0,
+          width: 120, flexShrink: 0,
         }}>
-          <CardContent sx={{ py: '6px !important', px: '8px !important' }}>
+          <CardContent sx={{ py: '6px !important', px: '6px !important' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.4 }}>
-              <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.72rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.66rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {player.name}
               </Typography>
-              <Chip label={`🏠${sets}`} size="small" sx={{ height: 17, fontSize: '0.55rem', '& .MuiChip-label': { px: 0.6 } }} />
-              <Chip label={`🃏${player.hand?.length || 0}`} size="small" sx={{ height: 17, fontSize: '0.55rem', '& .MuiChip-label': { px: 0.6 } }} />
+              <Chip label={`🏠${sets}`} size="small" sx={{ height: 16, fontSize: '0.5rem', '& .MuiChip-label': { px: 0.5 } }} />
               {player.insurance && (
                 <Chip label="🛡️" size="small" title="Insured vs Deal Breaker"
-                  sx={{ height: 17, fontSize: '0.55rem', backgroundColor: 'rgba(0,121,107,0.15)', '& .MuiChip-label': { px: 0.5 } }} />
+                  sx={{ height: 16, fontSize: '0.5rem', backgroundColor: 'rgba(0,121,107,0.15)', '& .MuiChip-label': { px: 0.4 } }} />
               )}
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mb: 0.4 }}>
-              <Typography sx={{ fontSize: '0.78rem', fontWeight: 900, color: 'success.main', lineHeight: 1 }}>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 900, color: 'success.main', lineHeight: 1 }}>
                 ₹{bankTotal}Cr
               </Typography>
-              <Typography sx={{ fontSize: '0.5rem', color: 'text.secondary', fontWeight: 700 }}>bank</Typography>
+              <Typography sx={{ fontSize: '0.45rem', color: 'text.secondary', fontWeight: 700 }}>bank</Typography>
             </Box>
-            {player.bank.length > 0 && (
-              <Box sx={{ display: 'flex', gap: 0.3, flexWrap: 'wrap', mb: 0.4 }}>
-                {groupedBank(player.bank).map(({ value, count }) => (
-                  <Typography key={value} sx={{
-                    fontSize: '0.5rem', color: 'success.main', fontWeight: 700, lineHeight: 1,
-                    backgroundColor: 'rgba(46,125,50,0.1)', borderRadius: '3px', px: 0.4, py: 0.2,
-                  }}>
-                    ₹{value}{count > 1 ? `×${count}` : ''}
-                  </Typography>
-                ))}
-              </Box>
-            )}
             {propertyColors.length > 0 ? (
               <Box sx={{ display: 'flex', gap: 0.3, flexWrap: 'wrap' }}>
                 {propertyColors.map(color => {
                   const cards = player.properties[color]
                   const complete = isSetComplete(color, cards)
-                  const needed = PROPERTY_SETS[color]?.cardsNeeded || 0
                   const display = COLOR_DISPLAY[color] || {}
                   return (
                     <Box key={color} onClick={() => openRent(color)} sx={{
-                      display: 'flex', alignItems: 'center', gap: 0.2,
+                      display: 'flex', alignItems: 'center', gap: 0.15,
                       backgroundColor: display.hex, borderRadius: '3px',
-                      px: 0.4, py: 0.2, cursor: 'pointer',
+                      px: 0.3, py: 0.2, cursor: 'pointer',
                       opacity: complete ? 1 : 0.78,
                       border: complete ? '1.5px solid rgba(0,0,0,0.35)' : '1px solid transparent',
                     }}>
-                      <Typography sx={{ color: '#fff', fontSize: '0.5rem', fontWeight: 800, lineHeight: 1 }}>
-                        {cards.length}/{needed}{complete && ' ✓'}
+                      {cards.map(c => {
+                        const isWild = c.type === CARD_TYPES.WILD_PROPERTY
+                        const wildColors = c.colors || []
+                        const isFullWild = isWild && wildColors.length === 1 && wildColors[0] === COLORS.WILD
+                        return (
+                          <Box key={c.id} sx={{
+                            width: 12, height: 16, borderRadius: '2px',
+                            background: isFullWild
+                              ? 'linear-gradient(135deg, #E53935, #FB8C00, #FDD835, #43A047, #1E88E5, #8E24AA)'
+                              : isWild && wildColors.length >= 2
+                                ? `linear-gradient(135deg, ${COLOR_DISPLAY[wildColors[0]]?.hex || display.hex} 50%, ${COLOR_DISPLAY[wildColors[1]]?.hex || display.hex} 50%)`
+                                : display.hex,
+                          }} />
+                        )
+                      })}
+                      <Typography sx={{ color: '#fff', fontSize: '0.4rem', fontWeight: 800, lineHeight: 1, ml: 0.1 }}>
+                        {complete && '✓'}
                       </Typography>
                     </Box>
                   )
