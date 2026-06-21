@@ -265,6 +265,42 @@ const ACTION_DESCRIPTIONS = {
   [ACTION_TYPES.SABOTAGE]: 'Force any two other players to swap one property card of your choice with each other. (Cannot be part of a full set.) Play into center to use.',
 };
 
+function wrapText(text, maxChars = 32) {
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    if ((currentLine + ' ' + word).trim().length <= maxChars) {
+      currentLine = currentLine ? currentLine + ' ' + word : word;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines;
+}
+
+function generateSvgTextLines(text, startY, maxChars = 32, fontSize = 16, lineHeight = 22) {
+  const lines = wrapText(text, maxChars);
+  return `
+    <text font-family="Outfit, sans-serif" font-size="${fontSize}px" font-weight="700" fill="#000000" text-anchor="middle">
+      ${lines.map((line, idx) => {
+        const yAttr = idx === 0 ? `y="${startY}"` : '';
+        const dyAttr = idx === 0 ? '' : `dy="${lineHeight}"`;
+        const escapedLine = line
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&apos;');
+        return `<tspan x="210" ${yAttr} ${dyAttr}>${escapedLine}</tspan>`;
+      }).join('\n')}
+    </text>
+  `;
+}
+
 function getDefs(base64Font) {
   return `
     <defs>
@@ -415,11 +451,7 @@ function generateActionSvg(card, base64Font) {
       })()}
       ${isJSN ? '<circle cx="210" cy="250" r="110" fill="none" stroke="#ED1C24" stroke-width="12" /><line x1="130" y1="170" x2="290" y2="330" stroke="#ED1C24" stroke-width="12" />' : ''}
 
-      <foreignObject x="60" y="400" width="300" height="150">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Outfit, sans-serif; font-size: 18px; font-weight: 700; color: #000000; text-align: center; line-height: 1.4;">
-          ${descText}
-        </div>
-      </foreignObject>
+      ${generateSvgTextLines(descText, 415, 30, 18, 26)}
     </svg>
   `;
 }
@@ -449,11 +481,7 @@ function generateRentSvg(card, base64Font) {
           <text x="0" y="10" font-family="Outfit, sans-serif" font-size="28px" font-weight="900" fill="#000000" text-anchor="middle" stroke="none">RENT</text>
         </g>
 
-        <foreignObject x="60" y="420" width="300" height="150">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Outfit, sans-serif; font-size: 18px; font-weight: 700; color: #000000; text-align: center; line-height: 1.4;">
-            Charge rent on ANY property set.
-          </div>
-        </foreignObject>
+        ${generateSvgTextLines('Charge rent on ANY property set.', 435, 30, 18, 26)}
       </svg>
     `;
   }
@@ -483,11 +511,7 @@ function generateRentSvg(card, base64Font) {
       <circle cx="210" cy="250" r="55" fill="#FFFFFF" stroke="#333333" stroke-width="4" />
       <text x="210" y="260" font-family="Outfit, sans-serif" font-size="32px" font-weight="900" fill="#000000" text-anchor="middle">RENT</text>
 
-      <foreignObject x="60" y="420" width="300" height="150">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Outfit, sans-serif; font-size: 18px; font-weight: 700; color: #000000; text-align: center; line-height: 1.4;">
-          Charge rent on ${card.colors[0].toUpperCase()} or ${card.colors[1].toUpperCase()} properties.
-        </div>
-      </foreignObject>
+      ${generateSvgTextLines(`Charge rent on ${card.colors[0].toUpperCase()} or ${card.colors[1].toUpperCase()} properties.`, 435, 30, 18, 26)}
     </svg>
   `;
 }
@@ -528,11 +552,7 @@ function generateWildPropertySvg(card, base64Font) {
         <circle cx="210" cy="270" r="90" fill="#FFFFFF" stroke="#333333" stroke-width="4" filter="url(#shadow)" />
         <text x="210" y="315" font-family="Outfit, sans-serif" font-size="120px" font-weight="900" fill="#000000" text-anchor="middle">₹</text>
 
-        <foreignObject x="60" y="420" width="300" height="150">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Outfit, sans-serif; font-size: 18px; font-weight: 700; color: #000000; text-align: center; line-height: 1.4;">
-            This card can be used as part of any property set. This card has no monetary value.
-          </div>
-        </foreignObject>
+        ${generateSvgTextLines('This card can be used as part of any property set. This card has no monetary value.', 435, 30, 18, 26)}
       </svg>
     `;
   }
