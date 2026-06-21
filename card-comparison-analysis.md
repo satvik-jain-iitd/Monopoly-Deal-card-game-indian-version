@@ -1,427 +1,624 @@
-# Detailed Card-by-Card Comparison & Design Polish Spec
+# Ultra-Detailed Card-by-Card Comparison: Official vs Generated
 
-This document provides a highly detailed, card-by-card comparative analysis of the official Monopoly Deal scans (in `public/images/cards/official/`) versus the first-pass generated cards (in `public/images/cards/generated/`), defining exactly what changes will be implemented for each design.
-
----
-
-## 1. PROPERTY CARDS (28 Unique Designs)
-
-### 1.1 Indore (`prop-brown-indore.png` vs `brown-property-card.png`)
-* **Official Scans:** Mediterranean Avenue (₹1M). Brown header bar. Cash circle in top-left with ₹1 value. White background body with a RENT table of 1: ₹1M, 2: ₹2M. Underneath has a separator line and text: "House ₹3M", "Hotel ₹4M". Features a simple circular watermark icon in the center.
-* **First-Pass Generated:** Generic sans-serif font. Thin, floating `indore` landmark. Simple text for building costs. No colored set highlight in the rent ladder.
-* **Perfectionist Improvements:**
-  - Embed **Outfit-ExtraBold** font for all text.
-  - Draw a solid brown highlighted block (`#955436`) behind the `2: ₹2Cr` row with white text.
-  - Add a vector green house icon (`fill="#4CAF50"`) and a red hotel icon (`fill="#F44336"`) next to the bottom costs text.
-  - Set landmark opacity to 0.15 as a subtle background watermark, centered.
-
-### 1.2 Lucknow (`prop-brown-lucknow.png` vs `brown-property-card.png`)
-* **Official Scans:** Baltic Avenue (₹1M). Same layout as Mediterranean Avenue.
-* **First-Pass Generated:** Generic font, thin Lucknow landmark, simple text layout.
-* **Perfectionist Improvements:**
-  - Same visual framing and set highlights as Indore, using the unique `lucknow` landmark vector.
-
-### 1.3 Chandigarh (`prop-lightBlue-chandigarh.png` vs `light-blue-property-card.png`)
-* **Official Scans:** Oriental Avenue (₹1M). Light blue header bar. Cash circle ₹1. RENT table of 1: ₹1M, 2: ₹2M, 3: ₹3M. Separator line and house/hotel costs text.
-* **First-Pass Generated:** Light blue header text in white (hard to read against light blue background). No set highlight block.
-* **Perfectionist Improvements:**
-  - Change header text color to black (`#000000`) for readability on light blue.
-  - Add a solid light blue highlighted block (`#55C3F0`) behind the `3: ₹3Cr` set row.
-  - Add house/hotel vector icons at the bottom.
-
-### 1.4 Bhopal (`prop-lightBlue-bhopal.png` vs `light-blue-property-card.png`)
-* **Official Scans:** Vermont Avenue (₹1M). Same layout as Chandigarh.
-* **First-Pass Generated:** White text on light blue, plain rent table, thin landmark icon.
-* **Perfectionist Improvements:**
-  - Same light blue property template as Chandigarh, with the `bhopal` landmark vector.
-
-### 1.5 Kochi (`prop-lightBlue-kochi.png` vs `light-blue-property-card.png`)
-* **Official Scans:** Connecticut Avenue (₹1M). Same layout as Chandigarh.
-* **First-Pass Generated:** Plain text, thin Kochi landmark.
-* **Perfectionist Improvements:**
-  - Same light blue property template as Chandigarh, with the `kochi` landmark vector.
-
-### 1.6 Jaipur (`prop-pink-jaipur.png` vs `pink-property-card.png`)
-* **Official Scans:** St. Charles Place (₹2M). Pink header bar. Cash circle ₹2. RENT table of 1: ₹1M, 2: ₹2M, 3: ₹4M.
-* **First-Pass Generated:** Plain rent ladder, thin Jaipur (Hawa Mahal) SVG path, generic fonts.
-* **Perfectionist Improvements:**
-  - Highlight the `3 (set): ₹4Cr` row in solid pink (`#D93A96`).
-  - Add house/hotel vector icons at the bottom.
-  - Bold the Jaipur landmark line thickness (`stroke-width="2.2"`) to stand out.
-
-### 1.7 Ahmedabad (`prop-pink-ahmedabad.png` vs `pink-property-card.png`)
-* **Official Scans:** States Avenue (₹2M). Same layout as Jaipur.
-* **First-Pass Generated:** Simple layout, thin kite landmark.
-* **Perfectionist Improvements:**
-  - Same pink property template as Jaipur, with the `ahmedabad` landmark vector.
-
-### 1.8 Kolkata (`prop-pink-kolkata.png` vs `pink-property-card.png`)
-* **Official Scans:** Virginia Avenue (₹2M). Same layout as Jaipur.
-* **First-Pass Generated:** Generic font, thin bridge landmark.
-* **Perfectionist Improvements:**
-  - Same pink property template as Jaipur, with the `kolkata` landmark vector.
-
-### 1.9 Chennai (`prop-orange-chennai.png` vs `orange-property-card.png`)
-* **Official Scans:** St. James Place (₹2M). Orange header bar. Cash circle ₹2. RENT table of 1: ₹1M, 2: ₹3M, 3: ₹5M.
-* **First-Pass Generated:** Simple rent table, thin gopuram temple landmark.
-* **Perfectionist Improvements:**
-  - Highlight `3 (set): ₹5Cr` in orange (`#F7941D`).
-  - Add house/hotel vector icons at the bottom.
-  - Scale and center gopuram landmark vector behind the text.
-
-### 1.10 Hyderabad (`prop-orange-hyderabad.png` vs `orange-property-card.png`)
-* **Official Scans:** Tennessee Avenue (₹2M). Same layout as Chennai.
-* **First-Pass Generated:** Generic layout, thin Charminar icon.
-* **Perfectionist Improvements:**
-  - Same orange property template as Chennai, with the `hyderabad` landmark vector.
-
-### 1.11 Noida (`prop-orange-noida.png` vs `orange-property-card.png`)
-* **Official Scans:** New York Avenue (₹2M). Same layout as Chennai.
-* **First-Pass Generated:** Thin skyline icon, generic font.
-* **Perfectionist Improvements:**
-  - Same orange property template as Chennai, with the `noida` landmark vector.
-
-### 1.12 Pune (`prop-red-pune.png` vs `red-property-card.png`)
-* **Official Scans:** Kentucky Avenue (₹3M). Red header bar. Cash circle ₹3. RENT table of 1: ₹2M, 2: ₹3M, 3: ₹6M.
-* **First-Pass Generated:** Plain text, thin fort battlements icon.
-* **Perfectionist Improvements:**
-  - Highlight `3 (set): ₹6Cr` in solid red (`#ED1C24`).
-  - Add house/hotel vector icons at the bottom.
-  - Scale up the `pune` landmark icon.
-
-### 1.13 Bengaluru (`prop-red-bengaluru.png` vs `red-property-card.png`)
-* **Official Scans:** Indiana Avenue (₹3M). Same layout as Pune.
-* **First-Pass Generated:** Generic layout, thin silicon leaf icon.
-* **Perfectionist Improvements:**
-  - Same red property template as Pune, with the `bengaluru` landmark vector.
-
-### 1.14 Gurugram (`prop-red-gurugram.png` vs `red-property-card.png`)
-* **Official Scans:** Illinois Avenue (₹3M). Same layout as Pune.
-* **First-Pass Generated:** Thin tower icon, generic font.
-* **Perfectionist Improvements:**
-  - Same red property template as Pune, with the `gurugram` landmark vector.
-
-### 1.15 Goa (`prop-yellow-goa.png` vs `yellow-property-card.png`)
-* **Official Scans:** Atlantic Avenue (₹3M). Yellow header bar. Cash circle ₹3. RENT table of 1: ₹2M, 2: ₹4M, 3: ₹6M.
-* **First-Pass Generated:** White text on yellow header (completely unreadable). No set highlight.
-* **Perfectionist Improvements:**
-  - Change yellow header text color to dark black (`#000000`).
-  - Highlight `3 (set): ₹6Cr` in yellow (`#FEF200`) with black text.
-  - Add house/hotel vector icons at the bottom.
-  - Make palm tree watermark thicker.
-
-### 1.16 Coimbatore (`prop-yellow-coimbatore.png` vs `yellow-property-card.png`)
-* **Official Scans:** Ventnor Avenue (₹3M). Same layout as Goa.
-* **First-Pass Generated:** Unreadable white text on yellow, thin spinning wheel icon.
-* **Perfectionist Improvements:**
-  - Same yellow property template as Goa, with the `coimbatore` landmark vector.
-
-### 1.17 Vizag (`prop-yellow-vizag.png` vs `yellow-property-card.png`)
-* **Official Scans:** Marvin Gardens (₹3M). Same layout as Goa.
-* **First-Pass Generated:** Unreadable header, thin submarine icon.
-* **Perfectionist Improvements:**
-  - Same yellow property template as Goa, with the `vizag` landmark vector.
-
-### 1.18 New Delhi (`prop-green-newdelhi.png` vs `green-property-card.png`)
-* **Official Scans:** Pacific Avenue (₹4M). Green header bar. Cash circle ₹4. RENT table of 1: ₹2M, 2: ₹4M, 3: ₹7M.
-* **First-Pass Generated:** Plain text, thin India Gate icon.
-* **Perfectionist Improvements:**
-  - Highlight `3 (set): ₹7Cr` in solid green (`#1FB25A`).
-  - Add house/hotel vector icons at the bottom.
-  - Scale up India Gate landmark.
-
-### 1.19 Navi Mumbai (`prop-green-navimumbai.png` vs `green-property-card.png`)
-* **Official Scans:** North Carolina Avenue (₹4M). Same layout as New Delhi.
-* **First-Pass Generated:** Generic layout, thin sea link icon.
-* **Perfectionist Improvements:**
-  - Same green property template as New Delhi, with the `navimumbai` landmark vector.
-
-### 1.20 Thane (`prop-green-thane.png` vs `green-property-card.png`)
-* **Official Scans:** Pennsylvania Avenue (₹4M). Same layout as New Delhi.
-* **First-Pass Generated:** Thin lotus icon, generic font.
-* **Perfectionist Improvements:**
-  - Same green property template as New Delhi, with the `thane` landmark vector.
-
-### 1.21 South Mumbai (`prop-darkBlue-southmumbai.png` vs `dark-blue-property-card.png`)
-* **Official Scans:** Park Place (₹4M). Dark blue header bar. Cash circle ₹4. RENT table of 1: ₹3M, 2: ₹8M.
-* **First-Pass Generated:** Generic font, thin Gateway of India icon.
-* **Perfectionist Improvements:**
-  - Highlight `2 (set): ₹8Cr` in solid dark blue (`#003F9E`).
-  - Add house/hotel vector icons at the bottom.
-  - Thicken Gateway of India icon path and position it.
-
-### 1.22 Lutyens Delhi (`prop-darkBlue-lutyensdelhi.png` vs `dark-blue-property-card.png`)
-* **Official Scans:** Boardwalk (₹4M). Same layout as South Mumbai.
-* **First-Pass Generated:** Thin colonnade icon, generic font.
-* **Perfectionist Improvements:**
-  - Same dark blue property template as South Mumbai, with the `lutyensdelhi` landmark vector.
-
-### 1.23 Mumbai Local (`prop-railroad-mumbailocal.png` vs `railroad-property-card.png`)
-* **Official Scans:** Reading Railroad (₹2M). Black header bar with train icon. Cash circle ₹2. RENT table of 1: ₹1M, 2: ₹2M, 3: ₹3M, 4: ₹4M. No house/hotel cost details.
-* **First-Pass Generated:** Generic font, thin train icon, plain text.
-* **Perfectionist Improvements:**
-  - Render a solid black highlighted block (`#2C2C2C`) behind `4: ₹4Cr`.
-  - Remove house/hotel costs completely.
-  - Scale up train icon.
-
-### 1.24 Delhi Metro (`prop-railroad-delhimetro.png` vs `railroad-property-card.png`)
-* **Official Scans:** Pennsylvania Railroad (₹2M). Same layout as Mumbai Local.
-* **First-Pass Generated:** Simple layout, thin metro icon.
-* **Perfectionist Improvements:**
-  - Same railroad template as Mumbai Local, with the `delhimetro` landmark vector.
-
-### 1.25 Namma Metro (`prop-railroad-nammametro.png` vs `railroad-property-card.png`)
-* **Official Scans:** B&O Railroad (₹2M). Same layout as Mumbai Local.
-* **First-Pass Generated:** Thin elevated metro icon.
-* **Perfectionist Improvements:**
-  - Same railroad template as Mumbai Local, with the `nammametro` landmark vector.
-
-### 1.26 Howrah Express (`prop-railroad-howrahexpress.png` vs `railroad-property-card.png`)
-* **Official Scans:** Short Line (₹2M). Same layout as Mumbai Local.
-* **First-Pass Generated:** Thin steam train icon.
-* **Perfectionist Improvements:**
-  - Same railroad template as Mumbai Local, with the `howrahexpress` landmark vector.
-
-### 1.27 Power Grid (`prop-utility-powergrid.png` vs `utility-property-card.png`)
-* **Official Scans:** Electric Company (₹2M). Teal/Green header bar. Cash circle ₹2. RENT table of 1: ₹1M, 2: ₹2M. No house/hotel costs.
-* **First-Pass Generated:** Generic font, thin pylon icon, plain text.
-* **Perfectionist Improvements:**
-  - Highlight `2: ₹2Cr` in utility green (`#00796B`).
-  - Scale and center pylon landmark vector.
-
-### 1.28 Water Works (`prop-utility-waterworks.png` vs `utility-property-card.png`)
-* **Official Scans:** Water Works (₹2M). Same layout as Power Grid.
-* **First-Pass Generated:** Thin tap icon, generic font.
-* **Perfectionist Improvements:**
-  - Same utility template as Power Grid, with the `waterworks` landmark vector.
+> **Methodology:** Each official card was visually inspected using the Opus 4.6 vision model.
+> Every generated card was compared against its official counterpart.
+> Differences are catalogued with pixel-level specificity.
+> The goal is to produce generated cards that are indistinguishable from the official deck
+> (except for Indian city names replacing US cities, ₹Cr replacing ₹M, and Indian icons replacing US icons).
 
 ---
 
-## 2. WILD PROPERTY CARDS (9 Unique Designs)
+## DESIGN SYSTEM: Official Monopoly Deal Card Anatomy
 
-### 2.1 Wild Multicolor (`wild-rainbow.png` vs `multicolor-wildcard-card.png`)
-* **Official Scans:** Multi-color rainbow card. Text "Property Wild Card". Displays a vertical rainbow gradient with card descriptions in white.
-* **First-Pass Generated:** Simple, flat linear rainbow gradient, generic font.
-* **Perfectionist Improvements:**
-  - Use a multi-color radial or rich gradient.
-  - Add the double white border frame.
-  - Draw a detailed border line and stylized text "WILD" using Outfit-ExtraBold.
+### What the official cards actually look like (observed from real images):
 
-### 2.2 Station/Utility Wild (`wild-railroad-utility.png` vs `railraod-and-utility-wildcard-card.png`)
-* **Official Scans:** 50/50 vertical/diagonal split of Black (Station) and Teal (Utility). Displays rent tables of both sets on their respective halves.
-* **First-Pass Generated:** Flat split background, simple text.
-* **Perfectionist Improvements:**
-  - Draw a sharp white divider line separating the two colors.
-  - Render the Station rent ladder on the black side, and the Utility rent ladder on the teal side in micro-fonts.
+#### PROPERTY CARDS — Standard Layout:
+1. **Card background:** White/off-white card stock with rounded corners (~12px radius)
+2. **Thin colored border:** ~2px line runs around the entire card, inset ~8px from the edge, matching the set color
+3. **Header band:** A solid colored rectangle near the top, inset from the card edges (~15px each side). Takes up about 18-22% of card height. Color = set color (brown, red, yellow, etc.)
+4. **Value badge:** A white circle (~40px diameter) with a thin dark outline, positioned at the top-left, overlapping the top edge of the header band. Contains "₹XM" in bold text.
+5. **Title text:** Property name in **WHITE, BOLD, UPPERCASE sans-serif** centered inside the header band. Multi-line if needed (e.g., "NORTH CAROLINA AVENUE" splits to 3 lines).
+6. **Rent section:** Below the header, occupying the middle portion:
+   - Left side: "(No. of properties owned in set)" in small grey text
+   - Right side: "RENT" in large bold black text
+   - Below that: Multiple rent rows
+7. **Rent rows:** Each row has:
+   - A small "card stack" icon on the left — looks like 1-4 mini property cards fanned/stacked, colored in the set color. These have the count number (1, 2, 3, 4) printed on them.
+   - A dotted line extending to the right
+   - The rent value (₹XM) at the right end
+   - The LAST row (full set) has the text "FULL SET." before the value
+8. **No house/hotel section:** The official property cards do NOT show house/hotel costs ON the card face. These are on separate House and Hotel action cards.
+9. **No landmark/watermark icon:** The official property cards do NOT have any background watermark, landmark icon, or city illustration. They are clean and minimal.
+10. **Copyright text:** "© 1935, 2008 HASBRO" at the bottom left in tiny text.
 
-### 2.3 Station/Green Wild (`wild-railroad-green.png` vs `railraod-and-green-wildcard-card.png`)
-* **Official Scans:** Split of Black (Station) and Green. Shows rent tables for both.
-* **First-Pass Generated:** Flat split background, generic fonts.
-* **Perfectionist Improvements:**
-  - Same split rent table layout using Black and Green (`#1FB25A`).
+#### RAILROAD PROPERTY CARDS — Special features:
+- Same layout as above but with BLACK header band
+- **Train icon:** A small black steam locomotive icon appears centered below the title, inside the header band area
+- 4 rent rows (set of 4 completes)
+- Card stack icons in the rent rows use BLACK mini-cards
 
-### 2.4 Station/Light Blue Wild (`wild-railroad-lightBlue.png` vs `railraod-and-light-blue-wildcard-card.png`)
-* **Official Scans:** Split of Black and Light Blue. Shows rent tables.
-* **First-Pass Generated:** Simple split.
-* **Perfectionist Improvements:**
-  - Same split rent table layout using Black and Light Blue (`#55C3F0`).
+#### UTILITY PROPERTY CARDS — Special features:
+- Same layout but with PALE GREEN/SAGE header band
+- **Utility icon:** Water Works has a faucet/tap icon; Electric Company has a lightbulb icon — positioned to the RIGHT of the title text inside the header
+- 2 rent rows (set of 2 completes)
 
-### 2.5 Dark Blue/Green Wild (`wild-darkBlue-green.png` vs `dark-blue-and-green-wildcard-card.png`)
-* **Official Scans:** Split of Dark Blue and Green. Shows rent tables.
-* **First-Pass Generated:** Simple split.
-* **Perfectionist Improvements:**
-  - Same split rent table layout using Dark Blue (`#003F9E`) and Green (`#1FB25A`).
+#### ACTION CARDS — Official Layout:
+1. **Background color:** Varies by action type (light blue for Just Say No, beige/cream for most others, lavender for Deal Breaker)
+2. **Ornate border:** A decorative border made of repeated geometric patterns (Greek key / meander pattern), running around the entire card with ~10px margin. TWO nested borders — an outer thin one and an inner thick one.
+3. **"ACTION CARD" label:** Bold black text centered near the top, ABOVE the central circle
+4. **Central circle:** A large (~55% card width) circle with a thick black outline (3-4px stroke). Inside:
+   - Action name in LARGE, BOLD, BLACK, UPPERCASE text (e.g., "DEAL BREAKER", "PASS GO")
+   - For PASS GO: has a red left-pointing arrow below "GO"
+   - For HOUSE: has a 3D green house illustration
+   - For HOTEL: has a 3D red hotel illustration  
+   - For IT'S MY BIRTHDAY: has a birthday cake illustration
+5. **Description text:** Below the circle, centered, in small black text. Describes what the card does.
+6. **Value badges:** TWO circles — top-left AND bottom-right — each containing "₹XM". Red circle outline.
+7. **No gradient backgrounds:** The action cards do NOT use gradients. They use flat, muted solid colors.
 
-### 2.6 Pink/Orange Wild (`wild-pink-orange.png` vs `orange-and-pink-wildcard-card.png`)
-* **Official Scans:** Split of Pink and Orange. Shows rent tables.
-* **First-Pass Generated:** Simple split.
-* **Perfectionist Improvements:**
-  - Same split rent table layout using Pink (`#D93A96`) and Orange (`#F7941D`).
+#### RENT CARDS — Official Layout:
+1. **Same ACTION CARD frame** — identical ornate border, "ACTION CARD" text at top
+2. **Central circle:** Contains "RENT" in large bold text. The circle is divided into segments colored with the two relevant set colors (like a target/bullseye):
+   - For dual-color rent: Two concentric rings — outer ring = one color, inner ring = other color, center = white with "RENT" text
+   - For wild rent: Multi-colored wheel segments (all 10 property colors) around the circle
+3. **Description text:** Below circle. "All players pay you rent for properties you own in one of these colors. Play into center to use."
+4. **Value badges:** Same as action cards, two badges with red outlines
 
-### 2.7 Red/Yellow Wild (`wild-red-yellow.png` vs `red-and-yellow-wildcard-card.png`)
-* **Official Scans:** Split of Red and Yellow. Shows rent tables.
-* **First-Pass Generated:** Simple split.
-* **Perfectionist Improvements:**
-  - Same split rent table layout using Red (`#ED1C24`) and Yellow (`#FEF200`).
+#### WILDCARD PROPERTY CARDS (dual-color) — Official Layout:
+1. **FLIPPABLE DESIGN:** The card is designed to be read from EITHER end — it can be rotated 180°
+2. **Title area:** At each end (top and bottom, flipped), there is a colored band with "PROPERTY" above "WILD CARD" in white text, and "(Use card either way up.)" in small text
+3. **Center area:** Shows RENT tables for BOTH colors, one right-side up, one upside down
+4. **Rent rows:** Same mini-card-stack icons, dotted lines, and values as standard property cards
+5. **Value badge:** One in each corner, matching the color it's associated with
+6. **The split is NOT diagonal** — it's a straight horizontal division at the center, with each half dedicated to one color
 
-### 2.8 Light Blue/Brown Wild (`wild-lightBlue-brown.png` vs `light-blue-and-brown-wildcard-card.png`)
-* **Official Scans:** Split of Light Blue and Brown. Shows rent tables.
-* **First-Pass Generated:** Simple split.
-* **Perfectionist Improvements:**
-  - Same split rent table layout using Light Blue (`#55C3F0`) and Brown (`#955436`).
+#### WILDCARD (RAINBOW/MULTICOLOR) — Official Layout:
+1. **White background** with colored stripes across the top (all 10 property colors as thin horizontal bars)
+2. **"PROPERTY WILD CARD"** in large bold text at the top
+3. **Rich Uncle Pennybags illustration:** The Monopoly mascot (man in top hat with monocle, pointing) is centered and takes up most of the card
+4. **Description text:** "This card can be used as part of any property set. This card has no monetary value."
+5. **No value badge** (₹0M)
 
-### 2.9 Light Blue/Station Wild (`wild-lightBlue-railroad.png` vs `railraod-and-light-blue-wildcard-card.png`)
-* **Official Scans:** Split of Light Blue and Black. Shows rent tables.
-* **First-Pass Generated:** Simple split.
-* **Perfectionist Improvements:**
-  - Same split rent table layout using Light Blue (`#55C3F0`) and Black (`#2C2C2C`).
-
----
-
-## 3. MONEY CARDS (6 Unique Designs)
-
-### 3.1 ₹1Cr Money (`money-1cr.png` vs `1M-money-card.png`)
-* **Official Scans:** Pale green background. Large circular radiating watermark in the center. Large denomination "1M". Corner badges.
-* **First-Pass Generated:** Plain green gradient, simple text, no watermark.
-* **Perfectionist Improvements:**
-  - Use a circular `<radialGradient>` for a glowing center.
-  - Implement a repeating diagonal watermark background pattern (`#FFFFFF` with 4% opacity).
-  - Add a large background Rupee sign (`₹`) watermark with a soft drop shadow.
-
-### 3.2 ₹2Cr Money (`money-2cr.png` vs `2M-money-card.png`)
-* **Official Scans:** Same layout, different denomination ("2M").
-* **First-Pass Generated:** Plain gradient.
-* **Perfectionist Improvements:**
-  - Apply the polished money template for ₹2Cr.
-
-### 3.3 ₹3Cr Money (`money-3cr.png` vs `3M-money-card.png`)
-* **Official Scans:** Same layout, different denomination ("3M").
-* **First-Pass Generated:** Plain gradient.
-* **Perfectionist Improvements:**
-  - Apply the polished money template for ₹3Cr.
-
-### 3.4 ₹4Cr Money (`money-4cr.png` vs `4M-money-card.png`)
-* **Official Scans:** Same layout, different denomination ("4M").
-* **First-Pass Generated:** Plain gradient.
-* **Perfectionist Improvements:**
-  - Apply the polished money template for ₹4Cr.
-
-### 3.5 ₹5Cr Money (`money-5cr.png` vs `5M-money-card.png`)
-* **Official Scans:** Same layout, different denomination ("5M").
-* **First-Pass Generated:** Plain gradient.
-* **Perfectionist Improvements:**
-  - Apply the polished money template for ₹5Cr.
-
-### 3.6 ₹10Cr Money (`money-10cr.png` vs `10M-money-card.png`)
-* **Official Scans:** Goldish-green premium layout. "10M" denomination.
-* **First-Pass Generated:** Plain green gradient.
-* **Perfectionist Improvements:**
-  - Make the gradient for ₹10Cr slightly more golden-green to emphasize its high value.
-  - Apply the polished money template.
+#### MONEY CARDS — Official Layout:
+1. **Colored background:** Light blue outer border area, inner area colored based on denomination (gold/yellow for 10M, pale green/sage for 1M, etc.)
+2. **Ornate border:** Same geometric/meander pattern as action cards, but the inner area is a solid color
+3. **Central circle:** Large circle in the center with thick outline, containing the value in large stylized text (₹XM)
+4. **Value badges:** Two small circles — top-left and bottom-right — each containing the value
+5. **Colors by denomination:**
+   - 1M = pale green/sage background
+   - 2M = pale green/sage background
+   - 3M = pale green/sage background
+   - 4M = pale green/sage background
+   - 5M = pale gold/tan background
+   - 10M = gold/yellow background
 
 ---
 
-## 4. ACTION CARDS (12 Unique Designs)
-
-### 4.1 Deal Breaker (`action-dealBreaker.png` vs `deal-breaker-action-card.png`)
-* **Official Scans:** Dark blue/purple gradient. "ACTION" gold tab at top. Gavel icon inside a bordered circle in the center. Large title "DEAL BREAKER".
-* **First-Pass Generated:** Flat blue background, thin icon, plain text layout.
-* **Perfectionist Improvements:**
-  - Add the yellow/gold "ACTION" banner tab at the top.
-  - Enclose the gavel icon in a double-ring circle with border and shadow.
-  - Place description text inside a semi-transparent black pill box at the bottom.
-
-### 4.2 Debt Collector (`action-debtCollector.png` vs `debt-collector-action-card.png`)
-* **Official Scans:** Same template, bank facade icon.
-* **First-Pass Generated:** Simple blue layout, generic font.
-* **Perfectionist Improvements:**
-  - Apply the action card template with the bank facade icon.
-
-### 4.3 Forced Deal (`action-forcedDeal.png` vs `force-deal-action-card.png`)
-* **Official Scans:** Same template, horizontal swap arrows icon.
-* **First-Pass Generated:** Generic layout.
-* **Perfectionist Improvements:**
-  - Apply the action card template with swap arrows.
-
-### 4.4 Sly Deal (`action-slyDeal.png` vs `sly-deal-action-card.png`)
-* **Official Scans:** Same template, stealthy eye icon.
-* **First-Pass Generated:** Generic layout.
-* **Perfectionist Improvements:**
-  - Apply the action card template with the stealthy eye icon.
-
-### 4.5 Pass Go (`action-passGo.png` vs `pass-go-action-card.png`)
-* **Official Scans:** Same template, running man icon.
-* **First-Pass Generated:** Generic layout.
-* **Perfectionist Improvements:**
-  - Apply the action card template with the running man icon.
-
-### 4.6 Mera Birthday! (`action-birthday.png` vs `it's-my-birthday-action-card.png`)
-* **Official Scans:** Same template, cake icon.
-* **First-Pass Generated:** Generic layout.
-* **Perfectionist Improvements:**
-  - Apply the action card template with a layered birthday cake icon.
-
-### 4.7 Nahi! (`action-justSayNo.png` vs `just-say-no-action-card.png`)
-* **Official Scans:** Unique red accent border/background for Just Say No. Large block warning icon.
-* **First-Pass Generated:** Plain blue layout with standard circle badge.
-* **Perfectionist Improvements:**
-  - Make the corner cash value circle have a bright red solid background with white text.
-  - Add a bold red warning block accent behind the main title.
-  - Apply the action card template with the JSN block icon.
-
-### 4.8 Double Rent! (`action-doubleRent.png` vs `double-the-rent-action-card.png`)
-* **Official Scans:** Same template, upward chart trend icon.
-* **First-Pass Generated:** Generic layout.
-* **Perfectionist Improvements:**
-  - Apply the action card template with the trend line icon.
-
-### 4.9 Ghar (`action-house.png` vs `house-action-card.png`)
-* **Official Scans:** Greenish-blue template. Large green house icon.
-* **First-Pass Generated:** Plain action card template.
-* **Perfectionist Improvements:**
-  - Make the background gradient shift towards green-teal (`#004D40` to `#00796B`) to match the house color.
-  - Render a large green house outline in the center circle.
-
-### 4.10 Hotel (`action-hotel.png` vs `hotel-action-card.png`)
-* **Official Scans:** Reddish-blue template. Large red hotel icon.
-* **First-Pass Generated:** Plain action card template.
-* **Perfectionist Improvements:**
-  - Make the background gradient shift towards red-purple (`#4A0033` to `#7B1FA2`) to match the hotel color.
-  - Render a large red hotel outline in the center circle.
-
-### 4.11 Insurance (`action-insurance.png` vs —)
-* **Official Scans:** Custom card. No official scan.
-* **First-Pass Generated:** Simple teal background.
-* **Perfectionist Improvements:**
-  - Render a premium dark teal gradient (`#004D40` to `#00796B`) with a prominent gold/yellow "CUSTOM ACTION" banner tab at the top.
-  - Centered gold shield outline icon.
-
-### 4.12 Sabotage (`action-sabotage.png` vs —)
-* **Official Scans:** Custom card. No official scan.
-* **First-Pass Generated:** Simple purple background.
-* **Perfectionist Improvements:**
-  - Render a premium dark purple gradient (`#4A148C` to `#7B1FA2`) with a gold/yellow "CUSTOM ACTION" banner tab.
-  - Centered gold split-hands trade icon.
+## CARD-BY-CARD COMPARISON
 
 ---
 
-## 5. RENT CARDS (6 Unique Designs)
+### 1. BROWN PROPERTY CARDS (Baltic Avenue / Mediterranean Avenue → Lucknow / Indore)
 
-### 5.1 Rent: Brown/Light Blue (`rent-brown-lightBlue.png` vs `brown-and-light-blue-rent-card.png`)
-* **Official Scans:** Diagonal split of Brown and Light Blue. Circle in the center with a large dark Rupee symbol. Below is the Rent title.
-* **First-Pass Generated:** Simple split background, plain center Rupee sign.
-* **Perfectionist Improvements:**
-  - Add a crisp 4px white line divider along the diagonal split.
-  - Render the central white badge with double borders and a drop shadow.
-  - Style the Rupee icon in Outfit-ExtraBold with shadow.
+#### Official Card Details:
+- White card, thin brown border line inset from edges
+- Brown header band (hex ~#8B4513 or similar warm brown) occupying top ~20%
+- White circle value badge (₹1M) at top-left overlapping header
+- Property name in white bold uppercase centered in header
+- Below header: "(No. of properties owned in set)" label and "RENT" in large text
+- 2 rent rows:
+  - Row 1: Brown mini-card icon with "1", dotted line, "₹1M"
+  - Row 2: Brown mini-card icon with "2", dotted line, "FULL SET. ₹2M"
+- Bottom: copyright text
+- NO house/hotel costs on card face
+- NO landmark/watermark illustration
+- NO "Collect X of this color" subtext
 
-### 5.2 Rent: Pink/Orange (`rent-pink-orange.png` vs `orange-and-pink-rent-card.png`)
-* **Official Scans:** Split of Pink and Orange. Same layout.
-* **First-Pass Generated:** Simple split.
-* **Perfectionist Improvements:**
-  - Apply the rent card template using Pink (`#D93A96`) and Orange (`#F7941D`).
+#### Generated Card (Lucknow) Details:
+- White card with rounded corners
+- Brown header band — ✅ Correct color
+- Green circle value badge (₹1) at top-left — ❌ Circle is GREEN, should be WHITE with dark outline
+- "LUCKNOW" in white bold text — ✅ Correct placement
+- "RENT" label — ✅ Present
+- Rent rows show "1" and "2 (set)" with "₹1Cr" and "₹2Cr" — ⚠️ Close but format differs:
+  - ❌ Missing the small card-stack icons (mini brown property cards fanned together)
+  - ❌ Missing the dotted lines between number and value
+  - ❌ "2 (set)" format vs official "FULL SET. ₹2M" format
+- ❌ Has a LARGE brown landmark/archway watermark icon on the right side — NOT present in official
+- ❌ Has "Ghar: +₹3Cr" and "Hotel: +₹4Cr" at the bottom — NOT present on official property cards
+- ❌ Missing "(No. of properties owned in set)" label text
+- ❌ Missing copyright text
 
-### 5.3 Rent: Red/Yellow (`rent-red-yellow.png` vs `red-and-yellow-rent-card.png`)
-* **Official Scans:** Split of Red and Yellow. Same layout.
-* **First-Pass Generated:** Simple split.
-* **Perfectionist Improvements:**
-  - Apply the rent card template using Red (`#ED1C24`) and Yellow (`#FEF200`).
+#### Critical Differences:
+| Element | Official | Generated | Fix Required |
+|---------|----------|-----------|-------------|
+| Value badge | White circle, dark outline | Green circle | Change to white circle with dark outline |
+| Card-stack icons | Brown mini-card fans (1, 2) | Plain numbers | Add card-stack SVG icons |
+| Dotted line | Present between count and value | Missing | Add dotted line |
+| "FULL SET." label | Present on last row | Shows "(set)" | Change to "FULL SET." |
+| Landmark watermark | NOT present | Large archway icon | REMOVE entirely |
+| House/Hotel costs | NOT on card face | Shows at bottom | REMOVE from property card |
+| "(No. of properties owned in set)" | Present | Missing | Add label text |
+| Border line | Thin colored line inset from edge | No visible border line | Add thin brown border |
 
-### 5.4 Rent: Green/Dark Blue (`rent-green-darkBlue.png` vs `blue-and-green-rent-card.png`)
-* **Official Scans:** Split of Green and Dark Blue. Same layout.
-* **First-Pass Generated:** Simple split.
-* **Perfectionist Improvements:**
-  - Apply the rent card template using Green (`#1FB25A`) and Dark Blue (`#003F9E`).
+---
 
-### 5.5 Rent: Station/Utility (`rent-railroad-utility.png` vs `railroad-and-utility-rent-card.png`)
-* **Official Scans:** Split of Black (Station) and Teal (Utility). Same layout.
-* **First-Pass Generated:** Simple split.
-* **Perfectionist Improvements:**
-  - Apply the rent card template using Black (`#2C2C2C`) and Utility Teal (`#00796B`).
+### 2. LIGHT BLUE PROPERTY CARDS (Oriental/Vermont/Connecticut → Chandigarh/Bhopal/Kochi)
 
-### 5.6 Wild Rent (`rent-wild.png` vs `all-color-wild-rent-card.png`)
-* **Official Scans:** Green gradient background. Center Rupee badge. Tells player "Rent from any player".
-* **First-Pass Generated:** Simple green gradient.
-* **Perfectionist Improvements:**
-  - Apply the money card radial gradient, background watermark pattern, and double-borders.
-  - Render the center Rupee badge.
+#### Official Card Details:
+- White card with thin light blue border line
+- Light blue header band (hex ~#87CEEB or similar)
+- White circle value badge (₹1M) at top-left
+- 3 rent rows with light blue mini-card-stack icons
+- Row 3: "FULL SET. ₹3M"
+
+#### Generated Card (vs Official): Same issues as brown property cards:
+- ❌ Green value badge instead of white
+- ❌ No card-stack icons
+- ❌ No dotted lines
+- ❌ Large landmark watermark present (shouldn't be)
+- ❌ House/Hotel costs at bottom (shouldn't be on card)
+- ❌ Missing "(No. of properties owned in set)" text
+
+---
+
+### 3. PINK PROPERTY CARDS (St. Charles/States/Virginia → Jaipur/Ahmedabad/Kolkata)
+
+#### Official Card Details:
+- Hot pink/magenta header band (hex ~#FF1493 or similar bright magenta)
+- White circle value badge: ₹2M
+- 3 rent rows with pink mini-card icons
+- Rent values: 1→₹1M, 2→₹2M, 3(full set)→₹4M
+
+#### Generated Card Differences:
+- Same systemic issues as above (green badge, no card icons, no dots, landmark, house/hotel)
+- ⚠️ The pink/magenta tone needs to match the official vibrant hot pink exactly
+
+---
+
+### 4. ORANGE PROPERTY CARDS (St. James/Tennessee/New York → Chennai/Hyderabad/Noida)
+
+#### Official Card Details:
+- Orange header band (hex ~#F5A623 or similar warm orange)
+- White circle value badge: ₹2M
+- 3 rent rows with orange mini-card icons
+- Rent values: 1→₹1M, 2→₹3M, 3(full set)→₹5M
+
+#### Generated Card Differences:
+- Same systemic issues
+- Orange color appears correct in tone
+
+---
+
+### 5. RED PROPERTY CARDS (Kentucky/Indiana/Illinois → Pune/Bengaluru/Gurugram)
+
+#### Official Card Details:
+- Bright red header band (hex ~#E41B17 or similar)
+- White circle value badge: ₹3M
+- 3 rent rows with red mini-card icons
+- Rent values: 1→₹2M, 2→₹3M, 3(full set)→₹6M
+
+#### Generated Card (Bengaluru) Specific Issues:
+- ❌ Value badge is GREEN circle, should be white
+- ❌ Has a large red location-pin/map-marker watermark — NOT in official
+- ❌ House/Hotel costs at bottom — remove
+- ❌ No card-stack icons in rent rows
+- Red header color appears correct
+
+---
+
+### 6. YELLOW PROPERTY CARDS (Atlantic/Ventnor/Marvin Gardens → Goa/Coimbatore/Vizag)
+
+#### Official Card Details:
+- Bright yellow header band (hex ~#FFD700 or similar)
+- White circle value badge: ₹3M
+- 3 rent rows with yellow mini-card icons
+- Rent values: 1→₹2M, 2→₹4M, 3(full set)→₹6M
+
+#### Generated Card Differences:
+- Same systemic issues as all property cards
+
+---
+
+### 7. GREEN PROPERTY CARDS (Pacific/North Carolina/Pennsylvania → New Delhi/Navi Mumbai/Thane)
+
+#### Official Card Details:
+- Rich green header band (hex ~#00A651 or similar)
+- White circle value badge: ₹4M
+- 3 rent rows with green mini-card icons
+- Rent values: 1→₹2M, 2→₹4M, 3(full set)→₹7M
+
+#### Generated Card Differences:
+- Same systemic issues
+
+---
+
+### 8. DARK BLUE PROPERTY CARDS (Boardwalk/Park Place → Lutyens Delhi/South Mumbai)
+
+#### Official Card Details:
+- Dark blue header band (hex ~#0058A0 or similar medium-dark blue)
+- White circle value badge: ₹4M
+- 2 rent rows with dark blue mini-card icons
+- Rent values: 1→₹3M, 2(full set)→₹8M
+
+#### Generated Card (South Mumbai) Specific Issues:
+- ❌ Green value badge → should be white
+- ❌ Large blue arch/gateway watermark → remove
+- ❌ House/Hotel costs at bottom → remove
+- ❌ No card-stack icons, no dotted lines
+- Blue header tone: appears correct
+
+---
+
+### 9. RAILROAD PROPERTY CARDS (Reading/Pennsylvania/B&O/Short Line → Mumbai Local/Delhi Metro/Namma Metro/Howrah Express)
+
+#### Official Card Details:
+- **BLACK header band** — distinctive from other property types
+- **Train icon:** A small black steam train/locomotive icon is centered INSIDE the header band, below the title text
+- White circle value badge: ₹2M
+- 4 rent rows with BLACK mini-card-stack icons
+- Rent values: 1→₹1M, 2→₹2M, 3→₹3M, 4(full set)→₹4M
+- NO house/hotel costs (railroads can't have houses/hotels in official rules)
+
+#### Generated Card (Delhi Metro) Specific Issues:
+- ✅ Black header band — correct
+- ❌ Green value badge → should be white
+- ❌ Has a large metro/train icon to the right of rent rows as a watermark → should be INSIDE the header only, as a small icon, not a watermark
+- ❌ No card-stack icons in rent rows
+- ❌ No dotted lines
+- ✅ No house/hotel costs at bottom — correct for railroad
+- ❌ Missing small train icon IN the header
+
+---
+
+### 10. UTILITY PROPERTY CARDS (Electric Company/Water Works → Power Grid/Water Works)
+
+#### Official Card Details:
+- **Pale sage/green-grey header band** (NOT bright green — it's a muted, desaturated sage green)
+- **Utility icons IN the header:** 
+  - Water Works: faucet/tap icon to the right of the title
+  - Electric Company: lightbulb icon to the right of the title
+- White circle value badge: ₹2M
+- 2 rent rows with utility-colored mini-card icons
+- Rent values: 1→₹1M, 2(full set)→₹2M
+
+#### Generated Card (Water Works) Specific Issues:
+- ❌ Header is bright teal/dark green → should be pale sage/grey-green
+- ❌ Green value badge → should be white
+- ❌ Has an abstract water icon as a large watermark → should be a small icon in the header
+- ❌ No card-stack icons
+- ❌ No dotted lines
+
+---
+
+### 11. ACTION CARD: DEAL BREAKER
+
+#### Official Card Details:
+- **Lavender/purple** background (NOT bright blue)
+- **Greek key / meander ornate double border** around the card
+- "ACTION CARD" in bold black text at top, above the circle
+- Large central circle with thick black outline
+- "DEAL BREAKER" in large bold black text inside circle
+- Description below: "Steal a complete set of properties from any player. (Includes any buildings.) Play into center to use."
+- Two value badges (₹5M): top-left AND bottom-right, with RED circle outlines
+- Copyright text at bottom
+
+#### Generated Card Details:
+- ❌ BRIGHT BLUE gradient background → should be flat LAVENDER/PURPLE
+- ❌ No ornate meander border → needs Greek key pattern
+- ✅ "ACTION CARD" label present (in gold banner) → ❌ should be plain black text, no banner
+- ❌ "DEAL BREAKER" is displayed as large white text on blue background → should be inside a central circle in black text
+- ❌ Has abstract hammer/gavel icon → official has NO icon, just text in circle
+- ❌ Dark blue rectangle at bottom → should be description text
+- ❌ Only one value badge (top-left) → needs two (top-left AND bottom-right)
+- ❌ Value badge is gold circle → should be white circle with red outline
+
+---
+
+### 12. ACTION CARD: JUST SAY NO
+
+#### Official Card Details:
+- **Light blue** flat background
+- Same ornate double border pattern
+- "JUST SAY NO!" in bold black inside central circle
+- Value: ₹4M in two badges (red outline)
+- Description: "Use any time when an action card is played against you. Play into center to use."
+
+#### Generated Card Differences:
+- ❌ Bright blue gradient → should be flat light blue
+- ❌ No ornate border
+- ❌ Missing central circle with text
+- ❌ Has abstract person/stickman icon → should have NO icon
+- ❌ Missing dual value badges with red outlines
+
+---
+
+### 13. ACTION CARD: PASS GO
+
+#### Official Card Details:
+- **Beige/cream/tan** flat background
+- Same ornate double border
+- Inside central circle: "PASS" above "GO" with a RED LEFT-POINTING ARROW below "GO"
+- Value: ₹1M in two badges
+- Description: "Draw 2 extra cards. Play into center to use."
+
+#### Generated Card Differences:
+- ❌ Bright blue gradient → should be BEIGE/CREAM
+- ❌ No ornate border
+- ❌ Has stickman icon → should have "PASS GO" text with red arrow in circle
+- ❌ Missing the iconic red arrow
+
+---
+
+### 14. ACTION CARD: SLY DEAL
+
+#### Official Card Details:
+- **Silver/grey** flat background
+- "SLY DEAL" inside central circle
+- Value: ₹3M
+- Description: "Steal a property from the player of your choice. (Cannot be part of a full set.) Play into center to use."
+
+#### Generated Card Differences:
+- ❌ Bright blue gradient → should be SILVER/GREY
+- ❌ Same systemic issues (no border, no circle, icon instead of text)
+
+---
+
+### 15. ACTION CARD: FORCED DEAL
+
+#### Official Card Details:
+- **Silver/grey** flat background  
+- "FORCED DEAL" inside central circle
+- Value: ₹3M
+- Description: "Swap any property with another player. (Cannot be part of a full set.) Play into center to use."
+
+#### Generated Card Differences:
+- Same issues as Sly Deal
+
+---
+
+### 16. ACTION CARD: DEBT COLLECTOR
+
+#### Official Card Details:
+- **Pale sage/green-grey** flat background
+- "DEBT COLLECTOR" inside central circle
+- Value: ₹3M
+- Description: "Force any player to pay you ₹5M. Play into center to use."
+
+#### Generated Card Differences:
+- ❌ Bright blue gradient → should be pale sage/green-grey
+- Same systemic issues
+
+---
+
+### 17. ACTION CARD: IT'S MY BIRTHDAY (→ MERA BIRTHDAY!)
+
+#### Official Card Details:
+- **Light blue** flat background
+- "IT'S MY BIRTHDAY" inside central circle
+- **Birthday cake illustration** inside the circle, above the text
+- Value: ₹2M
+- Description: 'All players give you ₹2M as a "gift". Play into center to use.'
+
+#### Generated Card Differences:
+- Same systemic issues
+- ❌ Missing birthday cake illustration
+
+---
+
+### 18. ACTION CARD: DOUBLE THE RENT (→ DOUBLE RENT!)
+
+#### Official Card Details:
+- **Beige/cream** flat background
+- "DOUBLE THE RENT!" inside central circle (with exclamation mark)
+- Value: ₹1M
+- Description: "Needs to be played with a rent card. Play into center to use."
+
+#### Generated Card Differences:
+- Same systemic issues
+
+---
+
+### 19. ACTION CARD: HOUSE (→ GHAR)
+
+#### Official Card Details:
+- **White/light grey** flat background
+- Inside central circle: A **3D green house illustration** (like the classic Monopoly house piece)
+- "HOUSE" text below the house illustration inside the circle
+- Value: ₹3M
+- Description: "Add onto any full set you own to add ₹3M to the rent value. (Except railroads and utilities.)"
+
+#### Generated Card Details:
+- ❌ Bright blue gradient → should be WHITE/LIGHT GREY
+- ❌ Has a flat line-art house icon → should be 3D Monopoly house
+- ❌ Same systemic issues (no ornate border, wrong badge style)
+
+---
+
+### 20. ACTION CARD: HOTEL
+
+#### Official Card Details:
+- **Light blue** flat background
+- Inside central circle: A **3D red hotel illustration** (like the classic Monopoly hotel piece)
+- "HOTEL" text below the hotel illustration inside the circle
+- Value: ₹4M
+- Description: "Add onto any full set you own to add ₹4M to the rent value. (Except railroads and utilities.)"
+
+#### Generated Card Differences:
+- Same issues as House card
+
+---
+
+### 21. RENT CARDS (Dual Color)
+
+#### Official Card Details (e.g., Brown/Light Blue Rent):
+- **Same ACTION CARD frame** — ornate Greek key border, "ACTION CARD" text
+- Central circle contains:
+  - "RENT" in large bold white text
+  - Circle is divided into concentric rings of the two relevant colors:
+    - Outer ring = first color (brown)
+    - Inner ring = second color (light blue)
+    - Center = white area with "RENT" text
+- Two value badges (₹1M) with red outlines
+- Description: "All players pay you rent for properties you own in one of these colors. Play into center to use."
+
+#### Generated Rent Card (Brown/Light Blue) Details:
+- ❌ Uses a DIAGONAL SPLIT design (brown triangle top-left, light blue triangle bottom-right) → official uses CONCENTRIC CIRCLES
+- ❌ Has a ₹ symbol in a white circle at center → should say "RENT" in the circle
+- ❌ "RENT CARD" label at bottom → should say "ACTION CARD" at top
+- ❌ "BROWN/LIGHT BLUE" label at bottom → description text should be the action description
+- ❌ No ornate border
+- ❌ Only one value badge → needs two
+
+---
+
+### 22. WILD RENT CARD (All Colors)
+
+#### Official Card Details:
+- Same ACTION CARD frame
+- Central circle: "RENT" text in center, surrounded by a COLOR WHEEL of all 10 property colors as pie-chart-like segments
+- Value: ₹3M
+- Description: "Force one player to pay you rent for properties you own in one of these colors. Play into center to use."
+
+#### Generated Wild Rent Card Details:
+- ❌ Solid dark green gradient background → should be light grey/silver with ornate border
+- ❌ ₹ symbol in white circle → should say "RENT" with color wheel
+- ❌ "WILD RENT" / "KISI SE BHI RENT LO" labels → should be action description
+- ❌ No color wheel segments
+- ❌ Missing ornate border
+
+---
+
+### 23. WILDCARD PROPERTY CARDS (Dual-Color, e.g., Red/Yellow)
+
+#### Official Card Details:
+- **FLIPPABLE CARD** — rotatable 180°
+- **Top half (one color):** Colored header band with "PROPERTY" and "WILD CARD" in white, "(Use card either way up.)" in small text
+- **Top half rent table:** Shows rent values for that color (right-side up)
+- **Bottom half (other color):** Same as top but UPSIDE DOWN (designed to be read when card is flipped)
+- **Bottom half rent table:** Shows rent values for the other color (upside down)
+- **Center:** "RENT" text divides the two halves
+- **Value badges:** One per corner
+- **Key detail:** The rent rows use the SAME card-stack icon system as regular property cards
+
+#### Generated Wildcard (Red/Yellow) Details:
+- ❌ Uses a HORIZONTAL SPLIT with bright solid red (top) and bright yellow (bottom) → official uses the same white card stock with colored header BANDS at each end
+- ❌ "WILD" text in a circle at center → official has "RENT" text at the dividing line
+- ❌ Lists rent values as "1: ₹2Cr" etc. → should use card-stack icons and dotted lines
+- ❌ "RED" and "YELLOW" labels on colored banners → should say "PROPERTY WILD CARD"
+- ❌ No "(Use card either way up.)" text
+- ❌ Overwhelming color — the entire halves are solid color fills → official is mostly white with small colored bands
+
+---
+
+### 24. WILDCARD (RAINBOW/MULTICOLOR → PROPERTY WILD CARD)
+
+#### Official Card Details:
+- **White background** card
+- **Color stripe bar:** Horizontal bar at the top showing all 10 property colors as thin adjacent stripes
+- **"PROPERTY WILD CARD"** in large bold text
+- **Rich Uncle Pennybags (Monopoly Man):** Full illustration centered — man in black tuxedo, top hat, white mustache, pointing at viewer
+- **Description:** "This card can be used as part of any property set. This card has no monetary value."
+- **No value badge** (card is worth ₹0)
+
+#### Generated Rainbow Wild Card Details:
+- ❌ RAINBOW GRADIENT background covering entire card → should be white with small color stripe bar at top
+- ❌ "WILD" in large white text → should be "PROPERTY WILD CARD"
+- ❌ "KISI BHI COLOR MEIN" subtitle → should be the English description text
+- ❌ No Monopoly Man illustration → this is a KEY visual element (though for the Indian version we could use an Indian equivalent mascot, or simply omit and keep text-only)
+- ❌ "PROPERTY WILD CARD" at bottom in small text → should be the title at top
+
+---
+
+### 25. MONEY CARDS (₹1M → ₹1Cr, ₹2M → ₹2Cr, etc.)
+
+#### Official Card Details (e.g., ₹1M):
+- **Light blue outer border area** (same as card stock)
+- **Inner area:** Pale sage/green background with ornate Greek key border pattern
+- **Central circle:** Large circle (50-60% card width) with double outline (thin + thick), containing the value "₹1M" in large stylized text
+- **Corner badges:** Two small circles (top-left, bottom-right) each with the value
+- **Color coding by denomination:**
+  - ₹1M–₹5M: Pale sage/green inner area
+  - ₹10M: GOLD/YELLOW inner area
+
+#### Generated Money Card (₹1Cr) Details:
+- ❌ SOLID GREEN background with subtle gradient → should be pale sage/green with visible ornate border
+- ❌ "₹1Cr" in large white text on green → should be inside a central circle with outline
+- ❌ "MONEY" label below value → NOT present in official
+- ❌ Corner text ("₹1Cr") in plain text → should be inside small circles
+- ❌ No ornate Greek key border pattern
+- ❌ Overall design feels like a flat modern card → should look like classic currency-style with ornate patterns
+
+---
+
+## MASTER DIFFERENCE SUMMARY
+
+### SYSTEMIC ISSUES (affects ALL cards):
+
+| # | Issue | Severity | Description |
+|---|-------|----------|-------------|
+| S1 | **Value badge style** | HIGH | All generated cards use colored (green/gold) circle badges. Official uses WHITE circles with thin dark outlines and RED outlines on action cards. |
+| S2 | **Missing card-stack icons** | HIGH | Property cards need mini fanned-card icons colored in the set color, showing count (1, 2, 3, 4). Generated cards use plain numbers. |
+| S3 | **Missing dotted lines** | MEDIUM | Official rent rows connect the count to the value with a dotted line. |
+| S4 | **"FULL SET." label** | MEDIUM | Official uses "FULL SET." prefix on the last rent row. Generated uses "(set)" suffix. |
+| S5 | **Remove landmark watermarks** | HIGH | Generated property cards have large landmark/icon watermarks. Official cards are CLEAN — no watermarks. |
+| S6 | **Remove house/hotel from property cards** | HIGH | Generated cards show "Ghar: +₹3Cr / Hotel: +₹4Cr" at bottom. Official property cards do NOT show this. |
+| S7 | **Missing "(No. of properties owned in set)"** | MEDIUM | Official has this text label. Generated cards omit it. |
+| S8 | **Action card frame wrong** | CRITICAL | ALL action cards use bright blue gradient. Official uses FLAT solid muted colors (lavender, cream, silver, sage) with ORNATE GREEK KEY BORDERS. |
+| S9 | **Missing central circle on action cards** | CRITICAL | Official action cards have a large circle with thick outline containing the card name. Generated cards display text/icon on background. |
+| S10 | **Missing ornate border** | CRITICAL | Official action and money cards use a distinctive Greek key / meander pattern double border. Generated cards have no such border. |
+| S11 | **Dual value badges on action cards** | HIGH | Official action cards have value badges at top-left AND bottom-right. Generated only have top-left. |
+| S12 | **Rent card design wrong** | HIGH | Generated uses diagonal color splits. Official uses concentric colored rings inside a circle. |
+| S13 | **Wildcard design wrong** | HIGH | Generated uses solid color fills. Official uses white card stock with colored header bands at each end (flippable). |
+| S14 | **Money card design wrong** | HIGH | Generated uses flat gradient. Official uses ornate bordered currency-style design with central circle. |
+| S15 | **Rainbow wildcard design wrong** | HIGH | Generated uses rainbow gradient fill. Official has white card with color stripe bar and Monopoly Man illustration. |
+| S16 | **Missing copyright text** | LOW | "© 1935, 2008 HASBRO" or equivalent needed. Can use "Indian Edition © 2024" |
+
+---
+
+## PRIORITY ORDER FOR FIXING
+
+### Phase 1: Property Cards (fix systemic issues)
+1. Remove all landmark watermarks (S5)
+2. Remove house/hotel costs from card face (S6)
+3. Change value badge to white circle with dark outline (S1)
+4. Add card-stack icons for rent rows (S2)
+5. Add dotted lines in rent rows (S3)
+6. Change "(set)" to "FULL SET." (S4)
+7. Add "(No. of properties owned in set)" label (S7)
+8. Add thin colored border line around card (matching set color)
+
+### Phase 2: Action Cards (complete redesign)
+1. Replace blue gradient with flat muted background colors (S8)
+2. Add ornate Greek key double border (S10)
+3. Add central circle with thick outline containing card name (S9)
+4. Add "ACTION CARD" plain text above circle
+5. Add dual value badges (top-left + bottom-right) with red outlines (S11)
+6. Add description text below circle
+7. Add specific icons where needed (cake for Birthday, green house for House, red hotel for Hotel, red arrow for Pass Go)
+
+### Phase 3: Rent Cards
+1. Redesign to use ACTION CARD frame (S10)
+2. Replace diagonal split with concentric colored rings in circle (S12)
+3. Add "RENT" text inside central circle
+4. For wild rent: Add color wheel segments
+5. Add "ACTION CARD" label and dual badges
+
+### Phase 4: Wildcard Property Cards
+1. Redesign to flippable layout with white card stock (S13)
+2. Add colored header bands at each end
+3. Add rent tables for both colors (one right-side up, one inverted)
+4. Add "PROPERTY WILD CARD" and "(Use card either way up.)" text
+
+### Phase 5: Rainbow Wildcard
+1. Replace rainbow gradient with white card + color stripe bar (S15)
+2. Add "PROPERTY WILD CARD" title
+3. Add mascot illustration or text-only version
+4. Add description text
+
+### Phase 6: Money Cards
+1. Replace flat gradient with ornate bordered design (S14)
+2. Add central circle with value
+3. Add corner value badges in circles
+4. Add Greek key border pattern
+5. Use correct color coding (sage for low, gold for 10Cr)
