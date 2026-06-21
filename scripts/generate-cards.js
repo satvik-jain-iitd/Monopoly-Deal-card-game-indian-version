@@ -3,9 +3,44 @@ import path from 'path';
 import sharp from 'sharp';
 import { createDeck, COLORS, COLOR_DISPLAY, CARD_TYPES, ACTION_TYPES, PROPERTY_SETS } from '../src/game/constants.js';
 
-// Ensure the directory exists
-const CARDS_DIR = path.resolve('public/images/cards');
+// Ensure output directory exists
+const CARDS_DIR = path.resolve('public/images/cards/generated');
 fs.mkdirSync(CARDS_DIR, { recursive: true });
+
+const CACHE_DIR = path.resolve('.font-cache');
+const FONT_CACHE_PATH = path.join(CACHE_DIR, 'outfit.base64');
+
+// Dynamic Font Fetching and Caching
+async function getBase64Font() {
+  if (fs.existsSync(FONT_CACHE_PATH)) {
+    console.log('Using cached Outfit font...');
+    return fs.readFileSync(FONT_CACHE_PATH, 'utf8');
+  }
+
+  console.log('Fetching Outfit font from Google Fonts...');
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
+
+  try {
+    const cssRes = await fetch('https://fonts.googleapis.com/css2?family=Outfit:wght@800;900');
+    const cssText = await cssRes.text();
+    const match = cssText.match(/url\(([^)]+)\)/);
+    if (!match) throw new Error('Could not parse font URL from CSS');
+    
+    const fontUrl = match[1];
+    console.log(`Downloading font from: ${fontUrl}`);
+    const fontRes = await fetch(fontUrl);
+    const arrayBuffer = await fontRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString('base64');
+    
+    fs.writeFileSync(FONT_CACHE_PATH, base64);
+    console.log('Font cached successfully.');
+    return base64;
+  } catch (err) {
+    console.error('Failed to download Outfit font, falling back to basic rendering:', err);
+    return '';
+  }
+}
 
 // Raw SVG inner markup for all 28 property landmarks
 const LANDMARK_PATHS = {
@@ -79,7 +114,8 @@ const LANDMARK_PATHS = {
   `,
   hyderabad: `
     <rect x="10" y="14" width="12" height="14" stroke="currentColor" stroke-width="1.8" fill="none"/>
-    <path d="M13 28 L13 14 L13 10 Q13 7 11 7 Q9 7 9 10 L9 14" stroke="currentColor" stroke-width="1.5"/><path d="M19 28 L19 14 L19 10 Q19 7 21 7 Q23 7 23 10 L23 14" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M13 28 L13 14 L13 10 Q13 7 11 7 Q9 7 9 10 L9 14" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M19 28 L19 14 L19 10 Q19 7 21 7 Q23 7 23 10 L23 14" stroke="currentColor" stroke-width="1.5"/>
     <line x1="9" y1="14" x2="23" y2="14" stroke="currentColor" stroke-width="1.8"/>
     <path d="M12 28 Q16 22 20 28" stroke="currentColor" stroke-width="1.5" fill="none"/>
   `,
@@ -204,8 +240,7 @@ const LANDMARK_PATHS = {
   `,
   nammametro: `
     <rect x="5" y="6" width="22" height="12" stroke="currentColor" stroke-width="2" rx="3"/>
-    <path d="M5 12 L27 12" stroke="currentColor" stroke-width="1.5"/>
-    <rect x="8" y="8" width="5" height="4" stroke="currentColor" stroke-width="1.3" rx="1"/>
+    <path d="M5 12 L27 12" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="8" width="5" height="4" stroke="currentColor" stroke-width="1.3" rx="1"/>
     <rect x="19" y="8" width="5" height="4" stroke="currentColor" stroke-width="1.3" rx="1"/>
     <path d="M8 18 L8 24 L4 28" stroke="currentColor" stroke-width="2"/>
     <path d="M24 18 L24 24 L28 28" stroke="currentColor" stroke-width="2"/>
@@ -215,8 +250,7 @@ const LANDMARK_PATHS = {
     <rect x="2" y="16" width="22" height="10" stroke="currentColor" stroke-width="2" rx="2"/>
     <circle cx="28" cy="20" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
     <path d="M6 16 L6 10 Q6 8 12 8 L18 8 L18 16" stroke="currentColor" stroke-width="1.8" fill="none"/>
-    <path d="M10 8 L10 4 Q12 2 14 4" stroke="currentColor" stroke-width="1.8"/>
-    <circle cx="8"  cy="28" r="2.5" stroke="currentColor" stroke-width="1.8"/>
+    <path d="M10 8 L10 4 Q12 2 14 4" stroke="currentColor" stroke-width="1.8"/><circle cx="8"  cy="28" r="2.5" stroke="currentColor" stroke-width="1.8"/>
     <circle cx="18" cy="28" r="2.5" stroke="currentColor" stroke-width="1.8"/>
   `,
   // Utilities
@@ -233,14 +267,13 @@ const LANDMARK_PATHS = {
   `,
   waterworks: `
     <path d="M16 6 Q16 6 14 12 Q12 18 16 22 Q20 18 18 12 Q16 6 16 6 Z" stroke="currentColor" stroke-width="1.8" fill="none"/>
-    <path d="M8 12 L24 12" stroke="currentColor" stroke-width="2"/>
-    <rect x="13" y="12" width="6" height="5" stroke="currentColor" stroke-width="1.8" rx="1"/>
+    <path d="M8 12 L24 12" stroke="currentColor" stroke-width="2"/><rect x="13" y="12" width="6" height="5" stroke="currentColor" stroke-width="1.8" rx="1"/>
     <path d="M16 17 L16 22" stroke="currentColor" stroke-width="2"/>
     <path d="M13 22 Q16 28 19 22" stroke="currentColor" stroke-width="1.8" fill="none"/>
   `
 };
 
-// SVG templates for Action card icons (scaled/centered inside viewBox 0 0 24 24)
+// SVG templates for Action card icons
 const ACTION_ICONS = {
   [ACTION_TYPES.DEAL_BREAKER]: `
     <g stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -268,7 +301,6 @@ const ACTION_ICONS = {
       <path d="M2 12 S6 4 16 4 S30 12 30 12 S26 20 16 20 S2 12 2 12 Z" />
       <circle cx="16" cy="12" r="5" fill="currentColor" fill-opacity="0.2" />
       <circle cx="16" cy="12" r="2" fill="currentColor" />
-      <path d="M4 4 L28 20" stroke-width="2.5" stroke="#ED1C24" />
     </g>
   `,
   [ACTION_TYPES.PASS_GO]: `
@@ -292,9 +324,9 @@ const ACTION_ICONS = {
     </g>
   `,
   [ACTION_TYPES.JUST_SAY_NO]: `
-    <g stroke="#ED1C24" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="16" cy="12" r="9" />
-      <line x1="9.64" y1="5.64" x2="22.36" y2="18.36" />
+    <g stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <line x1="5.64" y1="5.64" x2="18.36" y2="18.36" />
     </g>
   `,
   [ACTION_TYPES.DOUBLE_RENT]: `
@@ -336,7 +368,7 @@ const ACTION_ICONS = {
   `,
 };
 
-// Descriptive texts for actions in Hindi
+// Action Descriptions in Hindi
 const ACTION_DESCRIPTIONS = {
   [ACTION_TYPES.DEAL_BREAKER]: 'Kisi player ka complete set chura lo (Ghar/Hotel ke saath)',
   [ACTION_TYPES.DEBT_COLLECTOR]: 'Kisi bhi ek player se ₹5Cr collect karo',
@@ -352,8 +384,45 @@ const ACTION_DESCRIPTIONS = {
   [ACTION_TYPES.SABOTAGE]: 'Do players ke beech force trade karwao',
 };
 
-// Generate SVG string for Property Card
-function generatePropertySvg(card) {
+// Dynamic Font Styles Block
+function getDefs(base64Font) {
+  return `
+    <defs>
+      <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.25"/>
+      </filter>
+      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="4" result="blur" />
+        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+      </filter>
+      <linearGradient id="moneyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#1B5E20" />
+        <stop offset="50%" stop-color="#2E7D32" />
+        <stop offset="100%" stop-color="#43A047" />
+      </linearGradient>
+      <linearGradient id="moneyGradGold" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#2E7D32" />
+        <stop offset="50%" stop-color="#F57C00" />
+        <stop offset="100%" stop-color="#FFD54F" />
+      </linearGradient>
+      <pattern id="banknotePattern" width="40" height="40" patternUnits="userSpaceOnUse">
+        <line x1="0" y1="40" x2="40" y2="0" stroke="#FFFFFF" stroke-opacity="0.03" stroke-width="1.5" />
+        <text x="20" y="25" font-family="Outfit, sans-serif" font-size="8px" fill="#FFFFFF" fill-opacity="0.02" text-anchor="middle">₹</text>
+      </pattern>
+      <style>
+        @font-face {
+          font-family: 'Outfit';
+          src: url('data:font/ttf;base64,${base64Font}') format('truetype');
+          font-weight: 800;
+          font-style: normal;
+        }
+      </style>
+    </defs>
+  `;
+}
+
+// Generate Property Card SVG
+function generatePropertySvg(card, base64Font) {
   const display = COLOR_DISPLAY[card.color] || { hex: '#955436' };
   const set = PROPERTY_SETS[card.color] || { rentValues: [1, 2], cardsNeeded: 2 };
   const rentValues = set.rentValues;
@@ -361,117 +430,129 @@ function generatePropertySvg(card) {
   const textOnBand = getTextColor(display.hex);
   const landmarkPath = LANDMARK_PATHS[card.landmark] || '';
 
-  // Rent rows rendering
+  // Tabular Rent Values rendering
   let rentRowsY = 240;
   let rentRowsSvg = '';
   rentValues.forEach((rent, idx) => {
     const isSet = idx + 1 === cardsNeeded;
-    const isBold = isSet;
-    const label = `${idx + 1}${isSet ? ' (set)' : ''}`;
-    const fill = isSet ? display.hex : '#333333';
-    const weight = isBold ? '800' : '500';
-
-    rentRowsSvg += `
-      <text x="40" y="${rentRowsY}" font-family="system-ui, sans-serif" font-size="18px" font-weight="${weight}" fill="${fill}">${label}</text>
-      <text x="210" y="${rentRowsY}" font-family="system-ui, sans-serif" font-size="20px" font-weight="900" text-anchor="end" fill="${display.hex}">₹${rent}Cr</text>
-    `;
-    rentRowsY += 30;
+    const yVal = rentRowsY + idx * 32;
+    if (isSet) {
+      // Draw highlighted set row box
+      rentRowsSvg += `
+        <rect x="30" y="${yVal - 22}" width="190" height="28" rx="6" fill="${display.hex}" />
+        <text x="40" y="${yVal - 2}" font-family="Outfit, sans-serif" font-size="15px" font-weight="900" fill="#FFFFFF">${idx + 1} (set)</text>
+        <text x="210" y="${yVal - 2}" font-family="Outfit, sans-serif" font-size="16px" font-weight="900" fill="#FFFFFF" text-anchor="end">₹${rent}Cr</text>
+      `;
+    } else {
+      rentRowsSvg += `
+        <text x="40" y="${yVal}" font-family="Outfit, sans-serif" font-size="15px" font-weight="700" fill="#555555">${idx + 1}</text>
+        <text x="210" y="${yVal}" font-family="Outfit, sans-serif" font-size="16px" font-weight="900" fill="${display.hex}" text-anchor="end">₹${rent}Cr</text>
+      `;
+    }
   });
 
   const houseHotelInfo = set.houseBonus > 0
-    ? `<text x="210" y="555" font-family="system-ui, sans-serif" font-size="14px" font-weight="800" fill="#666666" text-anchor="middle">Ghar: +₹${set.houseBonus}Cr  |  Hotel: +₹${set.hotelBonus}Cr</text>`
+    ? `
+      <g transform="translate(30, 532)">
+        <g transform="translate(0, 0) scale(0.9)" stroke="#4CAF50" stroke-width="2" fill="#4CAF50" fill-opacity="0.1">
+          <path d="M2 10 L8 3 L14 10 Z"/><rect x="4" y="10" width="8" height="8"/>
+        </g>
+        <text x="20" y="13" font-family="Outfit, sans-serif" font-size="12px" font-weight="900" fill="#4CAF50">Ghar: +₹${set.houseBonus}Cr</text>
+
+        <g transform="translate(190, -2) scale(0.9)" stroke="#F44336" stroke-width="2" fill="#F44336" fill-opacity="0.1">
+          <rect x="3" y="2" width="10" height="15" rx="1"/>
+          <rect x="5" y="4" width="2" height="2"/><rect x="9" y="4" width="2" height="2"/>
+        </g>
+        <text x="210" y="13" font-family="Outfit, sans-serif" font-size="12px" font-weight="900" fill="#F44336">Hotel: +₹${set.hotelBonus}Cr</text>
+      </g>
+    `
     : '';
 
   return `
     <svg width="420" height="610" viewBox="0 0 420 610" xmlns="http://www.w3.org/2000/svg">
-      <!-- Card background & border -->
-      <rect x="0" y="0" width="420" height="610" rx="24" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="2" />
-      <rect x="10" y="10" width="400" height="590" rx="16" fill="none" stroke="${display.hex}" stroke-opacity="0.1" stroke-width="3" />
+      ${getDefs(base64Font)}
+      <!-- Card background & frames -->
+      <rect x="0" y="0" width="420" height="610" rx="24" fill="#FFFFFF" stroke="#CCCCCC" stroke-width="2.5" />
+      <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="${display.hex}" stroke-opacity="0.1" stroke-width="2" />
 
       <!-- Color Header Bar -->
       <rect x="15" y="15" width="390" height="110" rx="10" fill="${display.hex}" />
-      <text x="210" y="78" font-family="system-ui, sans-serif" font-size="26px" font-weight="900" fill="${textOnBand}" text-anchor="middle" letter-spacing="1px">${card.name.toUpperCase()}</text>
+      <rect x="22" y="22" width="376" height="96" rx="6" fill="none" stroke="#FFFFFF" stroke-opacity="0.25" stroke-width="2" />
+      <text x="210" y="78" font-family="Outfit, sans-serif" font-size="28px" font-weight="900" fill="${textOnBand}" text-anchor="middle" letter-spacing="1px">${card.name.toUpperCase()}</text>
 
       <!-- Bank Value Corner Circle -->
-      <circle cx="48" cy="48" r="22" fill="#FFFFFF" stroke="${display.hex}" stroke-width="3" />
-      <text x="48" y="53" font-family="system-ui, sans-serif" font-size="15px" font-weight="900" fill="${display.hex}" text-anchor="middle">₹${card.value}</text>
+      <circle cx="48" cy="48" r="22" fill="#FFFFFF" stroke="${display.hex}" stroke-width="3.5" filter="url(#shadow)" />
+      <text x="48" y="54" font-family="Outfit, sans-serif" font-size="15px" font-weight="900" fill="${display.hex}" text-anchor="middle">₹${card.value}</text>
 
       <!-- Rent Label -->
-      <text x="40" y="200" font-family="system-ui, sans-serif" font-size="14px" font-weight="800" fill="#888888" letter-spacing="2px">RENT</text>
-      <line x1="40" y1="210" x2="380" y2="210" stroke="#E0E0E0" stroke-width="1.5" />
+      <text x="40" y="190" font-family="Outfit, sans-serif" font-size="13px" font-weight="900" fill="#888888" letter-spacing="2px">RENT</text>
+      <line x1="40" y1="200" x2="380" y2="200" stroke="#E5E5E5" stroke-width="1.5" />
 
       <!-- Rent Values Ladder -->
       ${rentRowsSvg}
 
       <!-- Landmark Illustration -->
-      <g transform="translate(250, 240) scale(4)" stroke="${display.hex}" stroke-width="1.8" fill="none" color="${display.hex}">
+      <g transform="translate(250, 230) scale(4)" stroke="${display.hex}" stroke-width="2" fill="none" color="${display.hex}">
         ${landmarkPath}
       </g>
 
       <!-- Bottom cost details -->
-      <line x1="40" y1="520" x2="380" y2="520" stroke="#E0E0E0" stroke-width="1.5" />
+      <line x1="40" y1="510" x2="380" y2="510" stroke="#E5E5E5" stroke-width="1.5" />
       ${houseHotelInfo}
     </svg>
   `;
 }
 
-// Generate SVG string for Money Card
-function generateMoneySvg(card) {
+// Generate Money Card SVG
+function generateMoneySvg(card, base64Font) {
+  const isHighValue = card.value >= 10;
+  const fillGradient = isHighValue ? 'url(#moneyGradGold)' : 'url(#moneyGrad)';
+
   return `
     <svg width="420" height="610" viewBox="0 0 420 610" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="moneyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#1B5E20" />
-          <stop offset="50%" stop-color="#2E7D32" />
-          <stop offset="100%" stop-color="#43A047" />
-        </linearGradient>
-      </defs>
-
+      ${getDefs(base64Font)}
       <!-- Card Background -->
-      <rect x="0" y="0" width="420" height="610" rx="24" fill="url(#moneyGrad)" stroke="#1B5E20" stroke-width="2" />
+      <rect x="0" y="0" width="420" height="610" rx="24" fill="${fillGradient}" stroke="#1B5E20" stroke-width="2.5" />
+      <rect x="15" y="15" width="390" height="580" rx="14" fill="url(#banknotePattern)" />
+      <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2.5" />
+      <rect x="23" y="23" width="374" height="564" rx="10" fill="none" stroke="#FFD54F" stroke-opacity="0.2" stroke-width="1.5" />
 
-      <!-- White Inner Border -->
-      <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2" />
+      <!-- Watermark circle & Large Rupee watermark -->
+      <circle cx="210" cy="305" r="140" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="4" stroke-dasharray="8 8" />
+      <text x="210" y="365" font-family="Outfit, sans-serif" font-size="180px" font-weight="900" fill="#FFFFFF" fill-opacity="0.06" text-anchor="middle">₹</text>
 
-      <!-- Decorative Rupee Watermarks in corners -->
-      <text x="45" y="65" font-family="system-ui, sans-serif" font-size="20px" font-weight="900" fill="#FFFFFF" fill-opacity="0.6" text-anchor="middle">₹${card.value}Cr</text>
-      <text x="375" y="575" font-family="system-ui, sans-serif" font-size="20px" font-weight="900" fill="#FFFFFF" fill-opacity="0.6" text-anchor="middle">₹${card.value}Cr</text>
+      <!-- Small Corner Badges -->
+      <text x="45" y="65" font-family="Outfit, sans-serif" font-size="22px" font-weight="900" fill="#FFFFFF" fill-opacity="0.7">₹${card.value}Cr</text>
+      <text x="375" y="565" font-family="Outfit, sans-serif" font-size="22px" font-weight="900" fill="#FFFFFF" fill-opacity="0.7" text-anchor="end">₹${card.value}Cr</text>
 
       <!-- Big Centered Value -->
-      <text x="210" y="310" font-family="system-ui, sans-serif" font-size="76px" font-weight="900" fill="#FFFFFF" text-anchor="middle" filter="drop-shadow(0px 4px 8px rgba(0,0,0,0.3))">₹${card.value}Cr</text>
-      
-      <!-- Label below value -->
-      <text x="210" y="360" font-family="system-ui, sans-serif" font-size="18px" font-weight="700" fill="#FFFFFF" fill-opacity="0.8" text-anchor="middle" letter-spacing="4px">MONEY</text>
-
-      <!-- Giant elegant watermark circle in center -->
-      <circle cx="210" cy="310" r="130" fill="none" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="4" />
+      <text x="210" y="325" font-family="Outfit, sans-serif" font-size="84px" font-weight="900" fill="#FFFFFF" text-anchor="middle" filter="url(#shadow)">₹${card.value}Cr</text>
+      <text x="210" y="375" font-family="Outfit, sans-serif" font-size="18px" font-weight="900" fill="#FFD54F" text-anchor="middle" letter-spacing="5px" fill-opacity="0.9">MONEY</text>
     </svg>
   `;
 }
 
-// Generate SVG string for Action Card
-function generateActionSvg(card) {
+// Generate Action Card SVG
+function generateActionSvg(card, base64Font) {
   const IconSvg = ACTION_ICONS[card.actionType] || '';
   const descText = ACTION_DESCRIPTIONS[card.actionType] || '';
 
-  // Determine background gradient colors
-  let bgGradStart = '#1A237E';
-  let bgGradEnd = '#283593';
+  let bgGradStart = '#0D47A1';
+  let bgGradEnd = '#1976D2';
   let topLabel = 'ACTION CARD';
 
   if (card.actionType === ACTION_TYPES.INSURANCE) {
     bgGradStart = '#004D40';
     bgGradEnd = '#00796B';
-    topLabel = 'CUSTOM ACTION CARD';
+    topLabel = 'CUSTOM ACTION';
   } else if (card.actionType === ACTION_TYPES.SABOTAGE) {
     bgGradStart = '#4A148C';
     bgGradEnd = '#7B1FA2';
-    topLabel = 'CUSTOM ACTION CARD';
+    topLabel = 'CUSTOM ACTION';
   }
 
-  // Red accent border for Just Say No
-  const borderStroke = card.actionType === ACTION_TYPES.JUST_SAY_NO ? '#ED1C24' : 'none';
-  const borderStrokeWidth = card.actionType === ACTION_TYPES.JUST_SAY_NO ? '4' : '0';
+  const isJSN = card.actionType === ACTION_TYPES.JUST_SAY_NO;
+  const redBar = isJSN ? `<rect x="50" y="128" width="320" height="6" rx="3" fill="#ED1C24" />` : '';
 
   return `
     <svg width="420" height="610" viewBox="0 0 420 610" xmlns="http://www.w3.org/2000/svg">
@@ -481,32 +562,36 @@ function generateActionSvg(card) {
           <stop offset="100%" stop-color="${bgGradEnd}" />
         </linearGradient>
       </defs>
+      ${getDefs(base64Font)}
 
-      <!-- Card Background -->
-      <rect x="0" y="0" width="420" height="610" rx="24" fill="url(#actionGrad)" stroke="#1A237E" stroke-width="2" />
-      
-      <!-- Inset Border -->
-      <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2" />
-      
-      <!-- Top Action Label -->
-      <text x="210" y="55" font-family="system-ui, sans-serif" font-size="12px" font-weight="800" fill="#FFFFFF" fill-opacity="0.7" text-anchor="middle" letter-spacing="3px">${topLabel}</text>
+      <!-- Background & Border -->
+      <rect x="0" y="0" width="420" height="610" rx="24" fill="url(#actionGrad)" stroke="#0D47A1" stroke-width="2.5" />
+      <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2.5" />
+      <rect x="23" y="23" width="374" height="564" rx="10" fill="none" stroke="#FFC107" stroke-opacity="0.2" stroke-width="1.5" />
 
-      <!-- Action Title -->
-      <text x="210" y="110" font-family="system-ui, sans-serif" font-size="34px" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.5px">${card.name.toUpperCase()}</text>
+      <!-- Top Action Label Tab -->
+      <path d="M120 15 L300 15 L280 40 L140 40 Z" fill="#FFC107" />
+      <text x="210" y="32" font-family="Outfit, sans-serif" font-size="12px" font-weight="900" fill="#000000" text-anchor="middle" letter-spacing="3px">${topLabel}</text>
 
-      <!-- Corner Cash Value Circle -->
-      <circle cx="52" cy="52" r="22" fill="#FFFFFF" stroke="${card.actionType === ACTION_TYPES.JUST_SAY_NO ? '#ED1C24' : '#1A237E'}" stroke-width="3" />
-      <text x="52" y="57" font-family="system-ui, sans-serif" font-size="14px" font-weight="900" fill="${card.actionType === ACTION_TYPES.JUST_SAY_NO ? '#ED1C24' : '#1A237E'}" text-anchor="middle">₹${card.value}Cr</text>
+      <!-- Action Card Title -->
+      <text x="210" y="115" font-family="Outfit, sans-serif" font-size="34px" font-weight="900" fill="#FFFFFF" text-anchor="middle" filter="url(#shadow)">${card.name.toUpperCase()}</text>
+      ${redBar}
 
-      <!-- Large Center Icon / Illustration -->
-      <g transform="translate(135, 170) scale(6)" stroke="#FFFFFF" fill="none" color="#FFFFFF" stroke-width="1">
+      <!-- Corner Value Circle -->
+      <circle cx="48" cy="48" r="22" fill="#FFFFFF" stroke="${isJSN ? '#ED1C24' : '#FFC107'}" stroke-width="4" filter="url(#shadow)" />
+      <text x="48" y="53" font-family="Outfit, sans-serif" font-size="14px" font-weight="900" fill="${isJSN ? '#ED1C24' : '#0D47A1'}" text-anchor="middle">₹${card.value}Cr</text>
+
+      <!-- Center Seal & Icon -->
+      <circle cx="210" cy="275" r="75" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="3" filter="url(#shadow)" />
+      <circle cx="210" cy="275" r="67" fill="none" stroke="#FFC107" stroke-opacity="0.3" stroke-width="1.5" />
+      <g transform="translate(150, 215) scale(5)" stroke="#FFFFFF" fill="none" color="#FFFFFF" stroke-width="1.3">
         ${IconSvg}
       </g>
 
-      <!-- Action Description text in Hindi -->
-      <rect x="40" y="450" width="340" height="90" rx="8" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="1" />
-      <foreignObject x="50" y="465" width="320" height="70">
-        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: system-ui, sans-serif; font-size: 14px; font-weight: 600; color: #FFFFFF; text-align: center; line-height: 1.45;">
+      <!-- Description Block -->
+      <rect x="40" y="440" width="340" height="100" rx="10" fill="#000000" fill-opacity="0.5" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="1" />
+      <foreignObject x="50" y="455" width="320" height="75">
+        <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Outfit, sans-serif; font-size: 15px; font-weight: 700; color: #FFFFFF; text-align: center; line-height: 1.45;">
           ${descText}
         </div>
       </foreignObject>
@@ -514,66 +599,63 @@ function generateActionSvg(card) {
   `;
 }
 
-// Generate SVG string for Rent Card
-function generateRentSvg(card) {
+// Generate Rent Card SVG
+function generateRentSvg(card, base64Font) {
   if (card.wild) {
     return `
       <svg width="420" height="610" viewBox="0 0 420 610" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="rentWildGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#1B5E20" />
-            <stop offset="100%" stop-color="#2E7D32" />
-          </linearGradient>
-        </defs>
+        ${getDefs(base64Font)}
         <!-- Background -->
-        <rect x="0" y="0" width="420" height="610" rx="24" fill="url(#rentWildGrad)" stroke="#1B5E20" stroke-width="2" />
-        <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2" />
+        <rect x="0" y="0" width="420" height="610" rx="24" fill="url(#moneyGrad)" stroke="#1B5E20" stroke-width="2.5" />
+        <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2.5" />
         
-        <!-- Corner Cash Value Circle -->
-        <circle cx="52" cy="52" r="22" fill="#FFFFFF" stroke="#1B5E20" stroke-width="3" />
-        <text x="52" y="57" font-family="system-ui, sans-serif" font-size="14px" font-weight="900" fill="#1B5E20" text-anchor="middle">₹${card.value}Cr</text>
+        <!-- Corner circle -->
+        <circle cx="48" cy="48" r="22" fill="#FFFFFF" stroke="#2E7D32" stroke-width="3.5" filter="url(#shadow)" />
+        <text x="48" y="53" font-family="Outfit, sans-serif" font-size="14px" font-weight="900" fill="#2E7D32" text-anchor="middle">₹${card.value}Cr</text>
 
-        <!-- Big Rupee Circle -->
-        <circle cx="210" cy="260" r="55" fill="#FFFFFF" stroke="#1B5E20" stroke-width="4" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.3))" />
-        <text x="210" y="278" font-family="system-ui, sans-serif" font-size="56px" font-weight="900" fill="#1B5E20" text-anchor="middle">₹</text>
+        <!-- Big Rupee Circle Badge -->
+        <circle cx="210" cy="250" r="55" fill="#FFFFFF" stroke="#2E7D32" stroke-width="4" filter="url(#shadow)" />
+        <text x="210" y="268" font-family="Outfit, sans-serif" font-size="56px" font-weight="900" fill="#2E7D32" text-anchor="middle">₹</text>
 
-        <!-- Titles -->
-        <text x="210" y="420" font-family="system-ui, sans-serif" font-size="36px" font-weight="900" fill="#FFFFFF" text-anchor="middle">WILD RENT</text>
-        <text x="210" y="460" font-family="system-ui, sans-serif" font-size="18px" font-weight="700" fill="#FFFFFF" fill-opacity="0.8" text-anchor="middle">KISI SE BHI RENT LO</text>
+        <!-- Description Box -->
+        <rect x="40" y="415" width="340" height="100" rx="12" fill="#000000" fill-opacity="0.6" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="1.5" />
+        <text x="210" y="450" font-family="Outfit, sans-serif" font-size="14px" font-weight="800" fill="#FFC107" text-anchor="middle" letter-spacing="2px">WILD RENT</text>
+        <text x="210" y="485" font-family="Outfit, sans-serif" font-size="18px" font-weight="900" fill="#FFFFFF" text-anchor="middle">KISI SE BHI RENT LO</text>
       </svg>
     `;
   }
 
   const colors = (card.colors || []).map(c => COLOR_DISPLAY[c]?.hex || '#888888');
-  
-  // Render diagonal split background
+
   return `
     <svg width="420" height="610" viewBox="0 0 420 610" xmlns="http://www.w3.org/2000/svg">
-      <!-- Background splits -->
-      <rect x="0" y="0" width="420" height="610" rx="24" fill="${colors[0]}" stroke="#E0E0E0" stroke-width="2" />
+      ${getDefs(base64Font)}
+      <!-- Background Splits -->
+      <rect x="0" y="0" width="420" height="610" rx="24" fill="${colors[0]}" stroke="#CCCCCC" stroke-width="2.5" />
       <polygon points="0,610 420,610 420,0" fill="${colors[1]}" />
+      <line x1="0" y1="610" x2="420" y2="0" stroke="#FFFFFF" stroke-width="5" />
 
       <!-- Inset Border -->
       <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.4" stroke-width="2" />
 
-      <!-- Corner Cash Value Circle -->
-      <circle cx="52" cy="52" r="22" fill="#FFFFFF" stroke="#333333" stroke-width="2" />
-      <text x="52" y="57" font-family="system-ui, sans-serif" font-size="14px" font-weight="900" fill="#333333" text-anchor="middle">₹${card.value}Cr</text>
+      <!-- Corner circle -->
+      <circle cx="48" cy="48" r="22" fill="#FFFFFF" stroke="#333333" stroke-width="3" filter="url(#shadow)" />
+      <text x="48" y="53" font-family="Outfit, sans-serif" font-size="14px" font-weight="900" fill="#333333" text-anchor="middle">₹${card.value}Cr</text>
 
-      <!-- Rupee Badge in center -->
-      <circle cx="210" cy="260" r="50" fill="#FFFFFF" stroke="#333333" stroke-width="3" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.35))" />
-      <text x="210" y="278" font-family="system-ui, sans-serif" font-size="52px" font-weight="900" fill="#333333" text-anchor="middle">₹</text>
+      <!-- Center Rupee Badge -->
+      <circle cx="210" cy="250" r="50" fill="#FFFFFF" stroke="#333333" stroke-width="3" filter="url(#shadow)" />
+      <text x="210" y="268" font-family="Outfit, sans-serif" font-size="52px" font-weight="900" fill="#333333" text-anchor="middle">₹</text>
 
-      <!-- Card Title -->
-      <rect x="40" y="410" width="340" height="90" rx="10" fill="#000000" fill-opacity="0.6" />
-      <text x="210" y="448" font-family="system-ui, sans-serif" font-size="15px" font-weight="800" fill="#FFFFFF" text-anchor="middle" letter-spacing="1px">RENT CARD</text>
-      <text x="210" y="478" font-family="system-ui, sans-serif" font-size="18px" font-weight="900" fill="#FFFFFF" text-anchor="middle">${card.name.replace('Rent: ', '').toUpperCase()}</text>
+      <!-- Description Box -->
+      <rect x="40" y="415" width="340" height="100" rx="12" fill="#000000" fill-opacity="0.6" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="1.5" />
+      <text x="210" y="450" font-family="Outfit, sans-serif" font-size="14px" font-weight="800" fill="#FFC107" text-anchor="middle" letter-spacing="2px">RENT CARD</text>
+      <text x="210" y="485" font-family="Outfit, sans-serif" font-size="18px" font-weight="900" fill="#FFFFFF" text-anchor="middle">${card.name.replace('Rent: ', '').toUpperCase()}</text>
     </svg>
   `;
 }
 
-// Generate SVG string for Wild Card
-function generateWildPropertySvg(card) {
+// Generate Wild Property Card SVG
+function generateWildPropertySvg(card, base64Font) {
   const isFullWild = card.colors?.[0] === 'wild';
   
   if (isFullWild) {
@@ -588,45 +670,73 @@ function generateWildPropertySvg(card) {
             <stop offset="100%" stop-color="#A855F7" />
           </linearGradient>
         </defs>
-        
-        <!-- Rainbow background -->
-        <rect x="0" y="0" width="420" height="610" rx="24" fill="url(#rainbowGrad)" stroke="#A855F7" stroke-width="2" />
-        <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.4" stroke-width="2" />
+        ${getDefs(base64Font)}
+
+        <!-- Background & Borders -->
+        <rect x="0" y="0" width="420" height="610" rx="24" fill="url(#rainbowGrad)" stroke="#A855F7" stroke-width="2.5" />
+        <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.4" stroke-width="2.5" />
         
         <!-- Big text centered -->
-        <text x="210" y="290" font-family="system-ui, sans-serif" font-size="64px" font-weight="900" fill="#FFFFFF" text-anchor="middle" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.5))">WILD</text>
-        <text x="210" y="340" font-family="system-ui, sans-serif" font-size="20px" font-weight="800" fill="#FFFFFF" text-anchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.5))">KISI BHI COLOR MEIN</text>
-        
-        <!-- Bottom explanation -->
-        <text x="210" y="550" font-family="system-ui, sans-serif" font-size="14px" font-weight="800" fill="#FFFFFF" text-anchor="middle" fill-opacity="0.8">PROPERTY WILD CARD</text>
+        <text x="210" y="290" font-family="Outfit, sans-serif" font-size="64px" font-weight="900" fill="#FFFFFF" text-anchor="middle" filter="url(#shadow)">WILD</text>
+        <text x="210" y="340" font-family="Outfit, sans-serif" font-size="20px" font-weight="800" fill="#FFFFFF" text-anchor="middle" filter="url(#shadow)">KISI BHI COLOR MEIN</text>
+        <text x="210" y="550" font-family="Outfit, sans-serif" font-size="14px" font-weight="800" fill="#FFFFFF" text-anchor="middle" fill-opacity="0.8">PROPERTY WILD CARD</text>
       </svg>
     `;
   }
 
-  const colors = (card.colors || []).map(c => COLOR_DISPLAY[c]?.hex || '#888888');
+  const colorKeys = card.colors || [];
+  const c1 = COLOR_DISPLAY[colorKeys[0]] || { hex: '#888' };
+  const c2 = COLOR_DISPLAY[colorKeys[1]] || { hex: '#888' };
+  
+  const set1 = PROPERTY_SETS[colorKeys[0]] || { rentValues: [] };
+  const set2 = PROPERTY_SETS[colorKeys[1]] || { rentValues: [] };
+
+  // Render Horizontal Split wild card showing BOTH rent ladders
+  let rentRows1 = '';
+  set1.rentValues.forEach((rent, i) => {
+    rentRows1 += `<text x="40" y="${118 + i * 22}" font-family="Outfit, sans-serif" font-size="12px" font-weight="700" fill="#FFFFFF">${i + 1}: ₹${rent}Cr</text>`;
+  });
+
+  let rentRows2 = '';
+  set2.rentValues.forEach((rent, i) => {
+    rentRows2 += `<text x="250" y="${428 + i * 22}" font-family="Outfit, sans-serif" font-size="12px" font-weight="700" fill="#FFFFFF">${i + 1}: ₹${rent}Cr</text>`;
+  });
 
   return `
     <svg width="420" height="610" viewBox="0 0 420 610" xmlns="http://www.w3.org/2000/svg">
-      <!-- Background splits -->
-      <rect x="0" y="0" width="420" height="610" rx="24" fill="${colors[0]}" stroke="#E0E0E0" stroke-width="2" />
-      <polygon points="0,610 420,610 420,0" fill="${colors[1]}" />
+      ${getDefs(base64Font)}
+      <!-- Top Half Background -->
+      <rect x="0" y="0" width="420" height="305" fill="${c1.hex}" rx="24" />
+      <!-- Bottom Half Background -->
+      <rect x="0" y="305" width="420" height="305" fill="${c2.hex}" rx="24" />
+      
+      <!-- Border and divider -->
+      <rect x="0" y="0" width="420" height="610" rx="24" fill="none" stroke="#CCCCCC" stroke-width="2.5" />
+      <line x1="0" y1="305" x2="420" y2="305" stroke="#FFFFFF" stroke-width="5" />
+      <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="2" />
 
-      <!-- Inset Border -->
-      <rect x="15" y="15" width="390" height="580" rx="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.4" stroke-width="2" />
+      <!-- Cash Value circle -->
+      <circle cx="48" cy="48" r="22" fill="#FFFFFF" stroke="#333333" stroke-width="3" filter="url(#shadow)" />
+      <text x="48" y="53" font-family="Outfit, sans-serif" font-size="14px" font-weight="900" fill="#333333" text-anchor="middle">₹${card.value}Cr</text>
 
-      <!-- Corner Cash Value Circle -->
-      <circle cx="52" cy="52" r="22" fill="#FFFFFF" stroke="#333333" stroke-width="2" />
-      <text x="52" y="57" font-family="system-ui, sans-serif" font-size="14px" font-weight="900" fill="#333333" text-anchor="middle">₹${card.value}Cr</text>
+      <!-- Color 1 Header -->
+      <rect x="30" y="65" width="180" height="30" rx="4" fill="#000000" fill-opacity="0.25" />
+      <text x="120" y="85" font-family="Outfit, sans-serif" font-size="14px" font-weight="900" fill="#FFFFFF" text-anchor="middle">${c1.name.toUpperCase()}</text>
+      ${rentRows1}
 
-      <!-- Center text box -->
-      <rect x="40" y="250" width="340" height="120" rx="10" fill="#000000" fill-opacity="0.6" />
-      <text x="210" y="295" font-family="system-ui, sans-serif" font-size="32px" font-weight="900" fill="#FFFFFF" text-anchor="middle">WILD</text>
-      <text x="210" y="335" font-family="system-ui, sans-serif" font-size="15px" font-weight="700" fill="#FFFFFF" text-anchor="middle" fill-opacity="0.9">${card.name.replace('Wild: ', '').toUpperCase()}</text>
+      <!-- Color 2 Header -->
+      <rect x="210" y="375" width="180" height="30" rx="4" fill="#000000" fill-opacity="0.25" />
+      <text x="300" y="395" font-family="Outfit, sans-serif" font-size="14px" font-weight="900" fill="#FFFFFF" text-anchor="middle">${c2.name.toUpperCase()}</text>
+      ${rentRows2}
+
+      <!-- Center Wild Badge -->
+      <circle cx="210" cy="305" r="46" fill="#FFFFFF" stroke="#333333" stroke-width="3" filter="url(#shadow)" />
+      <text x="210" y="312" font-family="Outfit, sans-serif" font-size="20px" font-weight="900" fill="#333333" text-anchor="middle" letter-spacing="1px">WILD</text>
     </svg>
   `;
 }
 
-// Helper to determine text readability color on background color
+// Readability helper
 function getTextColor(hexBg) {
   if (!hexBg) return '#ffffff';
   const hex = hexBg.replace('#', '');
@@ -637,25 +747,25 @@ function getTextColor(hexBg) {
   return luminance > 0.55 ? '#000000' : '#ffffff';
 }
 
-// Generate the specific card file
-async function generateCardFile(card) {
+// Generate the specific card PNG file
+async function generateCardFile(card, base64Font) {
   let svgString = '';
   let filename = '';
 
   if (card.type === CARD_TYPES.PROPERTY) {
-    svgString = generatePropertySvg(card);
+    svgString = generatePropertySvg(card, base64Font);
     filename = `prop-${card.color}-${card.landmark}.png`;
   } else if (card.type === CARD_TYPES.MONEY) {
-    svgString = generateMoneySvg(card);
+    svgString = generateMoneySvg(card, base64Font);
     filename = `money-${card.value}cr.png`;
   } else if (card.type === CARD_TYPES.ACTION) {
-    svgString = generateActionSvg(card);
+    svgString = generateActionSvg(card, base64Font);
     filename = `action-${card.actionType}.png`;
   } else if (card.type === CARD_TYPES.RENT) {
-    svgString = generateRentSvg(card);
+    svgString = generateRentSvg(card, base64Font);
     filename = card.wild ? 'rent-wild.png' : `rent-${card.colors[0]}-${card.colors[1]}.png`;
   } else if (card.type === CARD_TYPES.WILD_PROPERTY) {
-    svgString = generateWildPropertySvg(card);
+    svgString = generateWildPropertySvg(card, base64Font);
     filename = card.colors[0] === 'wild' ? 'wild-rainbow.png' : `wild-${card.colors.join('-')}.png`;
   }
 
@@ -674,16 +784,15 @@ async function generateCardFile(card) {
   }
 }
 
-// Main execution block to build unique cards
+// Main execution block
 async function run() {
-  console.log('Generating unique cards...');
-  
-  // Create a deck containing all card definitions (enable custom cards to generate Insurance & Sabotage)
+  console.log('Starting card polish generation...');
+  const base64Font = await getBase64Font();
+
   const deck = createDeck(true, 4);
   const uniqueCardKeys = new Set();
   const uniqueCards = [];
 
-  // Filter out identical duplicate cards (e.g. 10 Pass Go action cards only need 1 image file generated)
   for (const card of deck) {
     let uniqueKey = '';
     if (card.type === CARD_TYPES.PROPERTY) {
@@ -704,12 +813,11 @@ async function run() {
     }
   }
 
-  // Generate all unique images
   for (const card of uniqueCards) {
-    await generateCardFile(card);
+    await generateCardFile(card, base64Font);
   }
 
-  console.log(`Successfully generated ${uniqueCards.length} unique cards in public/images/cards/`);
+  console.log(`Successfully generated ${uniqueCards.length} polished cards in public/images/cards/generated/`);
 }
 
 run();
