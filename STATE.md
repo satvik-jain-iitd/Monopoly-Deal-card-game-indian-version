@@ -3675,3 +3675,33 @@ RULES.md updated with Double Rent lesson (2026-06-22 entry).
 - `last_updated: 2026-06-22 17:50 IST`
 - `updated_by: main (all 4 bugs shipped — Bug 3 + Bug 1 + Bug 2 + Double Rent)`
 - `phase: ALL_BUGS_FIXED_AND_LANDED.`
+
+---
+
+## [2026-06-21 18:30 IST] @sanika → @sonu,@aman
+
+**ANALYSIS & PLANNING PHASE START — Card Redesign with PNG Images**
+
+**Problem Statement:**
+Redesign every card in the app to display a high-quality PNG image that mirrors the official Monopoly Deal card design but has Indian-themed content (city names, Hindi action names, ₹Cr values, landmark icons). Full-size cards must render these PNGs with a robust fallback to procedural CSS rendering if the image fails to load.
+
+**Proposed Solution (Aman SDE2 & Sonu Tech Lead alignment):**
+1. **Programmatic Generator:** A Node.js script using the `sharp` library to dynamically compile SVG templates for all 106 cards (61 unique designs) to 420x610px PNG files, saving them to `public/images/cards/`. This guarantees pixel-perfect layout and typography.
+2. **Card UI Integration:** Modify `Card.jsx` to resolve the card to its corresponding PNG file. Set up an `<img>` element for full-size cards. Implement an `onError` fallback to use the existing procedural rendering. Keep the `mini` rendering path procedural as-is (too small for images).
+3. **Home Screen Update:** Update the landing page card stack to use the new generated properties.
+
+status: complete
+open_questions: []
+
+SIGN-OFF STATUS:
+├─ Aman: ✅ Approved
+└─ Sonu: ✅ Approved
+
+---
+
+## Last Updated
+
+- `last_updated: 2026-06-21 18:40 IST`
+- `updated_by: sanika (shipped card redesign task - monopoly-deal-fix-1dl)`
+- `phase: CARD_REDESIGN_SHIPPED.`
+

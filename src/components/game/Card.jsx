@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Box, Paper, Typography } from '@mui/material'
 import GavelIcon from '@mui/icons-material/Gavel'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
@@ -82,12 +83,48 @@ export default function Card({ card, mini = false, showValue = false }) {
   )
 }
 
+export function getCardImage(card) {
+  if (!card) return null
+  if (card.type === CARD_TYPES.PROPERTY) return `/images/cards/prop-${card.color}-${card.landmark}.png`
+  if (card.type === CARD_TYPES.MONEY) return `/images/cards/money-${card.value}cr.png`
+  if (card.type === CARD_TYPES.ACTION) return `/images/cards/action-${card.actionType}.png`
+  if (card.type === CARD_TYPES.RENT) {
+    if (card.wild) return `/images/cards/rent-wild.png`
+    return `/images/cards/rent-${card.colors[0]}-${card.colors[1]}.png`
+  }
+  if (card.type === CARD_TYPES.WILD_PROPERTY) {
+    if (card.colors[0] === 'wild') return `/images/cards/wild-rainbow.png`
+    return `/images/cards/wild-${card.colors.join('-')}.png`
+  }
+  return null
+}
+
 function CardFace({ card, mini = false }) {
+  const [imgFailed, setImgFailed] = useState(false)
   if (!card) return null
 
   const w = mini ? MINI_W : CARD_W
   const h = mini ? MINI_H : CARD_H
   const r = mini ? 2 : 4
+
+  const imgPath = getCardImage(card)
+
+  if (!mini && imgPath && !imgFailed) {
+    return (
+      <Paper elevation={1} sx={{
+        width: w, height: h, borderRadius: `${r}px`,
+        overflow: 'hidden', flexShrink: 0, userSelect: 'none',
+        backgroundColor: '#fff', display: 'flex',
+      }}>
+        <img 
+          src={imgPath} 
+          alt={card.name} 
+          onError={() => setImgFailed(true)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      </Paper>
+    )
+  }
 
   // ── MONEY ───────────────────────────────────────────────────────────
   if (card.type === CARD_TYPES.MONEY) {

@@ -14,11 +14,11 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 import PeopleIcon from '@mui/icons-material/People'
 import CasinoIcon from '@mui/icons-material/Casino'
 
-import brownImg from '/images/cards/brown-property-card.png'
-import lightBlueImg from '/images/cards/light-blue-property-card.png'
-import redImg from '/images/cards/red-property-card.png'
-import greenImg from '/images/cards/green-property-card.png'
-import darkBlueImg from '/images/cards/dark-blue-property-card.png'
+import brownImg from '/images/cards/prop-brown-indore.png'
+import lightBlueImg from '/images/cards/prop-lightBlue-chandigarh.png'
+import redImg from '/images/cards/prop-red-bengaluru.png'
+import greenImg from '/images/cards/prop-green-newdelhi.png'
+import darkBlueImg from '/images/cards/prop-darkBlue-southmumbai.png'
 import logoImg from '/images/monopoly-deal-indian-logo.png'
 
 const CARD_IMAGES = [
