@@ -24,6 +24,7 @@ export function useMultiplayer({ onMessage } = {}) {
 
   const connect = useCallback(function connectFn(roomCode, wsBaseOverride) {
     roomParamsRef.current = { roomCode, wsBaseOverride }
+    messageQueueRef.current = []
     wsRef.current?.close()
     const base = wsBaseOverride || CLOUD_WS_BASE
     if (!base) {

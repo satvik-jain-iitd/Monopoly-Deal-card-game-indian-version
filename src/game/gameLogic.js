@@ -260,6 +260,7 @@ export function endTurn(state) {
 
 export function startTurn(state) {
   const s = deepClone(state)
+  if (s.phase !== PHASE.DRAW) return state
   const player = s.players[s.currentPlayerIndex]
   const drawCount = player.hand.length === 0 ? 5 : 2
 

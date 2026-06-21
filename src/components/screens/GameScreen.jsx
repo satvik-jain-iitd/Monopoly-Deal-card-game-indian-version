@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import {
-  AppBar, Box, Button, Chip, CircularProgress, IconButton, Paper, Toolbar, Typography,
+  AppBar, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Paper, Toolbar, Typography,
 } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import ListAltIcon from '@mui/icons-material/ListAlt'
@@ -56,11 +56,21 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
   const [passConfirmed, setPassConfirmed] = useState(false)
   const [selectedCard, setSelectedCard] = useState(null)
   const [selectedAction, setSelectedAction] = useState(null)
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
   const prevPhaseRef = useRef(null)
+  const drawClickedRef = useRef(false)
+  const handleHomeClick = () => setLeaveConfirmOpen(true)
+  const handleLeaveConfirm = () => { setLeaveConfirmOpen(false); onHome() }
+  const handleLeaveCancel = () => setLeaveConfirmOpen(false)
 
   const isMultiplayer = myPlayerIndex != null
   const currentPlayer = state.players[state.currentPlayerIndex]
   const activeInteractorIdx = getActiveInteractorIdx(state)
+
+  // Reset the draw-button guard when entering DRAW for a new turn
+  useEffect(() => {
+    if (state.phase === PHASE.DRAW) drawClickedRef.current = false
+  }, [state.phase, state.currentPlayerIndex])
 
   // Hotfix 2: after a payment phase ends, reset passConfirmed so the acting
   // player must re-identify before seeing their hand again.
@@ -106,9 +116,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Intezaar karo
         </Typography>
-        <Button size="small" variant="text" onClick={onHome} sx={{ color: 'text.disabled', mt: 2 }}>
-          Quit
-        </Button>
+        {/* Quit button intentionally absent — see Bug 3 analysis */}
       </Box>
     )
   }
@@ -138,7 +146,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
             <IconButton size="small" onClick={() => setShowLog(!showLog)} sx={{ color: 'text.secondary' }}>
               <ListAltIcon fontSize="small" />
             </IconButton>
-            <IconButton size="small" onClick={onHome} sx={{ color: 'text.secondary' }}>
+            <IconButton size="small" onClick={handleHomeClick} sx={{ color: 'text.secondary' }}>
               <HomeIcon fontSize="small" />
             </IconButton>
           </Toolbar>
@@ -211,7 +219,8 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
         </Typography>
         <Button
           variant="contained" size="large"
-          onClick={() => dispatch({ type: 'START_TURN' })}
+          disabled={drawClickedRef.current}
+          onClick={() => { drawClickedRef.current = true; dispatch({ type: 'START_TURN' }) }}
           sx={{ borderRadius: 3, px: 4, py: 1.5, fontWeight: 800, fontSize: '1rem', mt: 1 }}
         >
           Cards Draw Karo
@@ -310,7 +319,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
           <IconButton size="small" onClick={() => setShowLog(!showLog)} sx={{ color: 'text.secondary' }}>
             <ListAltIcon fontSize="small" />
           </IconButton>
-          <IconButton size="small" onClick={onHome} sx={{ color: 'text.secondary' }}>
+          <IconButton size="small" onClick={handleHomeClick} sx={{ color: 'text.secondary' }}>
             <HomeIcon fontSize="small" />
           </IconButton>
         </Toolbar>
@@ -463,6 +472,19 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
           </Box>
         )}
       </Paper>
+
+      <Dialog open={leaveConfirmOpen} onClose={handleLeaveCancel}>
+        <DialogTitle>Game chhod rahe ho?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Kya aap game chhodna chahte hain? Game ka sara progress kho jayega.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleLeaveCancel}>Cancel</Button>
+          <Button onClick={handleLeaveConfirm} color="error" variant="contained">Game Chhodo</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

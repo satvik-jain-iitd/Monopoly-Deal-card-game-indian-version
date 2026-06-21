@@ -39,6 +39,7 @@ export default function App() {
   // ── GAME STATE PERSISTENCE (saves after every action) ──────────────────
   useEffect(() => {
     if (!gameState) return
+    if (mpModeRef.current) return
     saveGame(gameState)
   }, [gameState])
 
@@ -254,6 +255,7 @@ export default function App() {
     const playerNames = mpPlayers.map(p => p.name)
     const myIdx = mpPlayers.findIndex(p => p.name === mpMyName)
     setMpMyIndex(myIdx >= 0 ? myIdx : 0)
+    deleteGame()
     rawDispatch({ type: '_INIT', _state: initGame(playerNames) })
     setScreen('game')
   }
