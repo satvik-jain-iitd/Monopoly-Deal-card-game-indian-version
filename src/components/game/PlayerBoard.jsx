@@ -53,7 +53,7 @@ function RentInfoDialog({ info, onClose }) {
           </Box>
           <Box sx={{ textAlign: 'right' }}>
             <Typography sx={{ fontSize: '0.6rem', color: 'text.secondary', fontWeight: 600 }}>Abhi ka rent</Typography>
-            <Typography sx={{ fontWeight: 900, fontSize: '1.1rem', color: display.hex, lineHeight: 1 }}>
+            <Typography sx={{ fontWeight: 900, fontSize: '1.1rem', color: 'text.primary', lineHeight: 1 }}>
               ₹{currentRent}Cr
             </Typography>
           </Box>
@@ -74,7 +74,7 @@ function RentInfoDialog({ info, onClose }) {
                   <TableCell sx={{ fontSize: '0.72rem', py: 0.5, px: 1, fontWeight: isCurrent ? 800 : 400 }}>
                     {i + 1} card{i > 0 ? 's' : ''}{isCurrent ? '  ← abhi' : ''}
                   </TableCell>
-                  <TableCell sx={{ fontSize: '0.72rem', fontWeight: isCurrent ? 900 : 700, color: display.hex, py: 0.5, px: 1 }}>₹{rent}Cr</TableCell>
+                  <TableCell sx={{ fontSize: '0.72rem', fontWeight: isCurrent ? 900 : 700, color: 'text.primary', py: 0.5, px: 1 }}>₹{rent}Cr</TableCell>
                 </TableRow>
               )
             })}

@@ -85,16 +85,20 @@ export default function Card({ card, mini = false, showValue = false }) {
 
 export function getCardImage(card) {
   if (!card) return null
-  if (card.type === CARD_TYPES.PROPERTY) return `/images/cards/generated/prop-${card.color}-${card.landmark}.png`
-  if (card.type === CARD_TYPES.MONEY) return `/images/cards/generated/money-${card.value}cr.png`
-  if (card.type === CARD_TYPES.ACTION) return `/images/cards/generated/action-${card.actionType}.png`
+  const baseUrl = import.meta.env.BASE_URL || '/'
+  const cleanBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+  const prefix = `${cleanBase}images/cards/generated/`
+
+  if (card.type === CARD_TYPES.PROPERTY) return `${prefix}prop-${card.color}-${card.landmark}.png`
+  if (card.type === CARD_TYPES.MONEY) return `${prefix}money-${card.value}cr.png`
+  if (card.type === CARD_TYPES.ACTION) return `${prefix}action-${card.actionType}.png`
   if (card.type === CARD_TYPES.RENT) {
-    if (card.wild) return `/images/cards/generated/rent-wild.png`
-    return `/images/cards/generated/rent-${card.colors[0]}-${card.colors[1]}.png`
+    if (card.wild) return `${prefix}rent-wild.png`
+    return `${prefix}rent-${card.colors[0]}-${card.colors[1]}.png`
   }
   if (card.type === CARD_TYPES.WILD_PROPERTY) {
-    if (card.colors[0] === 'wild') return `/images/cards/generated/wild-rainbow.png`
-    return `/images/cards/generated/wild-${card.colors.join('-')}.png`
+    if (card.colors[0] === 'wild') return `${prefix}wild-rainbow.png`
+    return `${prefix}wild-${card.colors.join('-')}.png`
   }
   return null
 }
