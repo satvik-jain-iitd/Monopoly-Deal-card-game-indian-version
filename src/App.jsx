@@ -1,6 +1,8 @@
 import { useReducer, useState, useRef, useEffect, useCallback } from 'react'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
+import Snackbar from '@mui/material/Snackbar'
+import Alert from '@mui/material/Alert'
 import HomeScreen from './components/screens/HomeScreen'
 import SetupScreen from './components/screens/SetupScreen'
 import MultiplayerSetupScreen from './components/screens/MultiplayerSetupScreen'
@@ -13,18 +15,41 @@ import { initGame, PHASE } from './game/gameLogic'
 import { patchedGameReducer } from './game/useGameState'
 import { rankAndScore } from './game/scoring'
 import { loadSeries, saveSeries, resetSeries, recordGame, getStandings, rosterKey } from './game/series'
+import { saveGame, loadGame, deleteGame } from './game/persistence'
 import { sounds, ACTION_SOUND_MAP, ACTION_TYPE_SOUND } from './game/sounds'
 import { useMultiplayer } from './multiplayer/useMultiplayer'
 import { useWebRTC } from './multiplayer/useWebRTC'
 import theme from './theme'
 
 export default function App() {
-  const [screen, setScreen] = useState('home')
-  const [gameState, rawDispatch] = useReducer(patchedGameReducer, null)
+  const savedStateRef = useRef(loadGame())
+  const [screen, setScreen] = useState(savedStateRef.current ? 'game' : 'home')
+  const [restoreToast, setRestoreToast] = useState(false)
+  const [gameState, rawDispatch] = useReducer(patchedGameReducer, savedStateRef.current)
   const [results, setResults] = useState(null) // { ranked, standings, gamesPlayed }
   const recordedGameIdRef = useRef(null)
   const gameStateRef = useRef(gameState)
   useEffect(() => { gameStateRef.current = gameState }, [gameState])
+
+  // ── RESTORE TOAST ON MOUNT ────────────────────────────────────────────
+  useEffect(() => {
+    if (savedStateRef.current && !mpModeRef.current) setRestoreToast(true)
+  }, [])
+
+  // ── GAME STATE PERSISTENCE (saves after every action) ──────────────────
+  useEffect(() => {
+    if (!gameState) return
+    saveGame(gameState)
+  }, [gameState])
+
+  // ── BEFOREUNLOAD SAFETY NET (best-effort backup) ──────────────────────
+  useEffect(() => {
+    const handler = () => {
+      if (gameStateRef.current) saveGame(gameStateRef.current)
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [])
 
   // ── MULTIPLAYER STATE ─────────────────────────────────────────────────
   const [mpMode, setMpMode] = useState(null)      // null | 'host' | 'guest'
@@ -165,6 +190,7 @@ export default function App() {
 
   function handleStartGame(playerNames, customCards = false) {
     setResults(null)
+    deleteGame()
     rawDispatch({ type: '_INIT', _state: initGame(playerNames, { customCards }) })
     setScreen('game')
   }
@@ -293,6 +319,13 @@ export default function App() {
             onHome={handleGoHome}
           />
         )}
+        <Snackbar open={restoreToast} autoHideDuration={3000}
+                  onClose={() => setRestoreToast(false)}
+                  anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+          <Alert severity="info" onClose={() => setRestoreToast(false)}>
+            Pichhla game restore ho gaya! 🎮
+          </Alert>
+        </Snackbar>
       </div>
     </ThemeProvider>
   )

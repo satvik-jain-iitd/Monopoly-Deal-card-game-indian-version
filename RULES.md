@@ -44,3 +44,8 @@ Append-only. One entry per mistake discovered during work. Build over time; neve
   prevention_rule: "BEFORE launching agents, read ~/.claude/team.yaml (agent_launch_procedure section) and project CLAUDE.md (Multi-Agent CLI Launch section). Use EXACT commands from documentation — no variations. Use 'opencode' for Sonu/Aman (Tech Lead / SDE2), 'agy' for Sanika (SDE1, fallback to opencode if quota exceeded). Always sleep 3 seconds after each launch to allow CLI initialization. Always verify with tmux capture-pane before assuming agent is ready."
   incident: "2026-06-21 11:00-11:10 IST. Main tried 'claude code' + failed. User had to manually launch 'opencode' in all three panes. Root cause: no documented procedure existed. Solution: added agent_launch_procedure to team.yaml + Multi-Agent CLI Launch section to CLAUDE.md with EXACT commands and sleep timing."
   added_on: 2026-06-21
+
+- mistake: "Original plan called for mount-useEffect + setScreen to restore game state, causing 1-frame home screen flash before game appears"
+  root_cause: Assumed setScreen must be called imperatively after state init. Did not realize useState can derive initial value from sync localStorage read at component top level.
+  prevention_rule: "For sync-capable persistence (localStorage), use `useRef(loadGame())` + `useState(ref ? 'target' : 'default')` pattern. This sets both state AND screen before first render — zero flash. Reserve mount-useEffect + setScreen for async persistence (IndexedDB, network) where the init value isn't available synchronously. This pattern was used in monopoly-deal game-progress-persistence and eliminated the 1-frame flicker entirely."
+  added_on: 2026-06-21
