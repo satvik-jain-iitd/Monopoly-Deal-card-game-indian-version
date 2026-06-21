@@ -291,7 +291,16 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
         <Typography variant="h5" sx={{ fontWeight: 800, textAlign: 'center' }}>
           <Box component="span" sx={{ color: 'primary.main' }}>{currentPlayer.name}</Box> ki baari!
         </Typography>
-        <Typography sx={{ fontSize: '3.5rem', lineHeight: 1 }}>🃏</Typography>
+        <Paper elevation={3} sx={{
+          width: 80, height: 114, borderRadius: '6px',
+          overflow: 'hidden', backgroundColor: '#0d47a1',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: '3px solid #fff',
+          boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+          p: 1,
+        }}>
+          <img src={logoImg} alt="Dhandha Logo" style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
+        </Paper>
         <Typography variant="body1" sx={{ color: 'text.secondary', textAlign: 'center' }}>
           {currentPlayer.hand.length === 0 ? '5 cards draw karo!' : '2 cards draw karo!'}
         </Typography>
