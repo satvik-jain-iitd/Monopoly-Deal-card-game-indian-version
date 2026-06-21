@@ -38,3 +38,8 @@ Append-only. One entry per mistake discovered during work. Build over time; neve
   root_cause: Assumed setScreen must be called imperatively after state init. Did not realize useState can derive initial value from sync localStorage read at component top level.
   prevention_rule: "For sync-capable persistence (localStorage), use `useRef(loadGame())` + `useState(ref ? 'target' : 'default')` pattern. This sets both state AND screen before first render — zero flash. Reserve mount-useEffect + setScreen for async persistence (IndexedDB, network) where the init value isn't available synchronously. This pattern was used in monopoly-deal game-progress-persistence and eliminated the 1-frame flicker entirely."
   added_on: 2026-06-21
+
+- mistake: "Double Rent card could be played even when player had no Rent card in hand or <2 plays remaining, wasting the card"
+  root_cause: No validation guards on DOUBLE_RENT — neither in UI layer (PlayOptions) nor reducer layer (useGameState.js handler). Assumed player would always play Double Rent correctly, ignoring the follow-up Rent requirement.
+  prevention_rule: "For action cards that require a follow-up card (like Double Rent → Rent), always add dual-layer guards: (1) reducer-level early return to prevent invalid state, (2) UI-level disabled button with reason text. The two guards are independent — one is defense-in-depth for the other. The reason text in UI should be specific ('Rent card nahi hai haath mein') not generic ('Cannot play')."
+  added_on: 2026-06-22

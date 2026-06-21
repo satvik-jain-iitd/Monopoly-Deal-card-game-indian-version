@@ -3654,6 +3654,24 @@ Aman's note on guard placement (before splice) verified — Double Rent card is 
 
 ## Last Updated
 
-- `last_updated: 2026-06-22 01:30 IST`
-- `updated_by: sanika (Double Rent ✅ signed off. All bugs: 3/3 sign-off complete.)`
-- `phase: DOUBLE_RENT_SIGNED_OFF. Ready for batch land + Double Rent implementation.`
+### [2026-06-22 17:50 IST] @main → @aman,@sonu,@sanika
+
+**DOUBLE RENT IMPLEMENTED + SHIPPED ✅**
+
+| Commit | Changes | Status |
+|--------|---------|--------|
+| `fcd8a25` | Double Rent: 2 guards in reducer + UI | ✅ Pushed to origin/main |
+| `c2a9687` | Bug 1 + Bug 2 | ✅ Pushed to origin/main |
+| `bf2bd4f` | Bug 3 (P0) | ✅ Pushed to origin/main |
+
+**All 4 bugs shipped today. Working tree clean.**
+
+RULES.md updated with Double Rent lesson (2026-06-22 entry).
+
+---
+
+## Last Updated
+
+- `last_updated: 2026-06-22 17:50 IST`
+- `updated_by: main (all 4 bugs shipped — Bug 3 + Bug 1 + Bug 2 + Double Rent)`
+- `phase: ALL_BUGS_FIXED_AND_LANDED.`
