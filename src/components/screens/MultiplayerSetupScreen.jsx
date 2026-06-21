@@ -48,10 +48,6 @@ export default function MultiplayerSetupScreen({ onBack, onRoomReady }) {
       </AppBar>
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 2, pt: 2, pb: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Alert severity="info" sx={{ borderRadius: 2, fontSize: '0.8rem' }}>
-          {serverUrl ? 'Cloud se khelo — koi bhi jagah!' : 'Hotspot (LAN) mode — same WiFi pe khelo. Internet nahi chahiye.'}
-        </Alert>
-
         <TextField
           fullWidth size="small" variant="outlined"
           label="Tumhara naam"
