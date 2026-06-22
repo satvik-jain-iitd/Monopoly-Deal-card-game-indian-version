@@ -190,10 +190,7 @@ export function applyPayment(state, debtorId, creditorId, paidCards) {
 export function drawCards(state, playerId, count) {
   const s = deepClone(state)
   const player = s.players[playerId]
-  if (s.deck.length === 0) {
-    s.deck = shuffle(s.discard)
-    s.discard = []
-  }
+  replenishDeck(s)
   const drawn = s.deck.splice(0, Math.min(count, s.deck.length))
   player.hand.push(...drawn)
   return s
@@ -264,11 +261,7 @@ export function startTurn(state) {
   const player = s.players[s.currentPlayerIndex]
   const drawCount = player.hand.length === 0 ? 5 : 2
 
-  if (s.deck.length === 0) {
-    s.deck = shuffle(s.discard)
-    s.discard = []
-    s.log.push('Deck khatam ho gaya, discard pile se naya deck bana.')
-  }
+  replenishDeck(s)
 
   const drawn = s.deck.splice(0, Math.min(drawCount, s.deck.length))
   player.hand.push(...drawn)
@@ -284,6 +277,14 @@ function shuffle(arr) {
     [a[i], a[j]] = [a[j], a[i]]
   }
   return a
+}
+
+export function replenishDeck(s) {
+  if (s.deck.length === 0 && s.discard.length > 0) {
+    s.deck = shuffle(s.discard)
+    s.discard = []
+    s.log.push('Deck khatam ho gaya, discard pile se naya deck bana.')
+  }
 }
 
 function deepClone(obj) {

@@ -5,6 +5,7 @@ import {
   collectPayment, checkWinner, countCompleteSets,
   getRentForColor, isSetComplete, getPlayerBankTotal,
   reactivateBuildings, deactivateBuildings,
+  replenishDeck,
   PHASE,
 } from './gameLogic'
 import { CARD_TYPES, ACTION_TYPES, COLORS, PROPERTY_SETS } from './constants'
@@ -155,6 +156,7 @@ function gameReducer(state, action) {
           player.hand.splice(cardIdx, 1)
           s.discard.push(card)
           s.cardsPlayedThisTurn++
+          replenishDeck(s)
           const drawn = s.deck.splice(0, 2)
           player.hand.push(...drawn)
           s.log.push(`${player.name} ne Pass Go khela — ${drawn.length} extra cards mile!`)
