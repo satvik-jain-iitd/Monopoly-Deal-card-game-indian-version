@@ -1,6 +1,18 @@
 import { WebSocketServer } from 'ws'
 import { createServer } from 'http'
 import { randomUUID } from 'crypto'
+import { readFileSync, existsSync } from 'fs'
+import { join, extname, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const DIST_DIR = join(__dirname, 'dist')
+const MIME = {
+  '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
+  '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf',
+}
 
 const PORT = parseInt(process.env.PORT, 10) || 3001
 
@@ -112,13 +124,26 @@ class RoomState {
 
 // ── WEBSOCKET SERVER ─────────────────────────────────────
 const server = createServer((req, res) => {
+  // Health endpoint
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ status: 'ok', rooms: rooms.size, uptime: process.uptime() }))
     return
   }
-  res.writeHead(404)
-  res.end()
+  // Serve static files from dist/
+  let filePath = join(DIST_DIR, req.url === '/' ? 'index.html' : req.url)
+  if (!existsSync(filePath)) {
+    filePath = join(DIST_DIR, 'index.html')
+  }
+  try {
+    const ext = extname(filePath)
+    const content = readFileSync(filePath)
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' })
+    res.end(content)
+  } catch {
+    res.writeHead(404)
+    res.end('Not found')
+  }
 })
 
 const wss = new WebSocketServer({ server })
@@ -240,11 +265,12 @@ wss.on('connection', (ws, req) => {
     if (!info) return
 
     const { name } = info
+    const wasHost = room.hostName === name
+
     wsToPlayer.delete(ws)
     room.wsMap.delete(name)
     room.broadcast({ type: 'CONNECTION_STATUS', names: room.connectedNames })
 
-    const wasHost = room.hostName === name
     if (room.gameActive && wasHost) {
       const newHost = room.electNewHost()
       if (newHost) {
