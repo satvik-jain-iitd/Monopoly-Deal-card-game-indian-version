@@ -162,14 +162,15 @@ export default function App() {
     } else if (msg.type === 'CONNECTION_STATUS') {
       // used by GameScreen connection indicator
     } else if (msg.type === 'READY') {
-      if (mpModeRef.current === 'host') {
+      if (mpModeRef.current === 'host' && msg.name) {
+        // Relay model: guest sent { type:'READY', name }, host toggles + echoes
         setMpReadyPlayers(prev => {
-          const name = msg.name
-          const next = prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+          const next = prev.includes(msg.name) ? prev.filter(n => n !== msg.name) : [...prev, msg.name]
           setTimeout(() => activeSendRef.current?.({ type: 'READY', readyPlayers: next }), 0)
           return next
         })
       } else if (Array.isArray(msg.readyPlayers)) {
+        // Server model or relay echo: trust the readyPlayers list
         setMpReadyPlayers(msg.readyPlayers)
       }
     } else if (msg.type === 'GAME_STATE') {
