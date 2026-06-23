@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { saveGame, loadGame, deleteGame } from '../persistence'
+import {
+  saveSession, loadSession, deleteSession,
+  listSessions, migrateOldSave,
+} from '../persistence'
 
-const STORAGE_KEY = 'dhandha.game.v1'
+const INDEX_KEY = 'dhandha.session.index'
 const VALID_STATE = {
   gameId: 1,
   players: [
@@ -30,129 +33,162 @@ beforeEach(() => {
   })
 })
 
-function makeSavedPayload(overrides) {
-  return {
-    version: 1,
-    savedAt: Date.now(),
-    state: { ...VALID_STATE, passGoDrawnIds: null },
-    ...overrides,
-  }
-}
+describe('saveSession', () => {
+  it('saves to id-keyed storage and updates index', () => {
+    saveSession(VALID_STATE)
+    const key = `dhandha.session.${VALID_STATE.gameId}`
+    const raw = JSON.parse(localStorage.getItem(key))
+    expect(raw).not.toBeNull()
+    expect(raw.passGoDrawnIds).toBeNull()
 
-function seedStorage(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-}
-
-describe('saveGame', () => {
-  it('saves to localStorage and allows roundtrip', () => {
-    saveGame(VALID_STATE)
-    const loaded = loadGame()
-    expect(loaded).not.toBeNull()
-    expect(loaded.gameId).toBe(1)
-    expect(loaded.players).toHaveLength(2)
-    expect(loaded.phase).toBe('action')
+    const index = JSON.parse(localStorage.getItem(INDEX_KEY))
+    expect(index).toHaveLength(1)
+    expect(index[0].id).toBe(1)
   })
 
   it('does NOT save when phase is gameOver', () => {
-    saveGame({ ...VALID_STATE, phase: 'gameOver' })
-    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+    saveSession({ ...VALID_STATE, phase: 'gameOver' })
+    expect(localStorage.getItem(INDEX_KEY)).toBeNull()
   })
 
-  it('strips passGoDrawnIds from saved state', () => {
-    saveGame(VALID_STATE)
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY))
-    expect(raw.state.passGoDrawnIds).toBeNull()
+  it('does NOT save when gameState is null', () => {
+    saveSession(null)
+    expect(localStorage.getItem(INDEX_KEY)).toBeNull()
   })
 
-  it('silently handles localStorage quota/private mode errors', () => {
-    const orig = localStorage.setItem
+  it('does NOT save when gameId is null', () => {
+    saveSession({ ...VALID_STATE, gameId: null })
+    expect(localStorage.getItem(INDEX_KEY)).toBeNull()
+  })
+
+  it('updates existing session entry on re-save', () => {
+    saveSession(VALID_STATE)
+    const updated = { ...VALID_STATE, phase: 'discard' }
+    saveSession(updated)
+    const index = JSON.parse(localStorage.getItem(INDEX_KEY))
+    expect(index).toHaveLength(1)
+    expect(index[0].phase).toBe('discard')
+  })
+
+  it('caps at MAX_SESSIONS = 5', () => {
+    for (let i = 1; i <= 7; i++) {
+      saveSession({ ...VALID_STATE, gameId: i })
+    }
+    const index = JSON.parse(localStorage.getItem(INDEX_KEY))
+    expect(index).toHaveLength(5)
+    // Only sessions 3..7 should remain (newest sorted by id)
+    for (let i = 1; i <= 2; i++) {
+      expect(localStorage.getItem(`dhandha.session.${i}`)).toBeNull()
+    }
+  })
+
+  it('silently handles localStorage errors', () => {
     localStorage.setItem = vi.fn(() => { throw new Error('QuotaExceeded') })
-    expect(() => saveGame(VALID_STATE)).not.toThrow()
-    localStorage.setItem = orig
+    expect(() => saveSession(VALID_STATE)).not.toThrow()
   })
 })
 
-describe('loadGame', () => {
-  it('returns null when no saved game exists', () => {
-    expect(loadGame()).toBeNull()
+describe('loadSession', () => {
+  it('loads a previously saved session', () => {
+    saveSession(VALID_STATE)
+    const loaded = loadSession(VALID_STATE.gameId)
+    expect(loaded).not.toBeNull()
+    expect(loaded.gameId).toBe(1)
+    expect(loaded.players).toHaveLength(2)
   })
 
-  it('rejects stale game (savedAt 25h ago)', () => {
-    const oldTime = Date.now() - 25 * 3600000
-    seedStorage(makeSavedPayload({ savedAt: oldTime }))
-    expect(loadGame()).toBeNull()
-    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+  it('returns null for non-existent session', () => {
+    expect(loadSession(999)).toBeNull()
   })
 
-  it('rejects gameOver state', () => {
-    seedStorage(makeSavedPayload({
-      state: { ...VALID_STATE, phase: 'gameOver' },
-    }))
-    expect(loadGame()).toBeNull()
-    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
-  })
-
-  it('rejects wrong version', () => {
-    seedStorage(makeSavedPayload({ version: 999 }))
-    expect(loadGame()).toBeNull()
-    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+  it('rejects invalid state (missing players)', () => {
+    const key = `dhandha.session.1`
+    localStorage.setItem(key, JSON.stringify({ gameId: 1, phase: 'action' }))
+    expect(loadSession(1)).toBeNull()
   })
 
   it('handles corrupted JSON gracefully', () => {
-    localStorage.setItem(STORAGE_KEY, 'not-a-valid-json')
-    expect(loadGame()).toBeNull()
-    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+    localStorage.setItem('dhandha.session.1', 'not-json')
+    expect(loadSession(1)).toBeNull()
+  })
+})
+
+describe('deleteSession', () => {
+  it('removes session data and index entry', () => {
+    saveSession(VALID_STATE)
+    const key = `dhandha.session.${VALID_STATE.gameId}`
+    expect(localStorage.getItem(key)).not.toBeNull()
+
+    deleteSession(VALID_STATE.gameId)
+    expect(localStorage.getItem(key)).toBeNull()
+    const index = JSON.parse(localStorage.getItem(INDEX_KEY))
+    expect(index).toHaveLength(0)
   })
 
-  it('rejects invalid schema (missing players)', () => {
-    seedStorage(makeSavedPayload({
-      state: { ...VALID_STATE, players: undefined },
+  it('does not throw when session does not exist', () => {
+    expect(() => deleteSession(999)).not.toThrow()
+  })
+})
+
+describe('listSessions', () => {
+  it('returns empty array when no sessions exist', () => {
+    expect(listSessions()).toEqual([])
+  })
+
+  it('returns index entries for all saved sessions', () => {
+    saveSession({ ...VALID_STATE, gameId: 1 })
+    saveSession({ ...VALID_STATE, gameId: 2, players: [{ name: 'X', hand: [] }, { name: 'Y', hand: [] }] })
+
+    const list = listSessions()
+    expect(list).toHaveLength(2)
+    expect(list.find(s => s.id === 1).playerNames).toEqual(['Aman', 'Sanika'])
+    expect(list.find(s => s.id === 2).playerNames).toEqual(['X', 'Y'])
+  })
+
+  it('includes currentPlayer and savedAt in entries', () => {
+    saveSession(VALID_STATE)
+    const list = listSessions()
+    expect(list[0].currentPlayer).toBe('Aman')
+    expect(list[0].savedAt).toBeGreaterThan(0)
+  })
+})
+
+describe('migrateOldSave', () => {
+  it('migrates old dhandha.game.v1 save to session format', () => {
+    const OLD_KEY = 'dhandha.game.v1'
+    localStorage.setItem(OLD_KEY, JSON.stringify({
+      version: 1,
+      savedAt: Date.now(),
+      state: { ...VALID_STATE, passGoDrawnIds: null },
     }))
-    expect(loadGame()).toBeNull()
-    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
-  })
-})
 
-describe('deleteGame', () => {
-  it('removes saved game from localStorage', () => {
-    seedStorage(makeSavedPayload())
-    expect(localStorage.getItem(STORAGE_KEY)).not.toBeNull()
-    deleteGame()
-    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
-  })
+    const result = migrateOldSave()
+    expect(result).toBe(true)
 
-  it('does not throw when nothing saved', () => {
-    expect(() => deleteGame()).not.toThrow()
-  })
-})
-
-describe('multiplayer roundtrip', () => {
-  it('survives roundtrip with 6 players and full state', () => {
-    const bigState = {
-      gameId: 42,
-      players: [
-        { name: 'A', hand: [], money: [], property: [], fullSets: [] },
-        { name: 'B', hand: [], money: [], property: [], fullSets: [] },
-        { name: 'C', hand: [], money: [], property: [], fullSets: [] },
-        { name: 'D', hand: [], money: [], property: [], fullSets: [] },
-        { name: 'E', hand: [], money: [], property: [], fullSets: [] },
-        { name: 'F', hand: [], money: [], property: [], fullSets: [] },
-      ],
-      phase: 'action',
-      deck: Array.from({ length: 50 }, (_, i) => ({ id: `card-${i}`, type: 'property' })),
-      discardPile: [],
-      currentPlayerIndex: 3,
-      turnPhase: 'playCards',
-      passGoDrawnIds: ['card-1'],
-      logs: [{ turn: 1, action: 'played rent' }],
-    }
-    saveGame(bigState)
-    const loaded = loadGame()
+    // Old key removed, session created
+    expect(localStorage.getItem(OLD_KEY)).toBeNull()
+    const loaded = loadSession(VALID_STATE.gameId)
     expect(loaded).not.toBeNull()
-    expect(loaded.gameId).toBe(42)
-    expect(loaded.players).toHaveLength(6)
-    expect(loaded.currentPlayerIndex).toBe(3)
-    expect(loaded.deck).toHaveLength(50)
-    expect(loaded.passGoDrawnIds).toBeNull()
+    expect(loaded.gameId).toBe(1)
+
+    const list = listSessions()
+    expect(list).toHaveLength(1)
+  })
+
+  it('returns false and cleans up stale old save', () => {
+    const OLD_KEY = 'dhandha.game.v1'
+    localStorage.setItem(OLD_KEY, JSON.stringify({
+      version: 1,
+      savedAt: Date.now() - 25 * 3600000,
+      state: { ...VALID_STATE, passGoDrawnIds: null },
+    }))
+
+    const result = migrateOldSave()
+    expect(result).toBe(false)
+    expect(localStorage.getItem(OLD_KEY)).toBeNull()
+  })
+
+  it('returns false when no old save exists', () => {
+    expect(migrateOldSave()).toBe(false)
   })
 })

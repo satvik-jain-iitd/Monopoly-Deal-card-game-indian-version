@@ -14,7 +14,7 @@ export default function CardHand({ cards, selectable, selectedId, onCardClick, l
       )}
       <Box sx={{
         display: 'flex', flexDirection: 'row', gap: 0.75,
-        overflowX: 'auto', px: 1.5, pb: 1,
+        overflowX: 'auto', overflowY: 'visible', px: 1.5, pb: 1,
         scrollSnapType: 'x mandatory',
         '&::-webkit-scrollbar': { display: 'none' },
         msOverflowStyle: 'none', scrollbarWidth: 'none',

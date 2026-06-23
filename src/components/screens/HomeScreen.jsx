@@ -1,5 +1,5 @@
 import {
-  Accordion, AccordionDetails, AccordionSummary, Box, Button,
+  Accordion, AccordionDetails, AccordionSummary, Box, Button, Chip,
   Typography,
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -13,6 +13,8 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 import PeopleIcon from '@mui/icons-material/People'
 import CasinoIcon from '@mui/icons-material/Casino'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 
 import brownImg from '/images/cards/generated/prop-brown-indore.png'
 import lightBlueImg from '/images/cards/generated/prop-lightBlue-chandigarh.png'
@@ -284,6 +286,79 @@ function GameModesSection({ onPlay, onMultiplayer, onLocalMultiplayer, onOffline
   )
 }
 
+function formatTimeAgo(timestamp) {
+  const diff = Date.now() - timestamp
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
+}
+
+function SavedSessionsSection({ sessions, onResume, onDeleteSession }) {
+  if (!sessions || sessions.length === 0) return null
+  return (
+    <Box sx={{ px: 2.5 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.secondary', mb: 1.5, px: 0.5, letterSpacing: '0.02em' }}>
+        Resume Saved Game
+      </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {sessions.map(session => (
+          <Box
+            key={session.id}
+            onClick={() => onResume(session.id)}
+            sx={{
+              backgroundColor: '#fff', borderRadius: '12px', p: 1.5,
+              display: 'flex', alignItems: 'center', gap: 1.5,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              border: '1.5px solid rgba(230,81,0,0.15)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              '&:hover': {
+                borderColor: '#E65100',
+                boxShadow: '0 4px 12px rgba(230,81,0,0.15)',
+                transform: 'translateY(-1px)',
+              },
+            }}
+          >
+            <Box sx={{
+              width: 36, height: 36, borderRadius: '8px',
+              backgroundColor: '#E65100',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', flexShrink: 0,
+            }}>
+              <PlayArrowIcon sx={{ fontSize: 20 }} />
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', truncate: true }}>
+                {session.playerNames.slice(0, 3).join(', ')}{session.playerNames.length > 3 ? ` +${session.playerNames.length - 3}` : ''}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25 }}>
+                <Chip label={session.phase} size="small" sx={{ height: 20, fontSize: '0.6rem', fontWeight: 700, backgroundColor: 'rgba(230,81,0,0.1)', color: '#E65100' }} />
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {formatTimeAgo(session.savedAt)}
+                </Typography>
+              </Box>
+            </Box>
+            <Box
+              onClick={e => { e.stopPropagation(); onDeleteSession(session.id) }}
+              sx={{
+                width: 32, height: 32, borderRadius: '8px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'text.disabled', flexShrink: 0,
+                '&:hover': { backgroundColor: 'rgba(211,47,47,0.08)', color: '#d32f2f' },
+              }}
+            >
+              <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+            </Box>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  )
+}
+
 function AboutSection() {
   return (
     <Box sx={{ px: 2.5 }}>
@@ -535,7 +610,7 @@ function CTASection({ onPlay, onMultiplayer, onLocalMultiplayer, onOfflineMultip
   )
 }
 
-export default function HomeScreen({ onPlay, onMultiplayer, onLocalMultiplayer, onOfflineMultiplayer }) {
+export default function HomeScreen({ onPlay, onMultiplayer, onLocalMultiplayer, onOfflineMultiplayer, savedSessions, onResume, onDeleteSession }) {
   return (
     <Box sx={{
       height: '100dvh', width: '100%',
@@ -545,6 +620,7 @@ export default function HomeScreen({ onPlay, onMultiplayer, onLocalMultiplayer, 
     }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pb: 3 }}>
         <HeroSection onPlay={onPlay} />
+        <SavedSessionsSection sessions={savedSessions} onResume={onResume} onDeleteSession={onDeleteSession} />
         <GameModesSection {...{ onPlay, onMultiplayer, onLocalMultiplayer, onOfflineMultiplayer }} />
         <AboutSection />
         <HowToPlaySection />

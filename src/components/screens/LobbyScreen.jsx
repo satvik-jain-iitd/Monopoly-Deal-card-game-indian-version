@@ -6,7 +6,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import WifiIcon from '@mui/icons-material/Wifi'
 import WifiOffIcon from '@mui/icons-material/WifiOff'
 
-export default function LobbyScreen({ roomCode, players, isHost, myName, connected, error, onStartGame, onLeave, readyPlayers = [], onToggleReady, showReadyGate = false }) {
+export default function LobbyScreen({ roomCode, players, isHost, myName, connectionStatus = 'disconnected', error, onStartGame, onLeave, readyPlayers = [], onToggleReady, showReadyGate = false }) {
   const nonHostPlayers = players.filter(p => !p.isHost)
   const allReady = nonHostPlayers.length === 0 || nonHostPlayers.every(p => readyPlayers.includes(p.name))
   const canStart = isHost && players.length >= 2 && (!showReadyGate || allReady)
@@ -22,8 +22,10 @@ export default function LobbyScreen({ roomCode, players, isHost, myName, connect
             Lobby
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {connected ? (
+            {connectionStatus === 'connected' ? (
               <WifiIcon sx={{ fontSize: 18, color: 'success.main' }} />
+            ) : connectionStatus === 'connecting' ? (
+              <WifiIcon sx={{ fontSize: 18, color: 'warning.main' }} />
             ) : (
               <WifiOffIcon sx={{ fontSize: 18, color: 'error.main' }} />
             )}

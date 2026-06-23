@@ -4,6 +4,7 @@ import {
 } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import ListAltIcon from '@mui/icons-material/ListAlt'
+import TurnTimer from '../game/TurnTimer'
 import { PHASE } from '../../game/gameLogic'
 import { CARD_TYPES, ACTION_TYPES, COLOR_DISPLAY } from '../../game/constants'
 import { getRentForColor } from '../../game/gameLogic'
@@ -52,7 +53,51 @@ function getActiveInteractorIdx(state) {
   return state.currentPlayerIndex
 }
 
-export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
+const STATUS_COLORS = { connected: '#4caf50', connecting: '#ff9800', disconnected: '#f44336' }
+const STATUS_LABELS = { connected: 'Connected', connecting: 'Connecting...', disconnected: 'Disconnected' }
+
+function ConnectionDot({ status }) {
+  if (!status) return null
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <Box sx={{
+        width: 8, height: 8, borderRadius: '50%',
+        backgroundColor: STATUS_COLORS[status] || '#999',
+        flexShrink: 0,
+      }} />
+      <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6rem', display: { xs: 'none', sm: 'inline' } }}>
+        {STATUS_LABELS[status] || status}
+      </Typography>
+    </Box>
+  )
+}
+
+function ReconnectingBanner({ status }) {
+  if (!status || status === 'connected') return null
+  return (
+    <Box sx={{
+      backgroundColor: status === 'disconnected' ? '#f44336' : '#ff9800',
+      color: '#fff',
+      textAlign: 'center',
+      py: 0.5,
+      px: 2,
+      fontSize: '0.72rem',
+      fontWeight: 700,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 1,
+    }}>
+      {status === 'disconnected' ? (
+        <>Server se disconnect ho gaye. Dobara connect ho rahe hain...</>
+      ) : (
+        <><CircularProgress size={12} thickness={6} sx={{ color: '#fff' }} /> Server se connect ho rahe hain...</>
+      )}
+    </Box>
+  )
+}
+
+export default function GameScreen({ state, dispatch, onHome, myPlayerIndex, connectionStatus }) {
   const [showLog, setShowLog] = useState(false)
   const [passConfirmed, setPassConfirmed] = useState(false)
   const [selectedCard, setSelectedCard] = useState(null)
@@ -144,11 +189,13 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
       <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', backgroundColor: 'background.default', overflow: 'hidden' }}>
         <AppBar position="static" elevation={1} sx={{ backgroundColor: 'background.paper' }}>
           <Toolbar sx={{ minHeight: '48px !important', gap: 1 }}>
+            <ConnectionDot status={connectionStatus} />
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
               <Chip label={PAYMENT_PHASES.includes(state.phase) ? activePlayer.name : currentPlayer.name} color="primary" size="small" sx={{ fontWeight: 700, maxWidth: 100, overflow: 'hidden' }} />
               <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
                 {PAYMENT_PHASES.includes(state.phase) ? 'action kar rahe hain...' : 'ki baari'}
               </Typography>
+              <TurnTimer turnTimeout={state.turnTimeout} turnStartedAt={state.turnStartedAt} />
             </Box>
             <IconButton size="small" onClick={() => setShowLog(!showLog)} sx={{ color: 'text.secondary' }}>
               <ListAltIcon fontSize="small" />
@@ -158,6 +205,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
             </IconButton>
           </Toolbar>
         </AppBar>
+        <ReconnectingBanner status={connectionStatus} />
 
         {showLog && <GameLog logs={state.log} onClose={() => setShowLog(false)} />}
 
@@ -312,6 +360,9 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
         >
           Cards Draw Karo
         </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: '10px' }}>
+          <TurnTimer turnTimeout={state.turnTimeout} turnStartedAt={state.turnStartedAt} />
+        </Box>
       </Box>
     )
   }
@@ -389,6 +440,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
       {/* AppBar */}
       <AppBar position="static" elevation={1} sx={{ backgroundColor: 'background.paper' }}>
         <Toolbar sx={{ minHeight: '48px !important', gap: 1 }}>
+          <ConnectionDot status={connectionStatus} />
           <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden' }}>
             <Chip
               label={currentPlayer.name}
@@ -399,6 +451,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
             <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
               {cardsLeft} plays left
             </Typography>
+            <TurnTimer turnTimeout={state.turnTimeout} turnStartedAt={state.turnStartedAt} />
             {state.doubleRentActive && (
               <Chip label="2× RENT!" color="warning" size="small" sx={{ fontWeight: 800, animation: 'pulse 1s infinite', '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.6 } } }} />
             )}
@@ -411,6 +464,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex }) {
           </IconButton>
         </Toolbar>
       </AppBar>
+      <ReconnectingBanner status={connectionStatus} />
 
       {showLog && <GameLog logs={state.log} onClose={() => setShowLog(false)} />}
 

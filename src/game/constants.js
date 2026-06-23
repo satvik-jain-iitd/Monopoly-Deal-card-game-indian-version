@@ -240,3 +240,5 @@ function shuffle(arr) {
   }
   return a
 }
+
+export const TURN_TIMEOUT = { DRAW: 30000, PLAY: 90000 }

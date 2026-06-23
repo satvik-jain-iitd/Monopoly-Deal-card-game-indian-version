@@ -1,4 +1,4 @@
-import { createDeck, CARD_TYPES, ACTION_TYPES, COLORS, PROPERTY_SETS } from './constants'
+import { createDeck, CARD_TYPES, ACTION_TYPES, COLORS, PROPERTY_SETS, TURN_TIMEOUT } from './constants'
 
 export const PHASE = {
   DRAW: 'draw',
@@ -45,8 +45,10 @@ export function initGame(playerNames, { customCards = false } = {}) {
     phase: PHASE.DRAW,
     cardsPlayedThisTurn: 0,
     maxCardsPerTurn: 3,
-    pendingAction: null,   // { type, card, actingPlayer, targetPlayer, ... }
+    pendingAction: null,
     doubleRentActive: false,
+    turnTimeout: TURN_TIMEOUT.DRAW,
+    turnStartedAt: Date.now(),
     winner: null,
     log: [`Game shuru! ${playerNames[0]} ki baari hai.`],
   }
@@ -248,6 +250,8 @@ export function endTurn(state) {
   s.currentPlayerIndex = (s.currentPlayerIndex + 1) % s.players.length
   s.cardsPlayedThisTurn = 0
   s.doubleRentActive = false
+  s.turnTimeout = TURN_TIMEOUT.DRAW
+  s.turnStartedAt = Date.now()
   s.phase = PHASE.DRAW
 
   const nextPlayer = s.players[s.currentPlayerIndex]
@@ -265,6 +269,8 @@ export function startTurn(state) {
 
   const drawn = s.deck.splice(0, Math.min(drawCount, s.deck.length))
   player.hand.push(...drawn)
+  s.turnTimeout = TURN_TIMEOUT.PLAY
+  s.turnStartedAt = Date.now()
   s.phase = PHASE.PLAY
   s.log.push(`${player.name} ne ${drawn.length} card draw kiye.`)
   return s
