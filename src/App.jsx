@@ -305,9 +305,7 @@ export default function App() {
 
     mp.connect(roomCode, wsBase, null, password)
 
-    if (!isHost) {
-      mpSend({ type: 'HELLO', name: myName })
-    }
+    mpSend({ type: 'HELLO', name: myName })
 
     saveMpSession(roomCode, myName, password, isHost ? [myName] : [], mpWsBaseRef.current)
     setScreen('lobby')
