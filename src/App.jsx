@@ -55,6 +55,8 @@ export default function App() {
   const mpTransportRef = useRef('cloud') // 'cloud' | 'offline'
   const mpWsBaseRef = useRef(null)
   const isReconnectingRef = useRef(false)
+  const mpGuestStateRef = useRef(null)
+  const pendingHostInitRef = useRef(false)
   // Points to whichever send fn is active for the current session
   const activeSendRef = useRef(null)
 
@@ -124,6 +126,7 @@ export default function App() {
         setMpMode('guest')
       }
       setMpGuestState(msg.state)
+      mpGuestStateRef.current = msg.state
       setScreen('game')
     } else if (msg.type === 'LOBBY_STATE') {
       isReconnectingRef.current = false
@@ -134,9 +137,21 @@ export default function App() {
       setScreen('lobby')
     } else if (msg.type === 'HOST_CHANGED') {
       setMpPlayers(prev => prev.map(p => ({ ...p, isHost: p.name === msg.hostName })))
+      // Downgrade: old host → guest
       if (mpMyNameRef.current && mpMyNameRef.current !== msg.hostName && mpModeRef.current === 'host') {
         mpModeRef.current = 'guest'
         setMpMode('guest')
+      }
+      // Upgrade: guest → new host
+      if (mpMyNameRef.current === msg.hostName && mpModeRef.current === 'guest') {
+        mpModeRef.current = 'host'
+        setMpMode('host')
+        const state = mpGuestStateRef.current
+        if (state) {
+          rawDispatch({ type: '_INIT', _state: state })
+        } else {
+          pendingHostInitRef.current = true
+        }
       }
     } else if (msg.type === 'RECONNECT_ACCEPT') {
       isReconnectingRef.current = false
@@ -159,12 +174,17 @@ export default function App() {
       }
     } else if (msg.type === 'GAME_STATE') {
       setMpGuestState(msg.state)
+      mpGuestStateRef.current = msg.state
       setMpMyIndex(prev => {
         if (prev !== null) return prev
         const idx = msg.state.players?.findIndex(p => p.name === mpMyNameRef.current)
         return idx >= 0 ? idx : 0
       })
       setScreen('game')
+      if (pendingHostInitRef.current && mpModeRef.current === 'host') {
+        pendingHostInitRef.current = false
+        rawDispatch({ type: '_INIT', _state: msg.state })
+      }
     } else if (msg.type === 'GAME_ACTION' && mpModeRef.current === 'host') {
       rawDispatch(msg.action)
     }
