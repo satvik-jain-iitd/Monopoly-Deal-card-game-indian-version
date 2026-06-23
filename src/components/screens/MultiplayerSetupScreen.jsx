@@ -9,7 +9,7 @@ function generateCode() {
   return Math.random().toString(36).slice(2, 6).toUpperCase()
 }
 
-const DEFAULT_WS_URL = 'wss://september-persons-gain-summary.trycloudflare.com'
+const DEFAULT_WS_URL = 'wss://dhandha.letsdwelo.in'
 const MP_SESSION_KEY = 'dhandha.mp.sessions'
 
 function loadMpSessions() {
