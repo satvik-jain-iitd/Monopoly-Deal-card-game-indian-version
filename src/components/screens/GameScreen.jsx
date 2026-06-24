@@ -361,8 +361,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex, con
           Cards Draw Karo
         </Button>
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: '10px' }}>
-          <TurnTimer turnTimeout={state.turnTimeout} turnStartedAt={state.turnStartedAt}
-            onTimeout={() => dispatch({ type: 'END_TURN' })} />
+          <TurnTimer turnTimeout={state.turnTimeout} turnStartedAt={state.turnStartedAt} />
         </Box>
       </Box>
     )
@@ -452,8 +451,7 @@ export default function GameScreen({ state, dispatch, onHome, myPlayerIndex, con
             <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
               {cardsLeft} plays left
             </Typography>
-            <TurnTimer turnTimeout={state.turnTimeout} turnStartedAt={state.turnStartedAt}
-              onTimeout={() => dispatch({ type: 'END_TURN' })} />
+            <TurnTimer turnTimeout={state.turnTimeout} turnStartedAt={state.turnStartedAt} />
             {state.doubleRentActive && (
               <Chip label="2× RENT!" color="warning" size="small" sx={{ fontWeight: 800, animation: 'pulse 1s infinite', '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.6 } } }} />
             )}
