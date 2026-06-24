@@ -279,6 +279,11 @@ export default function App() {
     setScreen('home')
   }
 
+  function handleRetrySetup() {
+    resetMpState()
+    setScreen('mpSetup')
+  }
+
   function handleStartGame(playerNames, customCards = false) {
     setResults(null)
     if (gameState) deleteSession(gameState.gameId)
@@ -436,6 +441,7 @@ export default function App() {
             error={mpError || mp.error}
             onStartGame={handleStartMultiplayerGame}
             onLeave={handleGoHome}
+            onRetry={handleRetrySetup}
             readyPlayers={mpReadyPlayers}
             onToggleReady={mpMode === 'guest' ? handleToggleReady : undefined}
             showReadyGate={mpTransportRef.current === 'cloud'}

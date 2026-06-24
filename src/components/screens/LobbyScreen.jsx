@@ -6,7 +6,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import WifiIcon from '@mui/icons-material/Wifi'
 import WifiOffIcon from '@mui/icons-material/WifiOff'
 
-export default function LobbyScreen({ roomCode, players, isHost, myName, connectionStatus = 'disconnected', error, onStartGame, onLeave, readyPlayers = [], onToggleReady, showReadyGate = false }) {
+export default function LobbyScreen({ roomCode, players, isHost, myName, connectionStatus = 'disconnected', error, onStartGame, onLeave, onRetry, readyPlayers = [], onToggleReady, showReadyGate = false }) {
   const nonHostPlayers = players.filter(p => !p.isHost)
   const allReady = nonHostPlayers.length === 0 || nonHostPlayers.every(p => readyPlayers.includes(p.name))
   const canStart = isHost && players.length >= 2 && (!showReadyGate || allReady)
@@ -42,48 +42,65 @@ export default function LobbyScreen({ roomCode, players, isHost, myName, connect
             {error}
           </Alert>
         )}
-        {/* Room code display */}
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: '0.08em' }}>
-            ROOM CODE — doston ko yeh do
-          </Typography>
-          <Typography variant="h2" sx={{ fontWeight: 900, letterSpacing: '0.15em', color: 'primary.main', lineHeight: 1.1 }}>
-            {roomCode}
-          </Typography>
-        </Box>
+        {error && players.length === 0 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}>
+            <Button variant="outlined" size="large" fullWidth onClick={onRetry}
+              sx={{ borderRadius: 3, py: 1.5, fontWeight: 700 }}
+            >
+              Dobara try karein 🔄
+            </Button>
+            <Button variant="text" size="small" fullWidth onClick={onLeave}
+              sx={{ borderRadius: 2, color: 'text.secondary' }}
+            >
+              Wapas home
+            </Button>
+          </Box>
+        )}
+        {!(error && players.length === 0) && (
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: '0.08em' }}>
+              ROOM CODE — doston ko yeh do
+            </Typography>
+            <Typography variant="h2" sx={{ fontWeight: 900, letterSpacing: '0.15em', color: 'primary.main', lineHeight: 1.1 }}>
+              {roomCode}
+            </Typography>
+          </Box>
+        )}
 
         {/* Player list */}
-        <Box sx={{ width: '100%', backgroundColor: 'background.paper', borderRadius: 2, overflow: 'hidden' }}>
-          <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', px: 2, pt: 1.5, pb: 0.5, display: 'block' }}>
-            PLAYERS ({players.length})
-          </Typography>
-          <List dense disablePadding>
-            {players.map((p, i) => (
-              <ListItem key={i} sx={{ px: 2, py: 0.75, borderTop: i > 0 ? '1px solid' : 'none', borderColor: 'divider' }}>
-                <ListItemText
-                  primary={p.name}
-                  primaryTypographyProps={{ fontWeight: p.name === myName ? 800 : 500 }}
-                />
-                {p.isHost && <Chip label="Host 🎮" size="small" color="primary" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />}
-                {!p.isHost && showReadyGate ? (
-                  readyPlayers.includes(p.name)
-                    ? <Chip label="Ready ✓" size="small" color="success" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
-                    : p.name === myName
-                      ? <Button size="small" variant="outlined" color="primary" onClick={onToggleReady}
-                          sx={{ fontWeight: 700, fontSize: '0.7rem', py: 0, minWidth: 70, borderRadius: 2 }}>
-                          Ready?
-                        </Button>
-                      : <Chip label="Ready nahi" size="small" color="default" variant="outlined"
-                          sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
-                ) : !p.isHost && (
-                  <Chip label="Ready ✓" size="small" color="success" variant="outlined" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
-                )}
-              </ListItem>
-            ))}
-          </List>
-        </Box>
+        {!(error && players.length === 0) && (
+          <Box sx={{ width: '100%', backgroundColor: 'background.paper', borderRadius: 2, overflow: 'hidden' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', px: 2, pt: 1.5, pb: 0.5, display: 'block' }}>
+              PLAYERS ({players.length})
+            </Typography>
+            <List dense disablePadding>
+              {players.map((p, i) => (
+                <ListItem key={i} sx={{ px: 2, py: 0.75, borderTop: i > 0 ? '1px solid' : 'none', borderColor: 'divider' }}>
+                  <ListItemText
+                    primary={p.name}
+                    primaryTypographyProps={{ fontWeight: p.name === myName ? 800 : 500 }}
+                  />
+                  {p.isHost && <Chip label="Host 🎮" size="small" color="primary" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />}
+                  {!p.isHost && showReadyGate ? (
+                    readyPlayers.includes(p.name)
+                      ? <Chip label="Ready ✓" size="small" color="success" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
+                      : p.name === myName
+                        ? <Button size="small" variant="outlined" color="primary" onClick={onToggleReady}
+                            sx={{ fontWeight: 700, fontSize: '0.7rem', py: 0, minWidth: 70, borderRadius: 2 }}>
+                            Ready?
+                          </Button>
+                        : <Chip label="Ready nahi" size="small" color="default" variant="outlined"
+                            sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
+                  ) : !p.isHost && (
+                    <Chip label="Ready ✓" size="small" color="success" variant="outlined" sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
+                  )}
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
 
-        {isHost ? (
+        {error && players.length === 0 ? null : isHost ? (
           <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Button
               variant="contained" size="large" fullWidth
