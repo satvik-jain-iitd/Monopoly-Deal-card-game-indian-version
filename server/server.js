@@ -245,8 +245,8 @@ wss.on('connection', (ws, req) => {
 
       case 'GAME_ACTION': {
         const gaSender = wsToPlayer.get(ws)
-        if (!gaSender || gaSender.name !== room.hostName) {
-          room.sendTo(ws, { type: 'ERROR', message: 'Sirf host game action bhej sakta hai' })
+        if (!gaSender) {
+          room.sendTo(ws, { type: 'ERROR', message: 'Pehle HELLO bhejo' })
           break
         }
         room.broadcast({ type: 'GAME_ACTION', action: msg.action }, ws)

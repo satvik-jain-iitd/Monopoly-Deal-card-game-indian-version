@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Box, Typography } from '@mui/material'
 
 const pctColor = (pct) => {
@@ -7,19 +7,26 @@ const pctColor = (pct) => {
   return 'error'
 }
 
-export default function TurnTimer({ turnTimeout, turnStartedAt }) {
+export default function TurnTimer({ turnTimeout, turnStartedAt, onTimeout }) {
   const [remaining, setRemaining] = useState(null)
+  const firedRef = useRef(false)
 
   useEffect(() => {
+    firedRef.current = false
     if (!turnTimeout || !turnStartedAt) { setRemaining(null); return }
     const tick = () => {
       const elapsed = Date.now() - turnStartedAt
-      setRemaining(Math.max(0, Math.floor((turnTimeout - elapsed) / 1000)))
+      const rem = Math.max(0, Math.floor((turnTimeout - elapsed) / 1000))
+      setRemaining(rem)
+      if (rem === 0 && !firedRef.current && onTimeout) {
+        firedRef.current = true
+        onTimeout()
+      }
     }
     tick()
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
-  }, [turnTimeout, turnStartedAt])
+  }, [turnTimeout, turnStartedAt, onTimeout])
 
   if (remaining == null) return null
 

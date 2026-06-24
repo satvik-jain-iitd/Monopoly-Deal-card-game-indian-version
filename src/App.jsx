@@ -102,6 +102,10 @@ export default function App() {
       const myName = mpMyNameRef.current
       if (myName && msg.players?.length > 0) {
         saveMpSession(mpRoom, myName, null, msg.players.map(p => p.name), mpWsBaseRef.current)
+        // Guest enters lobby on successful join (server confirmed password)
+        if (mpModeRef.current === 'guest' && mpMyNameRef.current && msg.players.map(p => p.name).includes(mpMyNameRef.current)) {
+          setScreen('lobby')
+        }
       }
     } else if (msg.type === 'PLAYER_LEFT') {
       setMpPlayers(prev => {
@@ -334,7 +338,7 @@ export default function App() {
     mpSend({ type: 'HELLO', name: myName })
 
     saveMpSession(roomCode, myName, password, isHost ? [myName] : [], mpWsBaseRef.current)
-    setScreen('lobby')
+    if (isHost) setScreen('lobby')  // Host: navigate immediately; guest stays on mpSetup until ROSTER
   }
 
   function handleRejoinMpSession(roomCode, playerName) {
@@ -358,7 +362,6 @@ export default function App() {
     setMpError(null)
 
     mp.connect(roomCode, wsBase, playerName, password)
-    setScreen('lobby')
   }
 
   // Called by OfflineSetupScreen once role+name are chosen (before QR exchange).
@@ -409,7 +412,7 @@ export default function App() {
         )}
         {screen === 'setup' && <SetupScreen onStart={handleStartGame} onBack={() => setScreen('home')} />}
         {screen === 'mpSetup' && (
-          <MultiplayerSetupScreen onBack={() => setScreen('home')} onRoomReady={handleRoomReady} onRejoinMpSession={handleRejoinMpSession} />
+          <MultiplayerSetupScreen onBack={() => setScreen('home')} onRoomReady={handleRoomReady} onRejoinMpSession={handleRejoinMpSession} error={mpError || mp.error} />
         )}
         {screen === 'localSetup' && (
           <LocalMultiplayerSetupScreen onBack={() => setScreen('home')} onRoomReady={handleRoomReady} />

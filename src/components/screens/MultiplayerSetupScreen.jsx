@@ -28,7 +28,7 @@ function formatTimeAgo(timestamp) {
 
 // Cloud multiplayer setup — requires a WebSocket relay server.
 // Set VITE_WS_URL in .env. Falls back to Hotspot (LAN) mode.
-export default function MultiplayerSetupScreen({ onBack, onRoomReady, onRejoinMpSession }) {
+export default function MultiplayerSetupScreen({ onBack, onRoomReady, onRejoinMpSession, error: parentError }) {
   const [mpSavedSessions] = useState(() => loadMpSessions())
   const [tab, setTab] = useState(0)
   const [name, setName] = useState('')
@@ -74,7 +74,7 @@ export default function MultiplayerSetupScreen({ onBack, onRoomReady, onRejoinMp
           inputProps={{ maxLength: 20 }}
         />
 
-        {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
+        {(parentError || error) && <Alert severity="error" sx={{ borderRadius: 2 }}>{parentError || error}</Alert>}
 
         <Tabs value={tab} onChange={(_, v) => { setTab(v); setError(''); setPassword('') }} variant="fullWidth"
           sx={{ borderRadius: 2, backgroundColor: 'background.paper' }}>
