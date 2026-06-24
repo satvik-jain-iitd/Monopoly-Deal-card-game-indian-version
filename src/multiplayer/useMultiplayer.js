@@ -59,8 +59,13 @@ export function useMultiplayer({ onMessage, onOpen } = {}) {
     ws.onmessage = (e) => {
       try { onMessageRef.current?.(JSON.parse(e.data)) } catch (_) {}
     }
-    ws.onclose = () => {
+    ws.onclose = (e) => {
       setConnectionStatus('disconnected')
+      // Password rejection — show error, don't retry
+      if (e.code === 4001) {
+        setError(e.reason || 'Wrong password')
+        return
+      }
       const maxRetries = everConnectedRef.current ? 5 : 3
       if (roomParamsRef.current && retryCountRef.current < maxRetries) {
         const backoff = Math.min(1000 * Math.pow(2, retryCountRef.current), 8000)
@@ -76,6 +81,8 @@ export function useMultiplayer({ onMessage, onOpen } = {}) {
       }
     }
     ws.onerror = () => {
+      // onclose fires after onerror with the close code — skip duplicate error
+      if (wsRef.current?.readyState === WebSocket.CLOSED) return
       setError('Server se connect nahi ho paaya. Dobara try karo.')
       setConnectionStatus('disconnected')
     }
